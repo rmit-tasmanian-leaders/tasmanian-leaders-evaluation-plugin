@@ -420,3 +420,57 @@ Functional features such as evaluation data integration, dashboard functionality
 ## Development Phase
 
 **Sprint 1 - Design and Bootstrap**
+
+## PDF Export Proof of Concept
+
+A basic PDF export proof of concept has been implemented for Sprint 1.
+
+### Current Functionality
+
+The WordPress plugin now includes an `Evaluation Report` page in the WordPress admin area.
+
+The page currently displays test report data including:
+
+- Program
+- Cohort
+- Evaluation point
+- Average score
+
+The test data is placeholder data used to verify the reporting workflow and is not client evaluation data.
+
+The report can be exported as a PDF using the `Export PDF` button.
+
+### PDF Library
+
+PDF generation currently uses Dompdf, installed through Composer.
+
+From the plugin directory, install the required dependencies with:
+
+```bash
+composer install
+
+```
+
+The Composer dependency files are included in the repository:
+
+```text
+composer.json
+composer.lock
+```
+
+The generated `vendor/` directory is excluded from Git and can be recreated using `composer install`.
+
+### Testing
+
+The PDF export proof of concept was tested in the local WordPress development environment.
+
+The following workflow was successfully verified:
+
+1. WordPress loads successfully.
+2. The Tasmanian Leaders Evaluation Plugin activates without errors.
+3. The `Evaluation Report` page appears in the WordPress admin menu.
+4. Test report data displays correctly.
+5. Selecting `Export PDF` generates and downloads `evaluation-report.pdf`.
+6. The generated PDF contains the expected report data.
+
+This proof of concept establishes that PDF report generation is technically feasible within the WordPress plugin. The report layout and data source will be expanded as the dashboard and evaluation data integration are developed.
