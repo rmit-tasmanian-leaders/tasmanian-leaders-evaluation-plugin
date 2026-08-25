@@ -10,4 +10,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Load the existing WordPress Admin report and PDF export functionality.
 require_once plugin_dir_path(__FILE__) . 'admin/pdf-export.php';
+
+// Load the front-end dashboard shortcode integration.
+require_once plugin_dir_path(__FILE__) . 'includes/class-dashboard-shortcode.php';
