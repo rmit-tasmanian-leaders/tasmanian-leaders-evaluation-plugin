@@ -13,35 +13,48 @@ The system is intended to provide authorised Tasmanian Leaders staff with a stru
 
 **Sprint 1 - Design and Bootstrap**
 
-Current development work focuses on:
+Sprint 1 has established the main technical foundation for the WordPress plugin.
 
-- Establishing the Git repository
-- Creating the initial WordPress plugin structure
-- Verifying that WordPress recognises the plugin
-- Establishing the team development workflow
-- Documenting the local development and testing process
+Current working functionality includes:
 
-Functional dashboard and reporting features will be implemented in later development work.
+- WordPress plugin loading and activation
+- Front-end evaluation dashboard proof of concept
+- Authenticated dashboard access
+- WordPress Admin evaluation report
+- PDF report export using Dompdf
+- Documented WordPress integration architecture
+- Documented local development setup and repository structure
 
-## Initial Plugin Structure
+The current dashboard and reports use prototype/sample data.
 
-The initial WordPress plugin structure is:
+Sprint 2 development will focus on connecting the plugin to real Gravity Forms evaluation data and expanding the reporting functionality.
+
+## Plugin Structure
 
 ```text
 tasmanian-leaders-evaluation-plugin/
-|
-|-- admin/
-|
-|-- assets/
-|   |-- css/
-|   `-- js/
-|
-|-- includes/
-|
-|-- templates/
-|
-|-- tasmanian-leaders-evaluation.php
-`-- README.md
+├── admin/
+│   └── pdf-export.php
+├── assets/
+│   ├── css/
+│   │   └── dashboard.css
+│   └── js/
+├── docs/
+│   ├── development-setup.md
+│   └── wordpress-integration-architecture.md
+├── includes/
+│   └── class-dashboard-shortcode.php
+├── templates/
+│   └── evaluation-dashboard.php
+├── composer.json
+├── composer.lock
+├── tasmanian-leaders-evaluation.php
+└── README.md
+
+Detailed local setup and verification instructions are available in:
+
+```text
+docs/development-setup.md
 ```
 
 The directories provide the initial foundation for the plugin and allow functionality to be separated as the project develops.
@@ -180,14 +193,17 @@ Development should not normally be performed directly on the `main` branch.
 
 Developers should create separate branches for their work so changes can be tested and reviewed before being merged.
 
-### 1. Update Main
+### 1. Update the Shared Integration Branch
 
 Before starting new development work:
 
 ```bash
-git checkout main
-git pull origin main
+git fetch origin
+git switch feature/plugin-structure
+git pull origin feature/plugin-structure
 ```
+
+Developers should create their task branch from the latest shared integration branch.
 
 ### 2. Create a Feature Branch
 
@@ -248,6 +264,7 @@ Example:
 ```bash
 git commit -m "chore: create initial WordPress plugin structure"
 ```
+
 
 Example commit messages include:
 
@@ -398,14 +415,23 @@ Team members should confirm that they can successfully access and clone the repo
 - Do not develop directly on `main` unless specifically agreed by the team.
 - Create a feature branch for development work.
 - Test changes locally before requesting review.
-- Pull the latest `main` branch before beginning new work.
+- Pull the latest shared integration branch before beginning new work.
 - Do not commit passwords, credentials, API keys, or other sensitive information.
 
-## Future Development
+## Sprint 2 Development Direction
 
-The current Sprint 1 implementation establishes the technical foundation of the WordPress plugin.
+Sprint 2 will move from proof-of-concept functionality toward real evaluation data integration.
 
-Functional features such as evaluation data integration, dashboard functionality, filtering, comparisons, visualisations, and report generation will be developed as the project progresses.
+Planned technical work includes:
+
+- Connecting the plugin to Gravity Forms using GFAPI
+- Mapping different Gravity Forms structures into a consistent internal format
+- Matching participant records across evaluation stages
+- Applying missing-stage reporting rules
+- Replacing prototype/sample data with real evaluation data
+- Expanding filtering, comparison and reporting functionality
+
+Gravity Forms-specific logic should remain separate from dashboard and PDF presentation code so that form changes can be handled through the integration and mapping layer.
 
 ## Team
 
