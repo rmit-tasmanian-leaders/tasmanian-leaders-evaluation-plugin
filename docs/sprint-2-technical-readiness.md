@@ -291,3 +291,14 @@ The existing WordPress plugin, front-end shortcode integration and PDF export pr
 Sprint 2 should focus on connecting the existing reporting interfaces to a shared, normalised evaluation data source rather than rebuilding the existing front-end integration.
 
 The development environment has been verified as operational, the current dependencies have been identified, and the major technical risks and prerequisites for Sprint 2 have been documented.
+
+
+## Database Connection Testing and Resolution
+
+The evaluation database connection was tested in the local WordPress development environment. An initial connection attempt resulted in an access-denied error because the incorrect local MySQL instance was being used. The Local WordPress MySQL configuration was then identified and used for the database connection.
+
+The connection was subsequently verified successfully against the `local` WordPress database. The `wp_tle_evaluations` table was confirmed to exist with the required evaluation fields. Test evaluation records were inserted into the table and successfully retrieved through the plugin's database class.
+
+The plugin's REST API endpoint was also tested at `/wp-json/tle/v1/evaluations`. The endpoint returned HTTP 200 and successfully returned evaluation records as JSON when test data was present. Temporary test records were removed after testing to leave the development database clean.
+
+This resolved the local database connection issue and demonstrated successful database connectivity, data insertion, data retrieval, and REST API access within the current development environment.
