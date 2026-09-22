@@ -22,6 +22,10 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-evaluation-database.php
 // Load the REST API integration.
 require_once plugin_dir_path(__FILE__) . 'includes/class-rest-api.php';
 
+// Load the evaluation data service and Gravity Forms provider.
+require_once plugin_dir_path(__FILE__) . 'includes/class-evaluation-data-service.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-gravity-forms-provider.php';
+
 // Create the evaluation database table when the plugin is activated.
 register_activation_hook(
     __FILE__,
