@@ -1213,6 +1213,208 @@ foreach ($key_growth as $item) {
         </td>
     ';
 }
+$section_chart_data = [];
+$section_movers_chart_data = [];
+$section_growth_html = [];
+
+$section_recommendations = [
+    'Insight' => [
+        'Add a reflective check-in between post-program and delayed evaluation.',
+        'Introduce goal-setting earlier in the program to reinforce clarity of purpose.',
+        'Review social-awareness content and build on existing participant strengths.',
+    ],
+    'Influence' => [
+        'Extend structured peer contact beyond the formal program end date.',
+        'Introduce networking opportunities earlier so participants have longer to apply them.',
+        'Continue providing stretch opportunities that strengthen collaboration.',
+    ],
+    'Impact' => [
+        'Document what contributed to the strongest belonging result.',
+        'Review how place-attachment is measured and interpreted across evaluation points.',
+        'Include manager evaluation where available to support behavioural evidence.',
+    ],
+];
+
+$section_chart_y = static function ($percentage) {
+    return 205 - ($percentage * 1.55);
+};
+
+foreach ($overview_sections as $section_name => $measures) {
+
+    $averages = [
+        'pre' => 0,
+        'completion' => 0,
+        'delay' => 0,
+    ];
+
+    foreach ($measures as $measure) {
+        $averages['pre'] += $measure['pre'];
+        $averages['completion'] += $measure['completion'];
+        $averages['delay'] += $measure['delay'];
+    }
+
+    $count = count($measures);
+
+    foreach (['pre', 'completion', 'delay'] as $point) {
+        $averages[$point] = ($averages[$point] / $count / 7) * 100;
+    }
+
+    $section_points =
+        '70,' . $section_chart_y($averages['pre']) . ' ' .
+        '300,' . $section_chart_y($averages['completion']) . ' ' .
+        '530,' . $section_chart_y($averages['delay']);
+
+    $section_svg = '
+    <svg xmlns="http://www.w3.org/2000/svg" width="600" height="240" viewBox="0 0 600 240">
+        <rect width="600" height="240" fill="#ffffff"/>
+
+        <g stroke="#dddddd" stroke-width="1">
+            <line x1="70" y1="50" x2="550" y2="50"/>
+            <line x1="70" y1="81" x2="550" y2="81"/>
+            <line x1="70" y1="112" x2="550" y2="112"/>
+            <line x1="70" y1="143" x2="550" y2="143"/>
+            <line x1="70" y1="174" x2="550" y2="174"/>
+            <line x1="70" y1="205" x2="550" y2="205"/>
+        </g>
+
+        <g fill="#666666" font-family="DejaVu Sans" font-size="9">
+            <text x="35" y="53">100%</text>
+            <text x="42" y="84">80%</text>
+            <text x="42" y="115">60%</text>
+            <text x="42" y="146">40%</text>
+            <text x="42" y="177">20%</text>
+            <text x="49" y="208">0%</text>
+
+            <text x="48" y="229">Pre-program</text>
+            <text x="265" y="229">Post-program</text>
+            <text x="510" y="229">Delayed</text>
+        </g>
+
+        <polyline
+            points="' . $section_points . '"
+            fill="none"
+            stroke="' . esc_attr($report_colour) . '"
+            stroke-width="3"
+        />
+
+        <g fill="' . esc_attr($report_colour) . '">
+            <circle cx="70" cy="' . $section_chart_y($averages['pre']) . '" r="5"/>
+            <circle cx="300" cy="' . $section_chart_y($averages['completion']) . '" r="5"/>
+            <circle cx="530" cy="' . $section_chart_y($averages['delay']) . '" r="5"/>
+        </g>
+    </svg>
+    ';
+
+    $section_chart_data[$section_name] =
+        'data:image/svg+xml;base64,' .
+        base64_encode($section_svg);
+
+    $movers = [];
+
+    foreach ($measures as $measure) {
+        $before = ($measure['pre'] / 7) * 100;
+        $after = ($measure['delay'] / 7) * 100;
+
+        $movers[] = [
+            'measure' => $measure['measure'],
+            'before' => $before,
+            'after' => $after,
+            'increase' => $after - $before,
+        ];
+    }
+
+    usort(
+        $movers,
+        static function ($a, $b) {
+            return $b['increase'] <=> $a['increase'];
+        }
+    );
+
+    $movers = array_slice($movers, 0, 3);
+
+    $bar_positions = [105, 275, 445];
+    $bar_svg_content = '';
+    $growth_lines = '';
+
+    foreach ($movers as $index => $mover) {
+        $x = $bar_positions[$index];
+
+        $after_height = $mover['after'] * 1.45;
+        $before_height = $mover['before'] * 1.45;
+
+        $after_y = 190 - $after_height;
+        $before_y = 190 - $before_height;
+
+        $bar_svg_content .= '
+            <rect
+                x="' . $x . '"
+                y="' . $after_y . '"
+                width="42"
+                height="' . $after_height . '"
+                fill="' . esc_attr($report_colour) . '"
+            />
+
+            <rect
+                x="' . ($x + 44) . '"
+                y="' . $before_y . '"
+                width="42"
+                height="' . $before_height . '"
+                fill="#a7e8ef"
+            />
+
+            <text
+                x="' . ($x + 42) . '"
+                y="215"
+                text-anchor="middle"
+                font-family="DejaVu Sans"
+                font-size="8"
+                fill="#111111"
+            >' . esc_html($mover['measure']) . '</text>
+        ';
+
+        $growth_lines .= '
+            <div class="growth-line">
+                ' . ($index + 1) . '. ' .
+                esc_html($mover['measure']) .
+                ' increased by ' .
+                esc_html(round($mover['increase'])) .
+                ' percentage points.
+            </div>
+        ';
+    }
+
+    $movers_svg = '
+    <svg xmlns="http://www.w3.org/2000/svg" width="600" height="230" viewBox="0 0 600 230">
+        <rect width="600" height="230" fill="#ffffff"/>
+
+        <g stroke="#dddddd" stroke-width="1">
+            <line x1="70" y1="45" x2="550" y2="45"/>
+            <line x1="70" y1="74" x2="550" y2="74"/>
+            <line x1="70" y1="103" x2="550" y2="103"/>
+            <line x1="70" y1="132" x2="550" y2="132"/>
+            <line x1="70" y1="161" x2="550" y2="161"/>
+            <line x1="70" y1="190" x2="550" y2="190"/>
+        </g>
+
+        <g fill="#666666" font-family="DejaVu Sans" font-size="9">
+            <text x="35" y="48">100%</text>
+            <text x="42" y="77">80%</text>
+            <text x="42" y="106">60%</text>
+            <text x="42" y="135">40%</text>
+            <text x="42" y="164">20%</text>
+            <text x="49" y="193">0%</text>
+        </g>
+
+        ' . $bar_svg_content . '
+    </svg>
+    ';
+
+    $section_movers_chart_data[$section_name] =
+        'data:image/svg+xml;base64,' .
+        base64_encode($movers_svg);
+
+    $section_growth_html[$section_name] = $growth_lines;
+}
 $html = '
 <!DOCTYPE html>
 <html>
@@ -1523,6 +1725,134 @@ $html = '
         font-size: 9px;
         text-align: right;
     }
+    .section-report-title {
+        margin: 0 0 4px;
+        color: #111111;
+        font-size: 32px;
+        line-height: 1;
+    }
+
+    .section-chart,
+    .movers-chart {
+        width: 100%;
+    }
+
+    .section-chart img,
+    .movers-chart img {
+        width: 100%;
+    }
+
+    .section-movers-title {
+        margin: 4px 0 4px;
+        color: #111111;
+        font-size: 20px;
+    }
+
+    .section-summary-table {
+        width: 100%;
+        margin-top: 8px;
+        border-collapse: separate;
+        border-spacing: 8px 0;
+        margin-left: -8px;
+    }
+
+    .growth-box,
+    .recommendations-box {
+        width: 50%;
+        padding: 15px;
+        vertical-align: top;
+    }
+
+    .growth-box {
+        background: #a8f5b5;
+        color: #111111;
+    }
+
+    .recommendations-box {
+        color: #ffffff;
+    }
+
+    .box-heading {
+        margin-bottom: 12px;
+        font-size: 19px;
+        font-weight: bold;
+    }
+
+    .growth-line,
+    .recommendation-line {
+        margin-bottom: 11px;
+        font-size: 10px;
+        line-height: 1.35;
+    }
+    /* Section report single-page fit */
+
+    .insight-page {
+        padding-top: 42px;
+        padding-bottom: 42px;
+    }
+
+    .insight-page .brand {
+        margin-bottom: 32px;
+        font-size: 30px;
+    }
+
+    .insight-page .cover-rule {
+        margin-bottom: 20px;
+    }
+
+    .section-report-title {
+        margin-bottom: 0;
+        font-size: 29px;
+    }
+
+    .section-chart {
+        height: 145px;
+        margin-bottom: 2px;
+        overflow: hidden;
+    }
+
+    .section-chart img {
+        width: 100%;
+        height: 145px;
+    }
+
+    .section-movers-title {
+        margin: 2px 0 0;
+        font-size: 18px;
+    }
+
+    .movers-chart {
+        height: 145px;
+        margin-bottom: 0;
+        overflow: hidden;
+    }
+
+    .movers-chart img {
+        width: 100%;
+        height: 145px;
+    }
+
+    .section-summary-table {
+        margin-top: 2px;
+        page-break-inside: avoid;
+    }
+
+    .growth-box,
+    .recommendations-box {
+        padding: 10px;
+    }
+
+    .box-heading {
+        margin-bottom: 7px;
+        font-size: 16px;
+    }
+
+    .growth-line,
+    .recommendation-line {
+        margin-bottom: 6px;
+        font-size: 8px;
+        line-height: 1.25;
+    }
     .page-number {
         position: absolute;
         left: 70px;
@@ -1699,47 +2029,79 @@ $html = '
 </div>
 <div class="page content-page insight-page">
 
-    <div class="page-brand">
-        Tasmanian Leaders
+    <div class="brand">
+        Tasmanian
+        <span class="brand-second-line">Leaders</span>
     </div>
+
+    <div class="cover-rule"></div>
 
     <div class="section-label">
         ' . esc_html($program) . ' · ' . esc_html($cohort) . '
     </div>
 
-    <h2 class="section-title">
+    <h2 class="section-report-title">
         Insight
     </h2>
 
-<p class="insight-intro">
-    Insight reflects how participants understand themselves, their environment
-    and the factors that influence their leadership decisions.
-    ' . esc_html($pdf_results_context) . '
-</p>
-
-<table class="metric-table">
-
-    <thead>
-        ' . $metric_headers . '
-    </thead>
-
-    <tbody>
-        ' . $insight_rows . '
-    </tbody>
-
-</table>
-
-    <div class="context-note">
-        Higher scores indicate stronger perceived leadership capability.
-        Scores in this prototype use sample data on a 1–7 scale.
+    <div class="section-chart">
+        <img
+            src="' . esc_attr($section_chart_data['Insight']) . '"
+            alt=""
+        >
     </div>
 
-    <div class="page-number">
-        03
+    <h3 class="section-movers-title">
+        Top 3 Positive Movers
+    </h3>
+
+    <div class="movers-chart">
+        <img
+            src="' . esc_attr($section_movers_chart_data['Insight']) . '"
+            alt=""
+        >
+    </div>
+
+    <table class="section-summary-table">
+        <tr>
+
+            <td class="growth-box">
+                <div class="box-heading">
+                    Growth
+                </div>
+
+                ' . $section_growth_html['Insight'] . '
+            </td>
+
+            <td
+                class="recommendations-box"
+                style="background: ' . esc_attr($report_colour) . ';"
+            >
+                <div class="box-heading">
+                    Recommendations
+                </div>
+
+                <div class="recommendation-line">
+                    1. ' . esc_html($section_recommendations['Insight'][0]) . '
+                </div>
+
+                <div class="recommendation-line">
+                    2. ' . esc_html($section_recommendations['Insight'][1]) . '
+                </div>
+
+                <div class="recommendation-line">
+                    3. ' . esc_html($section_recommendations['Insight'][2]) . '
+                </div>
+            </td>
+
+        </tr>
+    </table>
+
+    <div class="mock-page-footer">
+        Page 3 of 5
     </div>
 
 </div>
-
 <div class="page content-page insight-page">
 
     <div class="page-brand">
