@@ -2104,46 +2104,79 @@ $html = '
 </div>
 <div class="page content-page insight-page">
 
-    <div class="page-brand">
-        Tasmanian Leaders
+    <div class="brand">
+        Tasmanian
+        <span class="brand-second-line">Leaders</span>
     </div>
+
+    <div class="cover-rule"></div>
 
     <div class="section-label">
         ' . esc_html($program) . ' · ' . esc_html($cohort) . '
     </div>
 
-    <h2 class="section-title">
+    <h2 class="section-report-title">
         Influence
     </h2>
 
-    <p class="insight-intro">
-        Influence reflects how participants work with others, navigate complexity
-        and build relationships that support effective leadership outcomes.
-    </p>
-
-<table class="metric-table">
-
-    <thead>
-        ' . $metric_headers . '
-    </thead>
-
-    <tbody>
-        ' . $influence_rows . '
-    </tbody>
-
-</table>
-
-    <div class="context-note">
-        Higher scores indicate stronger perceived leadership capability.
-        Scores in this prototype use sample data on a 1–7 scale.
+    <div class="section-chart">
+        <img
+            src="' . esc_attr($section_chart_data['Influence']) . '"
+            alt=""
+        >
     </div>
 
-    <div class="page-number">
-        04
+    <h3 class="section-movers-title">
+        Top 3 Positive Movers
+    </h3>
+
+    <div class="movers-chart">
+        <img
+            src="' . esc_attr($section_movers_chart_data['Influence']) . '"
+            alt=""
+        >
+    </div>
+
+    <table class="section-summary-table">
+        <tr>
+
+            <td class="growth-box">
+                <div class="box-heading">
+                    Growth
+                </div>
+
+                ' . $section_growth_html['Influence'] . '
+            </td>
+
+            <td
+                class="recommendations-box"
+                style="background: ' . esc_attr($report_colour) . ';"
+            >
+                <div class="box-heading">
+                    Recommendations
+                </div>
+
+                <div class="recommendation-line">
+                    1. ' . esc_html($section_recommendations['Influence'][0]) . '
+                </div>
+
+                <div class="recommendation-line">
+                    2. ' . esc_html($section_recommendations['Influence'][1]) . '
+                </div>
+
+                <div class="recommendation-line">
+                    3. ' . esc_html($section_recommendations['Influence'][2]) . '
+                </div>
+            </td>
+
+        </tr>
+    </table>
+
+    <div class="mock-page-footer">
+        Page 4 of 5
     </div>
 
 </div>
-
 <div class="page content-page insight-page">
 
     <div class="page-brand">
