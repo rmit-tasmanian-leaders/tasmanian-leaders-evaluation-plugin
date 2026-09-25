@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 /**
  * Front-End Evaluation Dashboard Template
@@ -38,6 +38,18 @@ if (!defined('ABSPATH')) {
         <a href="#tle-report-workspace">Report Workspace</a>
     </nav>
 
+    <form
+    id="tle-pdf-export-form"
+    method="post"
+    action="<?php echo esc_url(admin_url('admin-post.php')); ?>"
+    enctype="multipart/form-data"
+>
+    <input type="hidden" name="action" value="tle_export_pdf">
+
+    <?php wp_nonce_field('tle_export_pdf_action', 'tle_export_pdf_nonce'); ?>
+
+    <input type="hidden" name="report_type" value="Final ELF Evaluation Report">
+    <input type="hidden" name="comparison" value="Pre-program / Completion / 3-Month Delay">
     <div class="tle-dashboard__layout">
 
         <aside class="tle-dashboard__sidebar">
@@ -56,7 +68,7 @@ if (!defined('ABSPATH')) {
                 <div class="tle-dashboard__field">
                     <label for="tle-program">Program</label>
 
-                    <select id="tle-program" name="tle_program">
+                    <select id="tle-program" name="program">
                         <option>I-LEAD Young Professionals</option>
                         <option>Emerging Leaders Program</option>
                     </select>
@@ -65,7 +77,7 @@ if (!defined('ABSPATH')) {
                 <div class="tle-dashboard__field">
                     <label for="tle-cohort">Cohort</label>
 
-                    <select id="tle-cohort" name="tle_cohort">
+                    <select id="tle-cohort" name="cohort">
                         <option>2026</option>
                         <option>2025</option>
                     </select>
@@ -79,22 +91,22 @@ if (!defined('ABSPATH')) {
                     </p>
 
                     <label class="tle-dashboard__checkbox">
-                        <input type="checkbox" name="tle_evaluation_points[]" value="pre-program" checked>
+                        <input type="checkbox" name="evaluation_points[]" value="pre-program" checked>
                         <span>Pre-program</span>
                     </label>
 
                     <label class="tle-dashboard__checkbox">
-                        <input type="checkbox" name="tle_evaluation_points[]" value="completion" checked>
+                        <input type="checkbox" name="evaluation_points[]" value="completion" checked>
                         <span>Completion</span>
                     </label>
 
                     <label class="tle-dashboard__checkbox">
-                        <input type="checkbox" name="tle_evaluation_points[]" value="three-month-delay">
+                        <input type="checkbox" name="evaluation_points[]" value="three-month-delay">
                         <span>3-Month Delayed</span>
                     </label>
 
                     <label class="tle-dashboard__checkbox">
-                        <input type="checkbox" name="tle_evaluation_points[]" value="manager">
+                        <input type="checkbox" name="evaluation_points[]" value="manager">
                         <span>Manager Evaluation</span>
                     </label>
                 </fieldset>
@@ -117,15 +129,48 @@ if (!defined('ABSPATH')) {
                     <input
                         id="tle-cover-image"
                         type="file"
-                        name="tle_cover_image"
+                        name="cover_image"
                         accept="image/*"
                     >
 
                     <p class="tle-dashboard__field-help">
-                        The selected image will later be used for the report cover
-                        and colour scheme.
+                        Upload the image to appear on the report cover.
                     </p>
                 </div>
+
+                <fieldset class="tle-dashboard__fieldset">
+                    <legend>Report Colour</legend>
+
+                    <p class="tle-dashboard__field-help">
+                        Select the accent colour used throughout the exported report.
+                    </p>
+
+                    <div class="tle-dashboard__colour-options">
+                        <label class="tle-dashboard__colour-option">
+                            <input type="radio" name="report_colour" value="teal" checked>
+                            <span class="tle-dashboard__colour-swatch tle-dashboard__colour-swatch--teal"></span>
+                            <span>Teal</span>
+                        </label>
+
+                        <label class="tle-dashboard__colour-option">
+                            <input type="radio" name="report_colour" value="coral">
+                            <span class="tle-dashboard__colour-swatch tle-dashboard__colour-swatch--coral"></span>
+                            <span>Coral</span>
+                        </label>
+
+                        <label class="tle-dashboard__colour-option">
+                            <input type="radio" name="report_colour" value="lime">
+                            <span class="tle-dashboard__colour-swatch tle-dashboard__colour-swatch--lime"></span>
+                            <span>Lime</span>
+                        </label>
+
+                        <label class="tle-dashboard__colour-option">
+                            <input type="radio" name="report_colour" value="purple">
+                            <span class="tle-dashboard__colour-swatch tle-dashboard__colour-swatch--purple"></span>
+                            <span>Purple</span>
+                        </label>
+                    </div>
+                </fieldset>
             </section>
 
             <section
@@ -140,23 +185,54 @@ if (!defined('ABSPATH')) {
                 </h2>
 
                 <div class="tle-dashboard__field">
-                    <label for="tle-purpose-text">Purpose</label>
+                    <label for="tle-report-title">Title</label>
 
-                    <textarea
-                        id="tle-purpose-text"
-                        name="tle_purpose_text"
-                        rows="5"
-                    >Describe the purpose and context of this evaluation report.</textarea>
+                    <input
+                        id="tle-report-title"
+                        type="text"
+                        name="report_title"
+                        value="Initial Leadership Capability Survey"
+                    >
                 </div>
 
                 <div class="tle-dashboard__field">
-                    <label for="tle-impact-text">Strongest Impact</label>
+                    <label for="tle-purpose-text">Purpose Paragraph</label>
 
                     <textarea
-                        id="tle-impact-text"
-                        name="tle_impact_text"
-                        rows="5"
-                    >Add explanatory text for the strongest impact identified in the report.</textarea>
+                        id="tle-purpose-text"
+                        name="purpose_text"
+                        rows="4"
+                    >A comparison between pre-program and post-program.</textarea>
+                </div>
+
+                <div class="tle-dashboard__field">
+                    <label for="tle-impact-text-1">Strongest Impact #1</label>
+
+                    <textarea
+                        id="tle-impact-text-1"
+                        name="impact_text_1"
+                        rows="3"
+                    >Example text that you can customise.</textarea>
+                </div>
+
+                <div class="tle-dashboard__field">
+                    <label for="tle-impact-text-2">Strongest Impact #2</label>
+
+                    <textarea
+                        id="tle-impact-text-2"
+                        name="impact_text_2"
+                        rows="3"
+                    >A significant increase.</textarea>
+                </div>
+
+                <div class="tle-dashboard__field">
+                    <label for="tle-impact-text-3">Strongest Impact #3</label>
+
+                    <textarea
+                        id="tle-impact-text-3"
+                        name="impact_text_3"
+                        rows="3"
+                    >A substantial change is seen here.</textarea>
                 </div>
             </section>
 
@@ -277,13 +353,18 @@ if (!defined('ABSPATH')) {
                     </p>
                 </div>
 
-                <span class="tle-dashboard__status">
-                    Existing export retained
-                </span>
+                <button
+                    type="submit"
+                    class="tle-dashboard__export-button"
+                >
+                    Export as PDF
+                </button>
             </section>
 
         </main>
 
     </div>
+
+</form>
 
 </div>
