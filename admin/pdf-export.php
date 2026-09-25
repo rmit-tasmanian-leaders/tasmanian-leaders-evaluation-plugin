@@ -593,6 +593,76 @@ function tle_export_pdf()
     require_once $autoload;
 
     $data = tle_get_test_report_data();
+    $report_title_input = isset($_POST['report_title'])
+        ? sanitize_text_field(wp_unslash($_POST['report_title']))
+        : '';
+
+    $purpose_text = isset($_POST['purpose_text'])
+        ? sanitize_textarea_field(wp_unslash($_POST['purpose_text']))
+        : '';
+
+    $impact_text_1 = isset($_POST['impact_text_1'])
+        ? sanitize_textarea_field(wp_unslash($_POST['impact_text_1']))
+        : '';
+
+    $impact_text_2 = isset($_POST['impact_text_2'])
+        ? sanitize_textarea_field(wp_unslash($_POST['impact_text_2']))
+        : '';
+
+    $impact_text_3 = isset($_POST['impact_text_3'])
+        ? sanitize_textarea_field(wp_unslash($_POST['impact_text_3']))
+        : '';
+
+    $report_colour_key = isset($_POST['report_colour'])
+        ? sanitize_key(wp_unslash($_POST['report_colour']))
+        : 'teal';
+
+    $report_colours = [
+        'teal' => '#4f7f84',
+        'coral' => '#ff756b',
+        'lime' => '#b8f06a',
+        'purple' => '#c249df',
+    ];
+
+    $report_colour = isset($report_colours[$report_colour_key])
+        ? $report_colours[$report_colour_key]
+        : $report_colours['teal'];
+
+    $cover_image_data = '';
+
+    if (
+        isset($_FILES['cover_image']) &&
+        isset($_FILES['cover_image']['error']) &&
+        $_FILES['cover_image']['error'] === UPLOAD_ERR_OK
+    ) {
+        $cover_tmp = $_FILES['cover_image']['tmp_name'];
+        $cover_name = sanitize_file_name($_FILES['cover_image']['name']);
+
+        $cover_check = wp_check_filetype_and_ext(
+            $cover_tmp,
+            $cover_name
+        );
+
+        $allowed_cover_types = [
+            'image/jpeg',
+            'image/png',
+        ];
+
+        if (
+            !empty($cover_check['type']) &&
+            in_array($cover_check['type'], $allowed_cover_types, true)
+        ) {
+            $cover_contents = file_get_contents($cover_tmp);
+
+            if ($cover_contents !== false) {
+                $cover_image_data =
+                    'data:' .
+                    $cover_check['type'] .
+                    ';base64,' .
+                    base64_encode($cover_contents);
+            }
+        }
+    }
 
     $allowed_programs = [
     'I-LEAD Young Professionals',
@@ -659,6 +729,14 @@ $report_title = (
 )
     ? 'Initial Leadership Capability Survey'
     : 'ELF Evaluation Report';
+
+if ($report_title_input !== '') {
+    $report_title = $report_title_input;
+}
+
+if ($purpose_text === '') {
+    $purpose_text = 'A comparison between the selected evaluation points for this program.';
+}
 
     $is_initial_report = (
     $report_type === 'Initial Leadership Capability Survey'
@@ -923,6 +1001,25 @@ foreach ($data['impact'] as $measure) {
     }
 }
 
+$cover_media_html = '';
+
+if ($cover_image_data !== '') {
+    $cover_media_html = '
+        <div class="cover-image-wrap">
+            <img
+                class="cover-image"
+                src="' . esc_attr($cover_image_data) . '"
+                alt=""
+            >
+        </div>
+    ';
+} else {
+    $cover_media_html = '
+        <div class="cover-image-placeholder">
+            Cover image
+        </div>
+    ';
+}
 $html = '
 <!DOCTYPE html>
 <html>
@@ -948,64 +1045,93 @@ $html = '
     }
 
     .cover {
-    background: #ffffff;
-    page-break-after: always;
+        background: #ffffff;
+        page-break-after: always;
+        padding: 45px 70px 42px;
     }
 
     .brand {
-        font-size: 22px;
-        font-weight: bold;
-        color: #234b3b;
-        margin-bottom: 110px;
+        margin-bottom: 58px;
+        color: #111111;
+        font-size: 38px;
+        font-weight: normal;
+        line-height: 0.92;
+    }
+
+    .brand-second-line {
+        display: block;
+        margin-left: 70px;
+    }
+
+    .cover-rule {
+        border-top: 3px solid #222222;
+        margin-bottom: 34px;
     }
 
     .cover-program {
-        font-size: 20px;
-        font-weight: bold;
         margin-bottom: 14px;
+        color: #111111;
+        font-size: 17px;
+        font-weight: bold;
     }
 
     .cover-title {
-        font-size: 50px;
-        line-height: 1.05;
-        font-weight: bold;
-        color: #234b3b;
+        max-width: 600px;
         margin: 0;
-        max-width: 560px;
+        color: #000000;
+        font-size: 42px;
+        font-weight: bold;
+        line-height: 1.15;
     }
 
     .cover-year {
         display: inline-block;
-        margin-top: 36px;
-        padding: 10px 22px;
-        background: #234b3b;
+        margin-top: 24px;
+        padding: 9px 22px;
+        border-radius: 22px;
+        background: ' . esc_attr($report_colour) . ';
         color: #ffffff;
-        border-radius: 20px;
-        font-size: 18px;
+        font-size: 17px;
+        font-weight: bold;
     }
 
-    .cover-line {
-        position: absolute;
-        right: 110px;
-        top: 230px;
-        width: 2px;
-        height: 480px;
-        background: #234b3b;
+    .cover-image-wrap {
+        height: 315px;
+        margin: 24px -70px 0;
+        overflow: hidden;
     }
 
-    .cover-footer {
+    .cover-image {
+        width: 100%;
+    }
+
+    .cover-image-placeholder {
+        height: 270px;
+        margin: 24px -70px 0;
+        padding-top: 45px;
+        background: #f3f3f3;
+        color: #777777;
+        font-size: 15px;
+        text-align: center;
+    }
+
+    .cover-purpose {
+        margin-top: 45px;
+        color: #222222;
+        font-size: 14px;
+        line-height: 1.55;
+    }
+
+    .cover-bottom {
         position: absolute;
-        bottom: 70px;
-        left: 70px;
         right: 70px;
-        border-top: 1px solid #d9dddb;
-        padding-top: 18px;
-        font-size: 12px;
-        color: #646970;
-    }
-
-    .cover-footer strong {
-        color: #17211d;
+        bottom: 45px;
+        left: 70px;
+        padding-top: 10px;
+        border-top: 3px solid #222222;
+        color: #333333;
+        font-size: 10px;
+        text-align: right;
     }
 
         .content-page {
@@ -1159,8 +1285,11 @@ $html = '
 <div class="page cover">
 
     <div class="brand">
-        Tasmanian Leaders
+        Tasmanian
+        <span class="brand-second-line">Leaders</span>
     </div>
+
+    <div class="cover-rule"></div>
 
     <div class="cover-program">
         ' . esc_html($program) . '
@@ -1174,16 +1303,14 @@ $html = '
         ' . esc_html($cohort) . '
     </div>
 
-    <div class="cover-line"></div>
+    ' . $cover_media_html . '
 
-    <div class="cover-footer">
+    <div class="cover-purpose">
+        ' . nl2br(esc_html($purpose_text)) . '
+    </div>
 
-        <strong>Evaluation and Learning Framework</strong><br>
-
-        Evaluation: ' . esc_html($evaluation_point) . '<br>
-        Comparison: ' . esc_html($comparison) . '<br>
-        Benchmark: ' . esc_html($data['benchmark']) . '
-
+    <div class="cover-bottom">
+        Page 1 of 5
     </div>
 
 </div>
