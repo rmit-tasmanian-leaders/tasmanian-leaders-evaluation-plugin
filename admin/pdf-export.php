@@ -628,6 +628,39 @@ function tle_export_pdf()
         ? $report_colours[$report_colour_key]
         : $report_colours['teal'];
 
+    $report_colour_tints = [
+        'teal'   => '#cbdcde',
+        'coral'  => '#ffd8d4',
+        'lime'   => '#e8f8cf',
+        'purple' => '#efd8f5',
+    ];
+
+    $report_colour_light = isset($report_colour_tints[$report_colour_key])
+        ? $report_colour_tints[$report_colour_key]
+        : $report_colour_tints['teal'];
+
+    $report_colour_secondary = [
+        'teal'   => '#9fc4c7',
+        'coral'  => '#ffaaa3',
+        'lime'   => '#d3ef9a',
+        'purple' => '#daa4e7',
+    ];
+
+    $before_bar_colour = isset($report_colour_secondary[$report_colour_key])
+        ? $report_colour_secondary[$report_colour_key]
+        : $report_colour_secondary['teal'];
+
+    $report_colour_text = [
+        'teal'   => '#ffffff',
+        'coral'  => '#111111',
+        'lime'   => '#111111',
+        'purple' => '#ffffff',
+    ];
+
+    $recommendation_text_colour = isset($report_colour_text[$report_colour_key])
+        ? $report_colour_text[$report_colour_key]
+        : '#ffffff';
+
     $cover_image_data = '';
 
     if (
@@ -1081,7 +1114,7 @@ $overview_svg = '
         <line x1="70" y1="220" x2="550" y2="220"/>
     </g>
 
-    <g fill="#666666" font-family="DejaVu Sans" font-size="9">
+    <g fill="#555555" font-family="DejaVu Sans" font-size="12">
         <text x="35" y="53">100%</text>
         <text x="42" y="87">80%</text>
         <text x="42" y="121">60%</text>
@@ -1098,7 +1131,7 @@ $overview_svg = '
         points="' . $insight_points . '"
         fill="none"
         stroke="' . esc_attr($report_colour) . '"
-        stroke-width="3"
+        stroke-width="4"
     />
 
     <polyline
@@ -1118,9 +1151,9 @@ $overview_svg = '
     />
 
     <g fill="' . esc_attr($report_colour) . '">
-        <circle cx="70" cy="' . $chart_y($overview_averages['Insight']['pre']) . '" r="5"/>
-        <circle cx="300" cy="' . $chart_y($overview_averages['Insight']['completion']) . '" r="5"/>
-        <circle cx="530" cy="' . $chart_y($overview_averages['Insight']['delay']) . '" r="5"/>
+        <circle cx="70" cy="' . $chart_y($overview_averages['Insight']['pre']) . '" r="6"/>
+        <circle cx="300" cy="' . $chart_y($overview_averages['Insight']['completion']) . '" r="6"/>
+        <circle cx="530" cy="' . $chart_y($overview_averages['Insight']['delay']) . '" r="6"/>
     </g>
 
     <g fill="#111111">
@@ -1277,7 +1310,7 @@ foreach ($overview_sections as $section_name => $measures) {
             <line x1="70" y1="205" x2="550" y2="205"/>
         </g>
 
-        <g fill="#666666" font-family="DejaVu Sans" font-size="9">
+        <g fill="#555555" font-family="DejaVu Sans" font-size="12">
             <text x="35" y="53">100%</text>
             <text x="42" y="84">80%</text>
             <text x="42" y="115">60%</text>
@@ -1294,13 +1327,13 @@ foreach ($overview_sections as $section_name => $measures) {
             points="' . $section_points . '"
             fill="none"
             stroke="' . esc_attr($report_colour) . '"
-            stroke-width="3"
+            stroke-width="4"
         />
 
         <g fill="' . esc_attr($report_colour) . '">
-            <circle cx="70" cy="' . $section_chart_y($averages['pre']) . '" r="5"/>
-            <circle cx="300" cy="' . $section_chart_y($averages['completion']) . '" r="5"/>
-            <circle cx="530" cy="' . $section_chart_y($averages['delay']) . '" r="5"/>
+            <circle cx="70" cy="' . $section_chart_y($averages['pre']) . '" r="6"/>
+            <circle cx="300" cy="' . $section_chart_y($averages['completion']) . '" r="6"/>
+            <circle cx="530" cy="' . $section_chart_y($averages['delay']) . '" r="6"/>
         </g>
     </svg>
     ';
@@ -1359,7 +1392,7 @@ foreach ($overview_sections as $section_name => $measures) {
                 y="' . $before_y . '"
                 width="42"
                 height="' . $before_height . '"
-                fill="#a7e8ef"
+                fill="' . esc_attr($before_bar_colour) . '"
             />
 
             <text
@@ -1367,7 +1400,8 @@ foreach ($overview_sections as $section_name => $measures) {
                 y="215"
                 text-anchor="middle"
                 font-family="DejaVu Sans"
-                font-size="8"
+                font-size="10.5"
+                font-weight="600"
                 fill="#111111"
             >' . esc_html($mover['measure']) . '</text>
         ';
@@ -1387,6 +1421,14 @@ foreach ($overview_sections as $section_name => $measures) {
     <svg xmlns="http://www.w3.org/2000/svg" width="600" height="230" viewBox="0 0 600 230">
         <rect width="600" height="230" fill="#ffffff"/>
 
+        <g font-family="DejaVu Sans" font-size="10" fill="#555555">
+            <rect x="430" y="12" width="12" height="12" fill="' . esc_attr($report_colour) . '"/>
+            <text x="448" y="22">After</text>
+
+            <rect x="500" y="12" width="12" height="12" fill="' . esc_attr($before_bar_colour) . '"/>
+            <text x="518" y="22">Before</text>
+        </g>
+
         <g stroke="#dddddd" stroke-width="1">
             <line x1="70" y1="45" x2="550" y2="45"/>
             <line x1="70" y1="74" x2="550" y2="74"/>
@@ -1396,7 +1438,7 @@ foreach ($overview_sections as $section_name => $measures) {
             <line x1="70" y1="190" x2="550" y2="190"/>
         </g>
 
-        <g fill="#666666" font-family="DejaVu Sans" font-size="9">
+        <g fill="#555555" font-family="DejaVu Sans" font-size="12">
             <text x="35" y="48">100%</text>
             <text x="42" y="77">80%</text>
             <text x="42" y="106">60%</text>
@@ -1485,13 +1527,13 @@ $html = '
         padding: 9px 22px;
         border-radius: 22px;
         background: ' . esc_attr($report_colour) . ';
-        color: #ffffff;
+        color: ' . esc_attr($recommendation_text_colour) . ';
         font-size: 17px;
         font-weight: bold;
     }
 
     .cover-image-wrap {
-        height: 315px;
+        height: 350px;
         margin: 24px -70px 0;
         overflow: hidden;
     }
@@ -1501,7 +1543,7 @@ $html = '
     }
 
     .cover-image-placeholder {
-        height: 270px;
+        height: 305px;
         margin: 24px -70px 0;
         padding-top: 45px;
         background: #f3f3f3;
@@ -1611,16 +1653,16 @@ $html = '
     }
 
     .overview-title {
-        margin: 0 0 10px;
+        margin: 0 0 12px;
         color: #111111;
-        font-size: 34px;
+        font-size: 36px;
         line-height: 1;
     }
 
     .overview-legend {
-        margin-bottom: 8px;
+        margin-bottom: 12px;
         color: #444444;
-        font-size: 10px;
+        font-size: 11px;
     }
 
     .legend-item {
@@ -1638,7 +1680,7 @@ $html = '
 
     .overview-chart {
         width: 100%;
-        margin-bottom: 8px;
+        margin-bottom: 14px;
     }
 
     .overview-chart img {
@@ -1646,9 +1688,9 @@ $html = '
     }
 
     .overview-subheading {
-        margin: 12px 0 8px;
+        margin: 18px 0 10px;
         color: #111111;
-        font-size: 19px;
+        font-size: 21px;
     }
 
     .overview-impact-table,
@@ -1661,29 +1703,30 @@ $html = '
 
     .overview-impact-card {
         width: 33.33%;
-        padding: 12px;
+        height: 92px;
+        padding: 16px;
         vertical-align: top;
-        background: #a8f5b5;
+        background: ' . esc_attr($report_colour_light) . ';
     }
 
     .overview-impact-percent {
         margin-bottom: 2px;
         color: #111111;
-        font-size: 23px;
+        font-size: 28px;
         font-weight: bold;
     }
 
     .overview-impact-name {
-        margin-bottom: 4px;
+        margin-bottom: 5px;
         color: #111111;
-        font-size: 11px;
+        font-size: 12px;
         font-weight: bold;
     }
 
     .overview-impact-description {
         color: #222222;
-        font-size: 9px;
-        line-height: 1.3;
+        font-size: 10px;
+        line-height: 1.35;
     }
 
     .key-growth-cell {
@@ -1693,24 +1736,24 @@ $html = '
     }
 
     .key-growth-circle {
-        width: 82px;
-        height: 82px;
+        width: 96px;
+        height: 96px;
         margin: 0 auto;
-        border-radius: 41px;
-        color: #ffffff;
+        border-radius: 48px;
+        color: ' . esc_attr($recommendation_text_colour) . ';
         text-align: center;
     }
 
     .key-growth-circle strong {
         display: block;
-        padding-top: 17px;
-        font-size: 13px;
+        padding-top: 21px;
+        font-size: 15px;
     }
 
     .key-growth-circle span {
         display: block;
-        padding: 3px 6px 0;
-        font-size: 8px;
+        padding: 4px 8px 0;
+        font-size: 9px;
         line-height: 1.15;
     }
 
@@ -1764,12 +1807,12 @@ $html = '
     }
 
     .growth-box {
-        background: #a8f5b5;
+        background: ' . esc_attr($report_colour_light) . ';
         color: #111111;
     }
 
     .recommendations-box {
-        color: #ffffff;
+        color: ' . esc_attr($recommendation_text_colour) . ';
     }
 
     .box-heading {
@@ -1787,71 +1830,73 @@ $html = '
     /* Section report single-page fit */
 
     .insight-page {
-        padding-top: 42px;
+        padding-top: 46px;
         padding-bottom: 42px;
     }
 
     .insight-page .brand {
-        margin-bottom: 32px;
-        font-size: 30px;
+        margin-bottom: 36px;
+        font-size: 32px;
     }
 
     .insight-page .cover-rule {
-        margin-bottom: 20px;
+        margin-bottom: 23px;
     }
 
     .section-report-title {
-        margin-bottom: 0;
-        font-size: 29px;
+        margin-bottom: 5px;
+        font-size: 32px;
     }
 
     .section-chart {
-        height: 145px;
-        margin-bottom: 2px;
-        overflow: hidden;
+        margin-bottom: 8px;
+        overflow: visible;
     }
 
     .section-chart img {
+        display: block;
         width: 100%;
-        height: 145px;
+        height: auto;
     }
 
     .section-movers-title {
-        margin: 2px 0 0;
-        font-size: 18px;
+        margin: 8px 0 4px;
+        font-size: 20px;
     }
 
     .movers-chart {
-        height: 145px;
-        margin-bottom: 0;
-        overflow: hidden;
+        margin-bottom: 6px;
+        overflow: visible;
     }
 
     .movers-chart img {
+        display: block;
         width: 100%;
-        height: 145px;
+        height: auto;
     }
 
     .section-summary-table {
-        margin-top: 2px;
+        margin-top: 8px;
         page-break-inside: avoid;
     }
 
     .growth-box,
     .recommendations-box {
-        padding: 10px;
+        height: 130px;
+        padding: 14px;
+        vertical-align: top;
     }
 
     .box-heading {
-        margin-bottom: 7px;
-        font-size: 16px;
+        margin-bottom: 9px;
+        font-size: 18px;
     }
 
     .growth-line,
     .recommendation-line {
-        margin-bottom: 6px;
-        font-size: 8px;
-        line-height: 1.25;
+        margin-bottom: 8px;
+        font-size: 10px;
+        line-height: 1.35;
     }
     .page-number {
         position: absolute;
@@ -2179,46 +2224,79 @@ $html = '
 </div>
 <div class="page content-page insight-page">
 
-    <div class="page-brand">
-        Tasmanian Leaders
+    <div class="brand">
+        Tasmanian
+        <span class="brand-second-line">Leaders</span>
     </div>
+
+    <div class="cover-rule"></div>
 
     <div class="section-label">
         ' . esc_html($program) . ' · ' . esc_html($cohort) . '
     </div>
 
-    <h2 class="section-title">
+    <h2 class="section-report-title">
         Impact
     </h2>
 
-    <p class="insight-intro">
-        Impact reflects how participants contribute beyond themselves by strengthening
-        belonging, connection and positive outcomes within their organisations and communities.
-    </p>
-
-<table class="metric-table">
-
-    <thead>
-        ' . $metric_headers . '
-    </thead>
-
-    <tbody>
-        ' . $impact_rows . '
-    </tbody>
-
-</table>
-
-    <div class="context-note">
-        Higher scores indicate stronger perceived leadership capability.
-        Scores in this prototype use sample data on a 1–7 scale.
+    <div class="section-chart">
+        <img
+            src="' . esc_attr($section_chart_data['Impact']) . '"
+            alt=""
+        >
     </div>
 
-    <div class="page-number">
-        05
+    <h3 class="section-movers-title">
+        Top 3 Positive Movers
+    </h3>
+
+    <div class="movers-chart">
+        <img
+            src="' . esc_attr($section_movers_chart_data['Impact']) . '"
+            alt=""
+        >
+    </div>
+
+    <table class="section-summary-table">
+        <tr>
+
+            <td class="growth-box">
+                <div class="box-heading">
+                    Growth
+                </div>
+
+                ' . $section_growth_html['Impact'] . '
+            </td>
+
+            <td
+                class="recommendations-box"
+                style="background: ' . esc_attr($report_colour) . ';"
+            >
+                <div class="box-heading">
+                    Recommendations
+                </div>
+
+                <div class="recommendation-line">
+                    1. ' . esc_html($section_recommendations['Impact'][0]) . '
+                </div>
+
+                <div class="recommendation-line">
+                    2. ' . esc_html($section_recommendations['Impact'][1]) . '
+                </div>
+
+                <div class="recommendation-line">
+                    3. ' . esc_html($section_recommendations['Impact'][2]) . '
+                </div>
+            </td>
+
+        </tr>
+    </table>
+
+    <div class="mock-page-footer">
+        Page 5 of 5
     </div>
 
 </div>
-
 </body>
 </html>
 ';
