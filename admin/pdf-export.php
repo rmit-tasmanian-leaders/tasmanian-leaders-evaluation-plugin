@@ -1020,6 +1020,199 @@ if ($cover_image_data !== '') {
         </div>
     ';
 }
+$overview_sections = [
+    'Insight' => $data['insight'],
+    'Influence' => $data['influence'],
+    'Impact' => $data['impact'],
+];
+
+$overview_averages = [];
+
+foreach ($overview_sections as $section_name => $measures) {
+    $overview_averages[$section_name] = [
+        'pre' => 0,
+        'completion' => 0,
+        'delay' => 0,
+    ];
+
+    foreach ($measures as $measure) {
+        $overview_averages[$section_name]['pre'] += $measure['pre'];
+        $overview_averages[$section_name]['completion'] += $measure['completion'];
+        $overview_averages[$section_name]['delay'] += $measure['delay'];
+    }
+
+    $measure_count = count($measures);
+
+    foreach (['pre', 'completion', 'delay'] as $point) {
+        $overview_averages[$section_name][$point] =
+            ($overview_averages[$section_name][$point] / $measure_count / 7) * 100;
+    }
+}
+
+$chart_y = static function ($percentage) {
+    return 220 - ($percentage * 1.7);
+};
+
+$insight_points =
+    '70,' . $chart_y($overview_averages['Insight']['pre']) . ' ' .
+    '300,' . $chart_y($overview_averages['Insight']['completion']) . ' ' .
+    '530,' . $chart_y($overview_averages['Insight']['delay']);
+
+$influence_points =
+    '70,' . $chart_y($overview_averages['Influence']['pre']) . ' ' .
+    '300,' . $chart_y($overview_averages['Influence']['completion']) . ' ' .
+    '530,' . $chart_y($overview_averages['Influence']['delay']);
+
+$impact_points =
+    '70,' . $chart_y($overview_averages['Impact']['pre']) . ' ' .
+    '300,' . $chart_y($overview_averages['Impact']['completion']) . ' ' .
+    '530,' . $chart_y($overview_averages['Impact']['delay']);
+
+$overview_svg = '
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="260" viewBox="0 0 600 260">
+    <rect width="600" height="260" fill="#ffffff"/>
+
+    <g stroke="#dddddd" stroke-width="1">
+        <line x1="70" y1="50" x2="550" y2="50"/>
+        <line x1="70" y1="84" x2="550" y2="84"/>
+        <line x1="70" y1="118" x2="550" y2="118"/>
+        <line x1="70" y1="152" x2="550" y2="152"/>
+        <line x1="70" y1="186" x2="550" y2="186"/>
+        <line x1="70" y1="220" x2="550" y2="220"/>
+    </g>
+
+    <g fill="#666666" font-family="DejaVu Sans" font-size="9">
+        <text x="35" y="53">100%</text>
+        <text x="42" y="87">80%</text>
+        <text x="42" y="121">60%</text>
+        <text x="42" y="155">40%</text>
+        <text x="42" y="189">20%</text>
+        <text x="49" y="223">0%</text>
+
+        <text x="48" y="244">Pre-program</text>
+        <text x="265" y="244">Post-program</text>
+        <text x="510" y="244">Delayed</text>
+    </g>
+
+    <polyline
+        points="' . $insight_points . '"
+        fill="none"
+        stroke="' . esc_attr($report_colour) . '"
+        stroke-width="3"
+    />
+
+    <polyline
+        points="' . $influence_points . '"
+        fill="none"
+        stroke="#111111"
+        stroke-width="2"
+        stroke-dasharray="7,5"
+    />
+
+    <polyline
+        points="' . $impact_points . '"
+        fill="none"
+        stroke="#777777"
+        stroke-width="2"
+        stroke-dasharray="2,4"
+    />
+
+    <g fill="' . esc_attr($report_colour) . '">
+        <circle cx="70" cy="' . $chart_y($overview_averages['Insight']['pre']) . '" r="5"/>
+        <circle cx="300" cy="' . $chart_y($overview_averages['Insight']['completion']) . '" r="5"/>
+        <circle cx="530" cy="' . $chart_y($overview_averages['Insight']['delay']) . '" r="5"/>
+    </g>
+
+    <g fill="#111111">
+        <circle cx="70" cy="' . $chart_y($overview_averages['Influence']['pre']) . '" r="4"/>
+        <circle cx="300" cy="' . $chart_y($overview_averages['Influence']['completion']) . '" r="4"/>
+        <circle cx="530" cy="' . $chart_y($overview_averages['Influence']['delay']) . '" r="4"/>
+    </g>
+
+    <g fill="#777777">
+        <circle cx="70" cy="' . $chart_y($overview_averages['Impact']['pre']) . '" r="4"/>
+        <circle cx="300" cy="' . $chart_y($overview_averages['Impact']['completion']) . '" r="4"/>
+        <circle cx="530" cy="' . $chart_y($overview_averages['Impact']['delay']) . '" r="4"/>
+    </g>
+</svg>
+';
+
+$overview_chart_data =
+    'data:image/svg+xml;base64,' .
+    base64_encode($overview_svg);
+
+$growth_items = [];
+
+foreach ($overview_sections as $section_name => $measures) {
+    foreach ($measures as $measure) {
+        $growth = (($measure['delay'] - $measure['pre']) / $measure['pre']) * 100;
+
+        $growth_items[] = [
+            'section' => $section_name,
+            'measure' => $measure['measure'],
+            'growth' => $growth,
+        ];
+    }
+}
+
+usort(
+    $growth_items,
+    static function ($a, $b) {
+        return $b['growth'] <=> $a['growth'];
+    }
+);
+
+$top_impacts = array_slice($growth_items, 0, 3);
+$key_growth = array_slice($growth_items, 0, 5);
+
+$impact_descriptions = [
+    $impact_text_1,
+    $impact_text_2,
+    $impact_text_3,
+];
+
+$strongest_impact_html = '';
+
+foreach ($top_impacts as $index => $item) {
+    $description = $impact_descriptions[$index] ?? '';
+
+    $strongest_impact_html .= '
+        <td class="overview-impact-card">
+            <div class="overview-impact-percent">
+                +' . esc_html(round($item['growth'])) . '%
+            </div>
+
+            <div class="overview-impact-name">
+                ' . esc_html($item['measure']) . '
+            </div>
+
+            <div class="overview-impact-description">
+                ' . esc_html($description) . '
+            </div>
+        </td>
+    ';
+}
+
+$key_growth_html = '';
+
+foreach ($key_growth as $item) {
+    $key_growth_html .= '
+        <td class="key-growth-cell">
+            <div
+                class="key-growth-circle"
+                style="background: ' . esc_attr($report_colour) . ';"
+            >
+                <strong>
+                    +' . esc_html(round($item['growth'])) . '%
+                </strong>
+
+                <span>
+                    ' . esc_html($item['measure']) . '
+                </span>
+            </div>
+        </td>
+    ';
+}
 $html = '
 <!DOCTYPE html>
 <html>
@@ -1215,6 +1408,121 @@ $html = '
         line-height: 1.6;
     }
 
+    .overview-title {
+        margin: 0 0 10px;
+        color: #111111;
+        font-size: 34px;
+        line-height: 1;
+    }
+
+    .overview-legend {
+        margin-bottom: 8px;
+        color: #444444;
+        font-size: 10px;
+    }
+
+    .legend-item {
+        display: inline-block;
+        margin-right: 18px;
+    }
+
+    .legend-swatch {
+        display: inline-block;
+        width: 18px;
+        height: 3px;
+        margin-right: 5px;
+        vertical-align: middle;
+    }
+
+    .overview-chart {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+
+    .overview-chart img {
+        width: 100%;
+    }
+
+    .overview-subheading {
+        margin: 12px 0 8px;
+        color: #111111;
+        font-size: 19px;
+    }
+
+    .overview-impact-table,
+    .key-growth-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 8px 0;
+        margin-left: -8px;
+    }
+
+    .overview-impact-card {
+        width: 33.33%;
+        padding: 12px;
+        vertical-align: top;
+        background: #a8f5b5;
+    }
+
+    .overview-impact-percent {
+        margin-bottom: 2px;
+        color: #111111;
+        font-size: 23px;
+        font-weight: bold;
+    }
+
+    .overview-impact-name {
+        margin-bottom: 4px;
+        color: #111111;
+        font-size: 11px;
+        font-weight: bold;
+    }
+
+    .overview-impact-description {
+        color: #222222;
+        font-size: 9px;
+        line-height: 1.3;
+    }
+
+    .key-growth-cell {
+        width: 20%;
+        text-align: center;
+        vertical-align: top;
+    }
+
+    .key-growth-circle {
+        width: 82px;
+        height: 82px;
+        margin: 0 auto;
+        border-radius: 41px;
+        color: #ffffff;
+        text-align: center;
+    }
+
+    .key-growth-circle strong {
+        display: block;
+        padding-top: 17px;
+        font-size: 13px;
+    }
+
+    .key-growth-circle span {
+        display: block;
+        padding: 3px 6px 0;
+        font-size: 8px;
+        line-height: 1.15;
+    }
+
+    .mock-page-footer {
+        position: absolute;
+        right: 70px;
+        bottom: 45px;
+        left: 70px;
+        padding-top: 9px;
+        border-top: 3px solid #222222;
+        color: #333333;
+        font-size: 9px;
+        text-align: right;
+    }
     .page-number {
         position: absolute;
         left: 70px;
@@ -1317,79 +1625,78 @@ $html = '
 
 <div class="page content-page">
 
-    <div class="page-brand">
-        Tasmanian Leaders
+    <div class="brand">
+        Tasmanian
+        <span class="brand-second-line">Leaders</span>
     </div>
+
+    <div class="cover-rule"></div>
 
     <div class="section-label">
-        Evaluation and Learning Framework
+        ' . esc_html($program) . ' · ' . esc_html($cohort) . '
     </div>
 
-    <h2 class="section-title">
-        Gaining Context
+    <h2 class="overview-title">
+        Overview
     </h2>
 
-    <p class="section-intro">
-        Social desirability indicators provide additional context when interpreting
-        self-reported leadership capability results. They help identify whether
-        responses may have been influenced by perceived expectations rather than
-        solely reflecting participants\' own perceptions.
-    </p>
+    <div class="overview-legend">
 
-    <table class="context-table">
+        <span class="legend-item">
+            <span
+                class="legend-swatch"
+                style="background: ' . esc_attr($report_colour) . ';"
+            ></span>
+            Insight
+        </span>
+
+        <span class="legend-item">
+            <span
+                class="legend-swatch"
+                style="background: #111111;"
+            ></span>
+            Influence
+        </span>
+
+        <span class="legend-item">
+            <span
+                class="legend-swatch"
+                style="background: #777777;"
+            ></span>
+            Impact
+        </span>
+
+    </div>
+
+    <div class="overview-chart">
+        <img src="' . esc_attr($overview_chart_data) . '" alt="">
+    </div>
+
+    <h3 class="overview-subheading">
+        Strongest Impact
+    </h3>
+
+    <table class="overview-impact-table">
         <tr>
-
-            <td class="context-box">
-
-                <div class="context-number">
-                    ' . esc_html($data['social_desirability']['impression_management']) . '
-                </div>
-
-                <div class="context-name">
-                    Impression management
-                </div>
-
-                <div class="context-description">
-                    Indicates the extent to which responses may be shaped by how
-                    participants believe they are expected to present themselves.
-                </div>
-
-            </td>
-
-            <td class="context-spacer"></td>
-
-            <td class="context-box">
-
-                <div class="context-number">
-                    ' . esc_html($data['social_desirability']['self_deception']) . '
-                </div>
-
-                <div class="context-name">
-                    Self-deception enhancement
-                </div>
-
-                <div class="context-description">
-                    Indicates the extent to which participants may unintentionally
-                    report an overly positive perception of their own capability.
-                </div>
-
-            </td>
-
+            ' . $strongest_impact_html . '
         </tr>
     </table>
 
-    <div class="context-note">
-        These indicators should be considered alongside the wider ELF results when
-        interpreting cohort strengths, development opportunities and changes across
-        evaluation points.
-    </div>
+    <h3 class="overview-subheading">
+        Key Growth
+    </h3>
 
-    <div class="page-number">
-        02
+    <table class="key-growth-table">
+        <tr>
+            ' . $key_growth_html . '
+        </tr>
+    </table>
+
+    <div class="mock-page-footer">
+        Page 2 of 5
     </div>
 
 </div>
-
 <div class="page content-page insight-page">
 
     <div class="page-brand">
