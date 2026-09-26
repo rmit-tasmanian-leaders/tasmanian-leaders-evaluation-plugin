@@ -1,10 +1,13 @@
-<?php
+﻿<?php
 
 /**
  * Front-End Evaluation Dashboard Template
  *
- * Displays the proof-of-concept Tasmanian Leaders evaluation dashboard
- * inside a normal WordPress page.
+ * Provides the Sprint 2 dashboard structure for the Tasmanian Leaders
+ * evaluation reporting plugin.
+ *
+ * The controls currently demonstrate the reporting workflow and will be
+ * connected to the shared evaluation data service during later Sprint 2 work.
  *
  * @package TasmanianLeadersEvaluation
  */
@@ -13,227 +16,274 @@
 if (!defined('ABSPATH')) {
     exit;
 }
-
-/*
- * Prototype evaluation data.
- *
- * This data is temporary and exists only to demonstrate the embedded
- * WordPress dashboard architecture.
- *
- * Future development should replace this with data supplied through
- * the evaluation data service.
- */
-$dashboard_data = [
-    'program' => 'I-LEAD Young Professionals',
-    'cohort' => '2026',
-    'evaluation_point' => 'Final Evaluation',
-    'comparison' => 'Pre-program / Completion / 3-Month Delay',
-
-    'insight' => [
-        [
-            'capability' => 'Self-awareness',
-            'pre_program' => '4.8',
-            'completion' => '5.3',
-            'delay' => '5.5',
-            'change' => '+0.7',
-        ],
-        [
-            'capability' => 'Social awareness',
-            'pre_program' => '5.0',
-            'completion' => '5.5',
-            'delay' => '5.6',
-            'change' => '+0.6',
-        ],
-        [
-            'capability' => 'Clarity of purpose',
-            'pre_program' => '4.7',
-            'completion' => '5.4',
-            'delay' => '5.6',
-            'change' => '+0.9',
-        ],
-    ],
-];
 ?>
 
 <div class="tle-dashboard">
 
     <header class="tle-dashboard__header">
-        <p class="tle-dashboard__eyebrow">
-            <?php echo esc_html('Tasmanian Leaders'); ?>
-        </p>
+        <p class="tle-dashboard__eyebrow">Tasmanian Leaders</p>
 
-        <h1 class="tle-dashboard__title">
-            <?php echo esc_html('Evaluation Dashboard'); ?>
-        </h1>
+        <h1 class="tle-dashboard__title">Evaluation Dashboard</h1>
 
         <p class="tle-dashboard__intro">
-            <?php
-            echo esc_html(
-                'This prototype demonstrates how the evaluation reporting interface can be embedded directly into a protected WordPress website page.'
-            );
-            ?>
+            Create and configure an evaluation report by selecting the program,
+            cohort and evaluation points, then review the report workspace below.
         </p>
     </header>
 
-    <section class="tle-dashboard__card" aria-labelledby="tle-report-details-heading">
+    <nav class="tle-dashboard__navigation" aria-label="Evaluation dashboard sections">
+        <a href="#tle-report-setup">Report Setup</a>
+        <a href="#tle-appearance">Appearance</a>
+        <a href="#tle-report-text">Report Text</a>
+        <a href="#tle-report-workspace">Report Workspace</a>
+    </nav>
 
-        <h2 id="tle-report-details-heading" class="tle-dashboard__section-title">
-            <?php echo esc_html('Report Configuration'); ?>
-        </h2>
+    <div class="tle-dashboard__layout">
 
-        <div class="tle-dashboard__details">
+        <aside class="tle-dashboard__sidebar">
 
-            <div class="tle-dashboard__detail">
-                <span class="tle-dashboard__label">
-                    <?php echo esc_html('Program'); ?>
-                </span>
+            <section
+                id="tle-report-setup"
+                class="tle-dashboard__card tle-dashboard__configuration"
+                aria-labelledby="tle-report-setup-heading"
+            >
+                <p class="tle-dashboard__step">Step 1</p>
 
-                <span class="tle-dashboard__value">
-                    <?php echo esc_html($dashboard_data['program']); ?>
-                </span>
-            </div>
-
-            <div class="tle-dashboard__detail">
-                <span class="tle-dashboard__label">
-                    <?php echo esc_html('Cohort'); ?>
-                </span>
-
-                <span class="tle-dashboard__value">
-                    <?php echo esc_html($dashboard_data['cohort']); ?>
-                </span>
-            </div>
-
-            <div class="tle-dashboard__detail">
-                <span class="tle-dashboard__label">
-                    <?php echo esc_html('Evaluation'); ?>
-                </span>
-
-                <span class="tle-dashboard__value">
-                    <?php echo esc_html($dashboard_data['evaluation_point']); ?>
-                </span>
-            </div>
-
-            <div class="tle-dashboard__detail">
-                <span class="tle-dashboard__label">
-                    <?php echo esc_html('Comparison'); ?>
-                </span>
-
-                <span class="tle-dashboard__value">
-                    <?php echo esc_html($dashboard_data['comparison']); ?>
-                </span>
-            </div>
-
-        </div>
-    </section>
-
-    <section class="tle-dashboard__card" aria-labelledby="tle-insight-heading">
-
-        <div class="tle-dashboard__section-header">
-            <div>
-                <p class="tle-dashboard__section-kicker">
-                    <?php echo esc_html('ELF Capability'); ?>
-                </p>
-
-                <h2 id="tle-insight-heading" class="tle-dashboard__section-title">
-                    <?php echo esc_html('Insight'); ?>
+                <h2 id="tle-report-setup-heading" class="tle-dashboard__section-title">
+                    Report Setup
                 </h2>
+
+                <div class="tle-dashboard__field">
+                    <label for="tle-program">Program</label>
+
+                    <select id="tle-program" name="tle_program">
+                        <option>I-LEAD Young Professionals</option>
+                        <option>Emerging Leaders Program</option>
+                    </select>
+                </div>
+
+                <div class="tle-dashboard__field">
+                    <label for="tle-cohort">Cohort</label>
+
+                    <select id="tle-cohort" name="tle_cohort">
+                        <option>2026</option>
+                        <option>2025</option>
+                    </select>
+                </div>
+
+                <fieldset class="tle-dashboard__fieldset">
+                    <legend>Evaluation Points</legend>
+
+                    <p class="tle-dashboard__field-help">
+                        Select one or more evaluation points to include in the report.
+                    </p>
+
+                    <label class="tle-dashboard__checkbox">
+                        <input type="checkbox" name="tle_evaluation_points[]" value="pre-program" checked>
+                        <span>Pre-program</span>
+                    </label>
+
+                    <label class="tle-dashboard__checkbox">
+                        <input type="checkbox" name="tle_evaluation_points[]" value="completion" checked>
+                        <span>Completion</span>
+                    </label>
+
+                    <label class="tle-dashboard__checkbox">
+                        <input type="checkbox" name="tle_evaluation_points[]" value="three-month-delay">
+                        <span>3-Month Delayed</span>
+                    </label>
+
+                    <label class="tle-dashboard__checkbox">
+                        <input type="checkbox" name="tle_evaluation_points[]" value="manager">
+                        <span>Manager Evaluation</span>
+                    </label>
+                </fieldset>
+            </section>
+
+            <section
+                id="tle-appearance"
+                class="tle-dashboard__card"
+                aria-labelledby="tle-appearance-heading"
+            >
+                <p class="tle-dashboard__step">Step 2</p>
+
+                <h2 id="tle-appearance-heading" class="tle-dashboard__section-title">
+                    Appearance
+                </h2>
+
+                <div class="tle-dashboard__field">
+                    <label for="tle-cover-image">Cover Image</label>
+
+                    <input
+                        id="tle-cover-image"
+                        type="file"
+                        name="tle_cover_image"
+                        accept="image/*"
+                    >
+
+                    <p class="tle-dashboard__field-help">
+                        The selected image will later be used for the report cover
+                        and colour scheme.
+                    </p>
+                </div>
+            </section>
+
+            <section
+                id="tle-report-text"
+                class="tle-dashboard__card"
+                aria-labelledby="tle-report-text-heading"
+            >
+                <p class="tle-dashboard__step">Step 3</p>
+
+                <h2 id="tle-report-text-heading" class="tle-dashboard__section-title">
+                    Report Text
+                </h2>
+
+                <div class="tle-dashboard__field">
+                    <label for="tle-purpose-text">Purpose</label>
+
+                    <textarea
+                        id="tle-purpose-text"
+                        name="tle_purpose_text"
+                        rows="5"
+                    >Describe the purpose and context of this evaluation report.</textarea>
+                </div>
+
+                <div class="tle-dashboard__field">
+                    <label for="tle-impact-text">Strongest Impact</label>
+
+                    <textarea
+                        id="tle-impact-text"
+                        name="tle_impact_text"
+                        rows="5"
+                    >Add explanatory text for the strongest impact identified in the report.</textarea>
+                </div>
+            </section>
+
+            <a class="tle-dashboard__workspace-link" href="#tle-report-workspace">
+                View Report Workspace
+            </a>
+
+        </aside>
+
+        <main
+            id="tle-report-workspace"
+            class="tle-dashboard__workspace"
+            aria-labelledby="tle-report-workspace-heading"
+        >
+            <div class="tle-dashboard__workspace-header">
+                <div>
+                    <p class="tle-dashboard__step">Step 4</p>
+
+                    <h2
+                        id="tle-report-workspace-heading"
+                        class="tle-dashboard__section-title"
+                    >
+                        Report Workspace
+                    </h2>
+                </div>
+
+                <span class="tle-dashboard__status">
+                    Prototype Data
+                </span>
             </div>
 
-            <p class="tle-dashboard__section-description">
-                <?php
-                echo esc_html(
-                    'Insight reflects how participants understand themselves, their environment and the factors that influence their leadership decisions.'
-                );
-                ?>
-            </p>
-        </div>
+            <section class="tle-dashboard__card">
+                <h3 class="tle-dashboard__subheading">Report Overview</h3>
 
-        <div class="tle-dashboard__table-wrapper">
+                <div class="tle-dashboard__summary-grid">
+                    <div class="tle-dashboard__summary-item">
+                        <span class="tle-dashboard__label">Program</span>
+                        <strong>I-LEAD Young Professionals</strong>
+                    </div>
 
-            <table class="tle-dashboard__table">
+                    <div class="tle-dashboard__summary-item">
+                        <span class="tle-dashboard__label">Cohort</span>
+                        <strong>2026</strong>
+                    </div>
 
-                <thead>
-                    <tr>
-                        <th scope="col">
-                            <?php echo esc_html('Capability'); ?>
-                        </th>
+                    <div class="tle-dashboard__summary-item">
+                        <span class="tle-dashboard__label">Evaluation Points</span>
+                        <strong>Pre-program, Completion</strong>
+                    </div>
+                </div>
 
-                        <th scope="col">
-                            <?php echo esc_html('Pre-program'); ?>
-                        </th>
+                <p class="tle-dashboard__note">
+                    These values are representative only. The workspace will later
+                    receive its configuration and results from the dashboard controls
+                    and shared evaluation data service.
+                </p>
+            </section>
 
-                        <th scope="col">
-                            <?php echo esc_html('Completion'); ?>
-                        </th>
+            <section class="tle-dashboard__report-section">
+                <div class="tle-dashboard__report-section-header">
+                    <div>
+                        <p class="tle-dashboard__section-kicker">ELF Capability</p>
+                        <h3 class="tle-dashboard__subheading">Insight</h3>
+                    </div>
 
-                        <th scope="col">
-                            <?php echo esc_html('3-Month Delay'); ?>
-                        </th>
+                    <span class="tle-dashboard__placeholder-label">
+                        Evaluation data area
+                    </span>
+                </div>
 
-                        <th scope="col">
-                            <?php echo esc_html('Change'); ?>
-                        </th>
-                    </tr>
-                </thead>
+                <div class="tle-dashboard__placeholder">
+                    Insight charts, capability results and reporting content will appear here.
+                </div>
+            </section>
 
-                <tbody>
+            <section class="tle-dashboard__report-section">
+                <div class="tle-dashboard__report-section-header">
+                    <div>
+                        <p class="tle-dashboard__section-kicker">ELF Capability</p>
+                        <h3 class="tle-dashboard__subheading">Influence</h3>
+                    </div>
 
-                    <?php foreach ($dashboard_data['insight'] as $result) : ?>
+                    <span class="tle-dashboard__placeholder-label">
+                        Evaluation data area
+                    </span>
+                </div>
 
-                        <tr>
-                            <th scope="row">
-                                <?php echo esc_html($result['capability']); ?>
-                            </th>
+                <div class="tle-dashboard__placeholder">
+                    Influence charts, capability results and reporting content will appear here.
+                </div>
+            </section>
 
-                            <td>
-                                <?php echo esc_html($result['pre_program']); ?>
-                            </td>
+            <section class="tle-dashboard__report-section">
+                <div class="tle-dashboard__report-section-header">
+                    <div>
+                        <p class="tle-dashboard__section-kicker">ELF Capability</p>
+                        <h3 class="tle-dashboard__subheading">Impact</h3>
+                    </div>
 
-                            <td>
-                                <?php echo esc_html($result['completion']); ?>
-                            </td>
+                    <span class="tle-dashboard__placeholder-label">
+                        Evaluation data area
+                    </span>
+                </div>
 
-                            <td>
-                                <?php echo esc_html($result['delay']); ?>
-                            </td>
+                <div class="tle-dashboard__placeholder">
+                    Impact charts, capability results and reporting content will appear here.
+                </div>
+            </section>
 
-                            <td>
-                                <?php echo esc_html($result['change']); ?>
-                            </td>
-                        </tr>
+            <section class="tle-dashboard__card tle-dashboard__export-area">
+                <div>
+                    <p class="tle-dashboard__section-kicker">Reporting</p>
+                    <h3 class="tle-dashboard__subheading">PDF Export</h3>
 
-                    <?php endforeach; ?>
+                    <p class="tle-dashboard__note">
+                        The existing PDF export functionality will later consume the
+                        same reporting data displayed in this workspace.
+                    </p>
+                </div>
 
-                </tbody>
+                <span class="tle-dashboard__status">
+                    Existing export retained
+                </span>
+            </section>
 
-            </table>
+        </main>
 
-        </div>
-
-        <p class="tle-dashboard__note">
-            <?php
-            echo esc_html(
-                'Prototype data is shown on a 1-7 scale and will be replaced by integrated evaluation data in future development.'
-            );
-            ?>
-        </p>
-
-    </section>
-
-    <section class="tle-dashboard__card tle-dashboard__architecture-note">
-
-        <h2 class="tle-dashboard__section-title">
-            <?php echo esc_html('Integration Prototype'); ?>
-        </h2>
-
-        <p>
-            <?php
-            echo esc_html(
-                'This page is rendered by the Tasmanian Leaders WordPress plugin through a shortcode rather than through the WordPress Admin interface.'
-            );
-            ?>
-        </p>
-
-    </section>
+    </div>
 
 </div>
