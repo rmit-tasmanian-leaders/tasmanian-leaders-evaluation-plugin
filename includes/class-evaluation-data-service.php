@@ -60,7 +60,7 @@ class TLE_Evaluation_Data_Service
                 ? sanitize_text_field($data['question'])
                 : '',
 
-            'score' => isset($data['score'])
+            'score' => isset($data['score']) && $data['score'] !== null
                 ? floatval($data['score'])
                 : null,
 
@@ -79,12 +79,70 @@ class TLE_Evaluation_Data_Service
     }
 
     /**
-     * Retrieve normalised evaluation records from Gravity Forms.
+     * Validate a normalised evaluation record.
+     *
+     * Participant information is optional because Forms 40 and 43
+     * currently do not provide a participant key, program, program
+     * group, or cohort.
+     *
+     * @param array $record Normalised evaluation record.
+     * @return bool
+     */
+    public static function validate_record($record)
+    {
+        if (!is_array($record)) {
+            return false;
+        }
+
+        $required_fields = [
+            'evaluation_stage',
+            'submission_id',
+            'submission_date',
+            'question',
+        ];
+
+        foreach ($required_fields as $field) {
+            if (!array_key_exists($field, $record)) {
+                return false;
+            }
+        }
+
+        if ($record['evaluation_stage'] === '') {
+            return false;
+        }
+
+        if ($record['submission_id'] < 1) {
+            return false;
+        }
+
+        if ($record['submission_date'] === '') {
+            return false;
+        }
+
+        if ($record['question'] === '') {
+            return false;
+        }
+
+        if (
+            $record['score'] !== null &&
+            !is_numeric($record['score'])
+        ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Retrieve normalised evaluation records from the
+     * Gravity Forms REST API through the provider.
+     *
+     * Invalid records are excluded from the returned dataset.
      *
      * @param string $form_key Gravity Forms mapping key.
-     * @param array  $search_criteria GFAPI search criteria.
-     * @param array  $sorting GFAPI sorting options.
-     * @param array  $paging GFAPI paging options.
+     * @param array  $search_criteria Search criteria.
+     * @param array  $sorting Sorting options.
+     * @param array  $paging Paging options.
      * @return array
      */
     public static function get_evaluations(
@@ -97,11 +155,22 @@ class TLE_Evaluation_Data_Service
             return [];
         }
 
-        return TLE_Gravity_Forms_Provider::get_normalised_entries(
+        $records = TLE_Gravity_Forms_Provider::get_normalised_entries(
             $form_key,
             $search_criteria,
             $sorting,
             $paging
+        );
+
+        if (!is_array($records)) {
+            return [];
+        }
+
+        return array_values(
+            array_filter(
+                $records,
+                [self::class, 'validate_record']
+            )
         );
     }
 }

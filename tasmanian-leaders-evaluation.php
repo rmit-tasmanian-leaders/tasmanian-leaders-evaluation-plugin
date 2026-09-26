@@ -26,6 +26,9 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-rest-api.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-evaluation-data-service.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-gravity-forms-provider.php';
 
+// Load the reporting service.
+require_once plugin_dir_path(__FILE__) . 'includes/class-reporting-service.php';
+
 // Create the evaluation database table when the plugin is activated.
 register_activation_hook(
     __FILE__,
