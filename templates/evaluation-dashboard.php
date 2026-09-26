@@ -65,14 +65,209 @@ if (!defined('ABSPATH')) {
                     Report Setup
                 </h2>
 
-                <div class="tle-dashboard__field">
-                    <label for="tle-program">Program</label>
+                <div class="tle-dashboard__programs" data-tle-programs>
 
-                    <select id="tle-program" name="program">
-                        <option>I-LEAD Young Professionals</option>
-                        <option>Emerging Leaders Program</option>
-                    </select>
+                    <div class="tle-dashboard__program-row" data-tle-program-row>
+                        <div class="tle-dashboard__field tle-dashboard__program-search">
+                            <label for="tle-program-0">Program</label>
+
+                            <div class="tle-dashboard__program-search-wrap">
+                                <input
+                                    id="tle-program-0"
+                                    type="text"
+                                    name="program"
+                                    placeholder="Search for a program"
+                                    autocomplete="off"
+                                    data-tle-program-search
+                                >
+
+                                <div
+                                    class="tle-dashboard__program-suggestions"
+                                    data-tle-program-suggestions
+                                    hidden
+                                >
+                                    <button
+                                        type="button"
+                                        data-tle-program-option="I-LEAD Young Professionals"
+                                    >
+                                        I-LEAD Young Professionals
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        data-tle-program-option="Emerging Leaders Program"
+                                    >
+                                        Emerging Leaders Program
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="tle-dashboard__evaluation-toggle"
+                            data-tle-evaluation-toggle
+                            aria-expanded="false"
+                            hidden
+                        >
+                            Evaluation Points
+                        </button>
+
+                        <div
+                            class="tle-dashboard__evaluation-menu"
+                            data-tle-evaluation-menu
+                            hidden
+                        >
+                            <label class="tle-dashboard__checkbox">
+                                <input
+                                    type="checkbox"
+                                    name="evaluation_points[]"
+                                    value="pre-program"
+                                    checked
+                                >
+                                <span>Pre-program</span>
+                            </label>
+
+                            <label class="tle-dashboard__checkbox">
+                                <input
+                                    type="checkbox"
+                                    name="evaluation_points[]"
+                                    value="completion"
+                                    checked
+                                >
+                                <span>Completion</span>
+                            </label>
+
+                            <label class="tle-dashboard__checkbox">
+                                <input
+                                    type="checkbox"
+                                    name="evaluation_points[]"
+                                    value="three-month-delay"
+                                >
+                                <span>3-Month Delayed</span>
+                            </label>
+
+                            <label class="tle-dashboard__checkbox">
+                                <input
+                                    type="checkbox"
+                                    name="evaluation_points[]"
+                                    value="manager"
+                                >
+                                <span>Manager Evaluation</span>
+                            </label>
+                        </div>
+                    </div>
+
                 </div>
+
+                <button
+                    type="button"
+                    class="tle-dashboard__add-program"
+                    data-tle-add-program
+                >
+                    + Add program
+                </button>
+
+                <template id="tle-program-row-template">
+                    <div class="tle-dashboard__program-row" data-tle-program-row>
+                        <div class="tle-dashboard__field tle-dashboard__program-search">
+                            <label for="tle-program-__INDEX__">Program</label>
+
+                            <div class="tle-dashboard__program-search-wrap">
+                                <input
+                                    id="tle-program-__INDEX__"
+                                    type="text"
+                                    name="additional_programs[__INDEX__][program]"
+                                    placeholder="Search for a program"
+                                    autocomplete="off"
+                                    data-tle-program-search
+                                >
+
+                                <div
+                                    class="tle-dashboard__program-suggestions"
+                                    data-tle-program-suggestions
+                                    hidden
+                                >
+                                    <button
+                                        type="button"
+                                        data-tle-program-option="I-LEAD Young Professionals"
+                                    >
+                                        I-LEAD Young Professionals
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        data-tle-program-option="Emerging Leaders Program"
+                                    >
+                                        Emerging Leaders Program
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="tle-dashboard__evaluation-toggle"
+                            data-tle-evaluation-toggle
+                            aria-expanded="false"
+                            hidden
+                        >
+                            Evaluation Points
+                        </button>
+
+                        <div
+                            class="tle-dashboard__evaluation-menu"
+                            data-tle-evaluation-menu
+                            hidden
+                        >
+                            <label class="tle-dashboard__checkbox">
+                                <input
+                                    type="checkbox"
+                                    name="additional_programs[__INDEX__][evaluation_points][]"
+                                    value="pre-program"
+                                    checked
+                                >
+                                <span>Pre-program</span>
+                            </label>
+
+                            <label class="tle-dashboard__checkbox">
+                                <input
+                                    type="checkbox"
+                                    name="additional_programs[__INDEX__][evaluation_points][]"
+                                    value="completion"
+                                    checked
+                                >
+                                <span>Completion</span>
+                            </label>
+
+                            <label class="tle-dashboard__checkbox">
+                                <input
+                                    type="checkbox"
+                                    name="additional_programs[__INDEX__][evaluation_points][]"
+                                    value="three-month-delay"
+                                >
+                                <span>3-Month Delayed</span>
+                            </label>
+
+                            <label class="tle-dashboard__checkbox">
+                                <input
+                                    type="checkbox"
+                                    name="additional_programs[__INDEX__][evaluation_points][]"
+                                    value="manager"
+                                >
+                                <span>Manager Evaluation</span>
+                            </label>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="tle-dashboard__remove-program"
+                            data-tle-remove-program
+                        >
+                            Remove program
+                        </button>
+                    </div>
+                </template>
 
                 <div class="tle-dashboard__field">
                     <label for="tle-cohort">Cohort</label>
@@ -82,34 +277,6 @@ if (!defined('ABSPATH')) {
                         <option>2025</option>
                     </select>
                 </div>
-
-                <fieldset class="tle-dashboard__fieldset">
-                    <legend>Evaluation Points</legend>
-
-                    <p class="tle-dashboard__field-help">
-                        Select one or more evaluation points to include in the report.
-                    </p>
-
-                    <label class="tle-dashboard__checkbox">
-                        <input type="checkbox" name="evaluation_points[]" value="pre-program" checked>
-                        <span>Pre-program</span>
-                    </label>
-
-                    <label class="tle-dashboard__checkbox">
-                        <input type="checkbox" name="evaluation_points[]" value="completion" checked>
-                        <span>Completion</span>
-                    </label>
-
-                    <label class="tle-dashboard__checkbox">
-                        <input type="checkbox" name="evaluation_points[]" value="three-month-delay">
-                        <span>3-Month Delayed</span>
-                    </label>
-
-                    <label class="tle-dashboard__checkbox">
-                        <input type="checkbox" name="evaluation_points[]" value="manager">
-                        <span>Manager Evaluation</span>
-                    </label>
-                </fieldset>
             </section>
 
             <section

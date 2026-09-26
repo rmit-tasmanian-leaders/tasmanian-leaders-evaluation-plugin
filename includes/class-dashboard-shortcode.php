@@ -79,6 +79,14 @@ function tle_render_dashboard_shortcode()
         '0.1.0'
     );
 
+    wp_enqueue_script(
+        'tle-dashboard',
+        plugin_dir_url(dirname(__FILE__)) . 'assets/js/dashboard.js',
+        [],
+        '0.1.0',
+        true
+    );
+
     /*
      * Start output buffering.
      *
