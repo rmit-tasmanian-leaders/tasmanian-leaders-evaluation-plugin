@@ -436,25 +436,27 @@ if (!defined('ABSPATH')) {
 
                 <div class="tle-dashboard__summary-grid">
                     <div class="tle-dashboard__summary-item">
-                        <span class="tle-dashboard__label">Program</span>
-                        <strong>I-LEAD Young Professionals</strong>
+                        <span class="tle-dashboard__label">Programs</span>
+                        <strong data-tle-summary-programs>No program selected</strong>
                     </div>
 
                     <div class="tle-dashboard__summary-item">
                         <span class="tle-dashboard__label">Cohort</span>
-                        <strong>2026</strong>
+                        <strong data-tle-summary-cohort>2026</strong>
                     </div>
 
                     <div class="tle-dashboard__summary-item">
                         <span class="tle-dashboard__label">Evaluation Points</span>
-                        <strong>Pre-program, Completion</strong>
+                        <strong data-tle-summary-evaluation-points>
+                            Select a program to view evaluation points
+                        </strong>
                     </div>
                 </div>
 
                 <p class="tle-dashboard__note">
-                    These values are representative only. The workspace will later
-                    receive its configuration and results from the dashboard controls
-                    and shared evaluation data service.
+                    The selected report configuration above updates from the dashboard
+                    controls. Capability results below remain prototype data until the
+                    shared evaluation data service is connected.
                 </p>
             </section>
 
