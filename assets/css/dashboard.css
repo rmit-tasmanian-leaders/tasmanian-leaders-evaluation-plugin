@@ -7,6 +7,10 @@
  * the active WordPress theme.
  */
 
+.tle-dashboard [hidden] {
+    display: none !important;
+}
+
 .tle-dashboard {
     box-sizing: border-box;
     width: min(1200px, calc(100vw - 40px)) !important;
@@ -389,6 +393,153 @@
     color: #374151;
 }
 
+.tle-dashboard__programs {
+    margin-top: 20px;
+}
+
+.tle-dashboard__program-row {
+    position: relative;
+    margin-bottom: 16px;
+    padding: 16px;
+    border: 1px solid #d9dee5;
+    border-radius: 9px;
+    background: #f9fafb;
+}
+
+.tle-dashboard__program-row:first-child {
+    margin-top: 0;
+}
+
+.tle-dashboard__program-row .tle-dashboard__field {
+    margin-top: 0;
+}
+
+.tle-dashboard__program-search-wrap {
+    position: relative;
+}
+
+.tle-dashboard__program-search input[type="text"] {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cfd5dd;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #1f2937;
+    font: inherit;
+}
+
+.tle-dashboard__program-search input[type="text"]:focus {
+    outline: 2px solid #9ca3af;
+    outline-offset: 1px;
+    border-color: #9ca3af;
+}
+
+.tle-dashboard__program-suggestions {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 5px);
+    left: 0;
+    right: 0;
+    overflow: hidden;
+    border: 1px solid #cfd5dd;
+    border-radius: 7px;
+    background: #ffffff;
+    box-shadow: 0 8px 20px rgba(17, 24, 39, 0.12);
+}
+
+.tle-dashboard__program-suggestions button {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    border-bottom: 1px solid #edf0f3;
+    background: #ffffff;
+    color: #1f2937;
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.tle-dashboard__program-suggestions button:last-child {
+    border-bottom: 0;
+}
+
+.tle-dashboard__program-suggestions button:hover,
+.tle-dashboard__program-suggestions button:focus {
+    background: #f3f4f6;
+}
+
+.tle-dashboard__evaluation-toggle {
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid #cfd5dd;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+}
+
+.tle-dashboard__evaluation-toggle::after {
+    content: "▾";
+    float: right;
+}
+
+.tle-dashboard__evaluation-toggle[aria-expanded="true"]::after {
+    content: "▴";
+}
+
+.tle-dashboard__evaluation-menu {
+    margin-top: 8px;
+    padding: 12px;
+    border: 1px solid #d9dee5;
+    border-radius: 7px;
+    background: #ffffff;
+}
+
+.tle-dashboard__evaluation-menu .tle-dashboard__checkbox:last-child {
+    margin-bottom: 0;
+}
+
+.tle-dashboard__add-program {
+    width: 100%;
+    margin: 0 0 6px;
+    padding: 10px 14px;
+    border: 1px dashed #9ca3af;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.tle-dashboard__add-program:hover,
+.tle-dashboard__add-program:focus {
+    background: #f3f4f6;
+    border-color: #6b7280;
+}
+
+.tle-dashboard__remove-program {
+    margin-top: 12px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #b42318;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.tle-dashboard__remove-program:hover,
+.tle-dashboard__remove-program:focus {
+    text-decoration: underline;
+}
 @media (max-width: 950px) {
     .tle-dashboard__layout {
         grid-template-columns: 1fr;
@@ -404,7 +555,11 @@
 }
 
 @media (max-width: 600px) {
-    .tle-dashboard {
+    .tle-dashboard [hidden] {
+    display: none !important;
+}
+
+.tle-dashboard {
     box-sizing: border-box;
     width: min(1200px, calc(100vw - 40px)) !important;
     max-width: min(1200px, calc(100vw - 40px)) !important;
