@@ -137,18 +137,25 @@ function tle_get_test_report_data()
 
         'impact' => [
             [
-                'measure' => 'Place-attachment',
-                'pre' => 5.0,
-                'completion' => 5.4,
-                'delay' => 5.3,
-                'benchmark' => 5.1,
-            ],
-            [
                 'measure' => 'Capacity to foster belonging',
                 'pre' => 4.7,
                 'completion' => 5.5,
                 'delay' => 5.6,
                 'benchmark' => 5.0,
+            ],
+            [
+                'measure' => 'Capacity to foster intrinsic motivation',
+                'pre' => 4.8,
+                'completion' => 5.3,
+                'delay' => 5.5,
+                'benchmark' => 5.0,
+            ],
+            [
+                'measure' => 'Place-attachment',
+                'pre' => 5.0,
+                'completion' => 5.4,
+                'delay' => 5.3,
+                'benchmark' => 5.1,
             ],
             [
                 'measure' => 'Extra-role behaviours',
@@ -724,6 +731,26 @@ function tle_export_pdf()
 
     $influence_quote = isset($_POST['influence_quote'])
         ? sanitize_textarea_field(wp_unslash($_POST['influence_quote']))
+        : '';
+
+    $impact_belonging_text = isset($_POST['impact_belonging_text'])
+        ? sanitize_text_field(wp_unslash($_POST['impact_belonging_text']))
+        : '';
+
+    $impact_intrinsic_motivation_text = isset($_POST['impact_intrinsic_motivation_text'])
+        ? sanitize_text_field(wp_unslash($_POST['impact_intrinsic_motivation_text']))
+        : '';
+
+    $impact_place_attachment_text = isset($_POST['impact_place_attachment_text'])
+        ? sanitize_text_field(wp_unslash($_POST['impact_place_attachment_text']))
+        : '';
+
+    $impact_extra_role_text = isset($_POST['impact_extra_role_text'])
+        ? sanitize_text_field(wp_unslash($_POST['impact_extra_role_text']))
+        : '';
+
+    $impact_quote = isset($_POST['impact_quote'])
+        ? sanitize_textarea_field(wp_unslash($_POST['impact_quote']))
         : '';
 
     $report_colour_key = isset($_POST['report_colour'])
@@ -1712,14 +1739,11 @@ $insight_line_colours = [
 
 $insight_grid = '';
 
-for ($grid_index = 0; $grid_index <= 4; $grid_index++) {
-    $grid_percentage =
-        $insight_axis_min +
-        (
-            ($insight_axis_max - $insight_axis_min) *
-            ($grid_index / 4)
-        );
-
+for (
+    $grid_percentage = $insight_axis_min;
+    $grid_percentage <= $insight_axis_max;
+    $grid_percentage += 10
+) {
     $grid_y = $insight_chart_y($grid_percentage);
 
     $insight_grid .= '
@@ -1734,7 +1758,7 @@ for ($grid_index = 0; $grid_index <= 4; $grid_index++) {
             x="54"
             y="' . ($grid_y + 4) . '"
             text-anchor="end"
-        >' . esc_html(round($grid_percentage)) . '%</text>
+        >' . esc_html($grid_percentage) . '%</text>
     ';
 }
 
@@ -2036,9 +2060,6 @@ foreach ($insight_growth_items as $item) {
         <div class="growth-summary-line">
             <strong>
                 ' . esc_html($item['measure']) . '
-                <span>
-                    +' . esc_html(round($item['increase'])) . ' pp
-                </span>
             </strong>
 
             <div>
@@ -2180,14 +2201,11 @@ $influence_line_colours = [
 
 $influence_grid = '';
 
-for ($grid_index = 0; $grid_index <= 4; $grid_index++) {
-    $grid_percentage =
-        $influence_axis_min +
-        (
-            ($influence_axis_max - $influence_axis_min) *
-            ($grid_index / 4)
-        );
-
+for (
+    $grid_percentage = $influence_axis_min;
+    $grid_percentage <= $influence_axis_max;
+    $grid_percentage += 10
+) {
     $grid_y = $influence_chart_y($grid_percentage);
 
     $influence_grid .= '
@@ -2202,7 +2220,7 @@ for ($grid_index = 0; $grid_index <= 4; $grid_index++) {
             x="54"
             y="' . ($grid_y + 4) . '"
             text-anchor="end"
-        >' . esc_html(round($grid_percentage)) . '%</text>
+        >' . esc_html($grid_percentage) . '%</text>
     ';
 }
 
@@ -2501,9 +2519,6 @@ foreach ($influence_growth_items as $item) {
         <div class="growth-summary-line">
             <strong>
                 ' . esc_html($item['measure']) . '
-                <span>
-                    +' . esc_html(round($item['increase'])) . ' pp
-                </span>
             </strong>
 
             <div>
@@ -2559,6 +2574,460 @@ if (trim($influence_quote) !== '') {
         'growth-summary-box growth-summary-box--with-quote';
 } else {
     $influence_growth_summary_class =
+        'growth-summary-box growth-summary-box--full';
+}
+
+/*
+ * Final Sprint 2 Impact report visualisation.
+ */
+
+$impact_measures = $overview_sections['Impact'];
+
+$impact_text_map = [
+    'Capacity to foster belonging' => $impact_belonging_text,
+    'Capacity to foster intrinsic motivation' => $impact_intrinsic_motivation_text,
+    'Place-attachment' => $impact_place_attachment_text,
+    'Extra-role behaviours' => $impact_extra_role_text,
+];
+
+/*
+ * All-capability Impact line chart with dynamic vertical scale.
+ */
+
+$impact_percentages = [];
+
+foreach ($impact_measures as $measure) {
+    foreach (['pre', 'completion', 'delay'] as $point) {
+        $impact_percentages[] = ($measure[$point] / 7) * 100;
+    }
+}
+
+$impact_axis_min = max(
+    0,
+    floor((min($impact_percentages) - 5) / 10) * 10
+);
+
+$impact_axis_max = min(
+    100,
+    ceil((max($impact_percentages) + 5) / 10) * 10
+);
+
+if (($impact_axis_max - $impact_axis_min) < 20) {
+    $impact_axis_min = max(0, $impact_axis_min - 10);
+    $impact_axis_max = min(100, $impact_axis_max + 10);
+}
+
+$impact_plot_top = 36;
+$impact_plot_bottom = 205;
+$impact_plot_height =
+    $impact_plot_bottom - $impact_plot_top;
+
+$impact_axis_range = max(
+    1,
+    $impact_axis_max - $impact_axis_min
+);
+
+$impact_chart_y = static function ($percentage) use (
+    $impact_plot_bottom,
+    $impact_plot_height,
+    $impact_axis_min,
+    $impact_axis_range
+) {
+    return $impact_plot_bottom -
+        (
+            (($percentage - $impact_axis_min) / $impact_axis_range) *
+            $impact_plot_height
+        );
+};
+
+$impact_x_positions = [
+    'pre' => 100,
+    'completion' => 305,
+    'delay' => 510,
+];
+
+$impact_line_colours = [
+    $report_colour,
+    '#111111',
+    '#666666',
+    $mix_report_colour($report_colour, '#111111', 0.35),
+];
+
+$impact_grid = '';
+
+for (
+    $grid_percentage = $impact_axis_min;
+    $grid_percentage <= $impact_axis_max;
+    $grid_percentage += 10
+) {
+    $grid_y = $impact_chart_y($grid_percentage);
+
+    $impact_grid .= '
+        <line
+            x1="65"
+            y1="' . $grid_y . '"
+            x2="550"
+            y2="' . $grid_y . '"
+        />
+
+        <text
+            x="54"
+            y="' . ($grid_y + 4) . '"
+            text-anchor="end"
+        >' . esc_html($grid_percentage) . '%</text>
+    ';
+}
+
+$impact_lines = '';
+$impact_legend = '';
+
+foreach ($impact_measures as $index => $measure) {
+    $colour = $impact_line_colours[
+        $index % count($impact_line_colours)
+    ];
+
+    $pre_percentage = ($measure['pre'] / 7) * 100;
+    $completion_percentage = ($measure['completion'] / 7) * 100;
+    $delay_percentage = ($measure['delay'] / 7) * 100;
+
+    $points =
+        $impact_x_positions['pre'] . ',' .
+        $impact_chart_y($pre_percentage) . ' ' .
+        $impact_x_positions['completion'] . ',' .
+        $impact_chart_y($completion_percentage) . ' ' .
+        $impact_x_positions['delay'] . ',' .
+        $impact_chart_y($delay_percentage);
+
+    $impact_lines .= '
+        <polyline
+            points="' . $points . '"
+            fill="none"
+            stroke="' . esc_attr($colour) . '"
+            stroke-width="2.5"
+        />
+
+        <g fill="' . esc_attr($colour) . '">
+            <circle
+                cx="' . $impact_x_positions['pre'] . '"
+                cy="' . $impact_chart_y($pre_percentage) . '"
+                r="4"
+            />
+            <circle
+                cx="' . $impact_x_positions['completion'] . '"
+                cy="' . $impact_chart_y($completion_percentage) . '"
+                r="4"
+            />
+            <circle
+                cx="' . $impact_x_positions['delay'] . '"
+                cy="' . $impact_chart_y($delay_percentage) . '"
+                r="4"
+            />
+        </g>
+    ';
+
+    $legend_column = $index % 2;
+    $legend_row = floor($index / 2);
+
+    $legend_x = $legend_column === 0
+        ? 72
+        : 320;
+
+    $legend_y = 239 + ($legend_row * 14);
+
+    $impact_legend .= '
+        <line
+            x1="' . $legend_x . '"
+            y1="' . ($legend_y - 3) . '"
+            x2="' . ($legend_x + 18) . '"
+            y2="' . ($legend_y - 3) . '"
+            stroke="' . esc_attr($colour) . '"
+            stroke-width="3"
+        />
+
+        <text
+            x="' . ($legend_x + 24) . '"
+            y="' . $legend_y . '"
+        >' . esc_html($measure['measure']) . '</text>
+    ';
+}
+
+$impact_svg = '
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="600"
+    height="275"
+    viewBox="0 0 600 275"
+>
+    <rect width="600" height="275" fill="#ffffff"/>
+
+    <g
+        stroke="#dedede"
+        stroke-width="1"
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="10"
+    >
+        ' . $impact_grid . '
+    </g>
+
+    <g
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="9"
+    >
+        <text x="75" y="224">Pre-program</text>
+        <text x="270" y="224">Post-program</text>
+        <text x="490" y="224">Delayed</text>
+
+        ' . $impact_legend . '
+    </g>
+
+    ' . $impact_lines . '
+</svg>
+';
+
+$section_chart_data['Impact'] =
+    'data:image/svg+xml;base64,' .
+    base64_encode($impact_svg);
+
+/*
+ * Key Growth — top three Impact capabilities.
+ */
+
+$impact_growth_items = [];
+
+foreach ($impact_measures as $measure) {
+    $pre_percentage = ($measure['pre'] / 7) * 100;
+    $completion_percentage = ($measure['completion'] / 7) * 100;
+    $delay_percentage = ($measure['delay'] / 7) * 100;
+
+    $impact_growth_items[] = [
+        'measure' => $measure['measure'],
+        'pre' => $pre_percentage,
+        'completion' => $completion_percentage,
+        'delay' => $delay_percentage,
+        'increase' => $delay_percentage - $pre_percentage,
+    ];
+}
+
+usort(
+    $impact_growth_items,
+    static function ($first, $second) {
+        return $second['increase'] <=> $first['increase'];
+    }
+);
+
+$impact_key_growth = array_slice(
+    $impact_growth_items,
+    0,
+    3
+);
+
+$impact_bar_pre = $report_colour_light;
+$impact_bar_post = $before_bar_colour;
+$impact_bar_delayed = $report_colour;
+
+$impact_key_growth_content = '';
+$impact_group_x = [105, 275, 445];
+
+foreach ($impact_key_growth as $index => $item) {
+    $group_x = $impact_group_x[$index];
+
+    $pre_height = $item['pre'] * 1.35;
+    $post_height = $item['completion'] * 1.35;
+    $delay_height = $item['delay'] * 1.35;
+
+    $pre_y = 170 - $pre_height;
+    $post_y = 170 - $post_height;
+    $delay_y = 170 - $delay_height;
+
+    $impact_key_growth_content .= '
+        <rect
+            x="' . $group_x . '"
+            y="' . $pre_y . '"
+            width="25"
+            height="' . $pre_height . '"
+            fill="' . esc_attr($impact_bar_pre) . '"
+        />
+
+        <rect
+            x="' . ($group_x + 28) . '"
+            y="' . $post_y . '"
+            width="25"
+            height="' . $post_height . '"
+            fill="' . esc_attr($impact_bar_post) . '"
+        />
+
+        <rect
+            x="' . ($group_x + 56) . '"
+            y="' . $delay_y . '"
+            width="25"
+            height="' . $delay_height . '"
+            fill="' . esc_attr($impact_bar_delayed) . '"
+        />
+
+        <text
+            x="' . ($group_x + 40) . '"
+            y="192"
+            text-anchor="middle"
+            font-family="DejaVu Sans"
+            font-size="7.5"
+            font-weight="600"
+            fill="#111111"
+        >' . esc_html($item['measure']) . '</text>
+    ';
+}
+
+$impact_key_growth_svg = '
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="600"
+    height="205"
+    viewBox="0 0 600 205"
+>
+    <rect width="600" height="205" fill="#ffffff"/>
+
+    <g
+        font-family="DejaVu Sans"
+        font-size="9"
+        fill="#555555"
+    >
+        <rect
+            x="325"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($impact_bar_pre) . '"
+        />
+        <text x="341" y="17">Pre-program</text>
+
+        <rect
+            x="410"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($impact_bar_post) . '"
+        />
+        <text x="426" y="17">Post-program</text>
+
+        <rect
+            x="503"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($impact_bar_delayed) . '"
+        />
+        <text x="519" y="17">Delayed</text>
+    </g>
+
+    <g stroke="#dedede" stroke-width="1">
+        <line x1="65" y1="35" x2="550" y2="35"/>
+        <line x1="65" y1="62" x2="550" y2="62"/>
+        <line x1="65" y1="89" x2="550" y2="89"/>
+        <line x1="65" y1="116" x2="550" y2="116"/>
+        <line x1="65" y1="143" x2="550" y2="143"/>
+        <line x1="65" y1="170" x2="550" y2="170"/>
+    </g>
+
+    <g
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="10"
+    >
+        <text x="54" y="39" text-anchor="end">100%</text>
+        <text x="54" y="66" text-anchor="end">80%</text>
+        <text x="54" y="93" text-anchor="end">60%</text>
+        <text x="54" y="120" text-anchor="end">40%</text>
+        <text x="54" y="147" text-anchor="end">20%</text>
+        <text x="54" y="174" text-anchor="end">0%</text>
+    </g>
+
+    ' . $impact_key_growth_content . '
+</svg>
+';
+
+$section_movers_chart_data['Impact'] =
+    'data:image/svg+xml;base64,' .
+    base64_encode($impact_key_growth_svg);
+
+/*
+ * Growth Summary — every Impact capability.
+ */
+
+$impact_growth_summary_html = '';
+
+foreach ($impact_growth_items as $item) {
+    $custom_text = isset($impact_text_map[$item['measure']])
+        ? trim($impact_text_map[$item['measure']])
+        : '';
+
+    if ($custom_text === '') {
+        $custom_text = sprintf(
+            '%s increased by %s percentage points.',
+            $item['measure'],
+            round($item['increase'])
+        );
+    }
+
+    $impact_growth_summary_html .= '
+        <div class="growth-summary-line">
+            <strong>
+                ' . esc_html($item['measure']) . '
+            </strong>
+
+            <div>
+                ' . esc_html($custom_text) . '
+            </div>
+        </div>
+    ';
+}
+
+/*
+ * Optional anonymous participant quote.
+ */
+
+$impact_quote_html = '';
+
+if (trim($impact_quote) !== '') {
+    $quote_length = strlen($impact_quote);
+
+    if ($quote_length > 220) {
+        $impact_quote_size = '9px';
+    } elseif ($quote_length > 140) {
+        $impact_quote_size = '10px';
+    } elseif ($quote_length > 80) {
+        $impact_quote_size = '11px';
+    } else {
+        $impact_quote_size = '13px';
+    }
+
+    $impact_quote_html = '
+        <td
+            class="participant-quote-box"
+            style="
+                background: ' . esc_attr($report_colour) . ';
+                color: ' . esc_attr($recommendation_text_colour) . ';
+            "
+        >
+            <div class="box-heading">
+                Participant Quote
+            </div>
+
+            <div
+                class="participant-quote-text"
+                style="font-size: ' . esc_attr($impact_quote_size) . ';"
+            >
+                &ldquo;' .
+                nl2br(esc_html($impact_quote)) .
+                '&rdquo;
+            </div>
+        </td>
+    ';
+
+    $impact_growth_summary_class =
+        'growth-summary-box growth-summary-box--with-quote';
+} else {
+    $impact_growth_summary_class =
         'growth-summary-box growth-summary-box--full';
 }
 $html = '
@@ -3250,6 +3719,79 @@ $html = '
         margin-bottom: 0;
         font-size: 8.5px;
     }
+
+    /* Final Sprint 2 Impact PDF page */
+
+    .final-impact-page {
+        padding-top: 38px;
+        padding-bottom: 40px;
+    }
+
+    .final-impact-page .brand {
+        margin-bottom: 18px;
+        font-size: 30px;
+    }
+
+    .final-impact-page .cover-rule {
+        margin-bottom: 13px;
+    }
+
+    .final-impact-page .section-report-title {
+        margin-bottom: 0;
+        font-size: 29px;
+    }
+
+    .final-impact-page .section-chart {
+        width: 86%;
+        margin: 0 auto;
+    }
+
+    .final-impact-page .section-chart img {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    .final-impact-page .section-movers-title {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .final-impact-page .movers-chart {
+        width: 86%;
+        margin: 0 auto;
+    }
+
+    .final-impact-page .movers-chart img {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    .final-impact-page .section-summary-table {
+        margin-top: 2px;
+    }
+
+    .final-impact-page .growth-summary-box,
+    .final-impact-page .participant-quote-box {
+        padding: 9px 12px;
+    }
+
+    .final-impact-page .box-heading {
+        margin-bottom: 5px;
+        font-size: 16px;
+    }
+
+    .final-impact-page .growth-summary-line {
+        margin-bottom: 4px;
+        font-size: 8.5px;
+        line-height: 1.2;
+    }
+
+    .final-impact-page .growth-summary-line strong {
+        margin-bottom: 0;
+        font-size: 9px;
+    }
 </style>
 </head>
 
@@ -3460,7 +4002,7 @@ $html = '
     </div>
 
 </div>
-<div class="page content-page insight-page">
+<div class="page content-page insight-page final-impact-page">
 
     <div class="brand">
         Tasmanian
@@ -3485,7 +4027,7 @@ $html = '
     </div>
 
     <h3 class="section-movers-title">
-        Top 3 Positive Movers
+        Key Growth
     </h3>
 
     <div class="movers-chart">
@@ -3498,34 +4040,15 @@ $html = '
     <table class="section-summary-table">
         <tr>
 
-            <td class="growth-box">
+            <td class="' . esc_attr($impact_growth_summary_class) . '">
                 <div class="box-heading">
-                    Growth
+                    Growth Summary
                 </div>
 
-                ' . $section_growth_html['Impact'] . '
+                ' . $impact_growth_summary_html . '
             </td>
 
-            <td
-                class="recommendations-box"
-                style="background: ' . esc_attr($report_colour) . ';"
-            >
-                <div class="box-heading">
-                    Recommendations
-                </div>
-
-                <div class="recommendation-line">
-                    1. ' . esc_html($section_recommendations['Impact'][0]) . '
-                </div>
-
-                <div class="recommendation-line">
-                    2. ' . esc_html($section_recommendations['Impact'][1]) . '
-                </div>
-
-                <div class="recommendation-line">
-                    3. ' . esc_html($section_recommendations['Impact'][2]) . '
-                </div>
-            </td>
+            ' . $impact_quote_html . '
 
         </tr>
     </table>
