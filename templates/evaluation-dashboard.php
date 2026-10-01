@@ -20,24 +20,33 @@ if (!defined('ABSPATH')) {
 
 <div class="tle-dashboard">
 
-    <header class="tle-dashboard__header">
-        <p class="tle-dashboard__eyebrow">Tasmanian Leaders</p>
+    <header class="tle-dashboard__final-header">
+        <div class="tle-dashboard__wordmark" aria-label="Tasmanian Leaders">
+            <span>Tasmanian</span>
+            <span>Leaders</span>
+        </div>
 
-        <h1 class="tle-dashboard__title">Evaluation Dashboard</h1>
+        <div class="tle-dashboard__header-divider" aria-hidden="true"></div>
 
-        <p class="tle-dashboard__intro">
-            Create and configure an evaluation report by selecting the program,
-            cohort and evaluation points, then review the report workspace below.
-        </p>
+        <div class="tle-dashboard__report-tabs">
+            <button
+                type="button"
+                class="tle-dashboard__report-tab tle-dashboard__report-tab--active"
+            >
+                Create new report
+            </button>
+
+            <button
+                type="button"
+                class="tle-dashboard__report-tab"
+                disabled
+                aria-disabled="true"
+                title="Saved report functionality is not connected yet."
+            >
+                Open saved report
+            </button>
+        </div>
     </header>
-
-    <nav class="tle-dashboard__navigation" aria-label="Evaluation dashboard sections">
-        <a href="#tle-report-setup">Report Setup</a>
-        <a href="#tle-appearance">Appearance</a>
-        <a href="#tle-report-text">Report Text</a>
-        <a href="#tle-report-workspace">Report Workspace</a>
-    </nav>
-
     <form
     id="tle-pdf-export-form"
     method="post"
@@ -59,10 +68,10 @@ if (!defined('ABSPATH')) {
                 class="tle-dashboard__card tle-dashboard__configuration"
                 aria-labelledby="tle-report-setup-heading"
             >
-                <p class="tle-dashboard__step">Step 1</p>
+                <p class="tle-dashboard__step">1</p>
 
                 <h2 id="tle-report-setup-heading" class="tle-dashboard__section-title">
-                    Report Setup
+                    Program Selection
                 </h2>
 
                 <div class="tle-dashboard__programs" data-tle-programs>
@@ -293,7 +302,7 @@ if (!defined('ABSPATH')) {
                 class="tle-dashboard__card"
                 aria-labelledby="tle-appearance-heading"
             >
-                <p class="tle-dashboard__step">Step 2</p>
+                <p class="tle-dashboard__step">2</p>
 
                 <h2 id="tle-appearance-heading" class="tle-dashboard__section-title">
                     Appearance
@@ -428,7 +437,7 @@ if (!defined('ABSPATH')) {
                 class="tle-dashboard__card tle-dashboard__text-customisation"
                 aria-labelledby="tle-report-text-heading"
             >
-                <p class="tle-dashboard__step">Step 3</p>
+                <p class="tle-dashboard__step">3</p>
 
                 <h2 id="tle-report-text-heading" class="tle-dashboard__section-title">
                     Text Customisation
@@ -767,134 +776,36 @@ if (!defined('ABSPATH')) {
                 </div>
             </section>
 
-            <a class="tle-dashboard__workspace-link" href="#tle-report-workspace">
-                View Report Workspace
-            </a>
-
         </aside>
 
-        <main
-            id="tle-report-workspace"
-            class="tle-dashboard__workspace"
-            aria-labelledby="tle-report-workspace-heading"
-        >
-            <div class="tle-dashboard__workspace-header">
-                <div>
-                    <p class="tle-dashboard__step">Step 4</p>
+        <div class="tle-dashboard__final-actions">
+            <button
+                type="button"
+                class="tle-dashboard__action tle-dashboard__action--secondary"
+                onclick="window.history.back();"
+            >
+                Back
+            </button>
 
-                    <h2
-                        id="tle-report-workspace-heading"
-                        class="tle-dashboard__section-title"
-                    >
-                        Report Workspace
-                    </h2>
-                </div>
-
-                <span class="tle-dashboard__status">
-                    Prototype Data
-                </span>
-            </div>
-
-            <section class="tle-dashboard__card">
-                <h3 class="tle-dashboard__subheading">Report Overview</h3>
-
-                <div class="tle-dashboard__summary-grid">
-                    <div class="tle-dashboard__summary-item">
-                        <span class="tle-dashboard__label">Programs</span>
-                        <strong data-tle-summary-programs>No program selected</strong>
-                    </div>
-
-                    <div class="tle-dashboard__summary-item">
-                        <span class="tle-dashboard__label">Cohort</span>
-                        <strong data-tle-summary-cohort>2026</strong>
-                    </div>
-
-                    <div class="tle-dashboard__summary-item">
-                        <span class="tle-dashboard__label">Evaluation Points</span>
-                        <strong data-tle-summary-evaluation-points>
-                            Select a program to view evaluation points
-                        </strong>
-                    </div>
-                </div>
-
-                <p class="tle-dashboard__note">
-                    The selected report configuration above updates from the dashboard
-                    controls. Capability results below remain prototype data until the
-                    shared evaluation data service is connected.
-                </p>
-            </section>
-
-            <section class="tle-dashboard__report-section">
-                <div class="tle-dashboard__report-section-header">
-                    <div>
-                        <p class="tle-dashboard__section-kicker">ELF Capability</p>
-                        <h3 class="tle-dashboard__subheading">Insight</h3>
-                    </div>
-
-                    <span class="tle-dashboard__placeholder-label">
-                        Evaluation data area
-                    </span>
-                </div>
-
-                <div class="tle-dashboard__placeholder">
-                    Insight charts, capability results and reporting content will appear here.
-                </div>
-            </section>
-
-            <section class="tle-dashboard__report-section">
-                <div class="tle-dashboard__report-section-header">
-                    <div>
-                        <p class="tle-dashboard__section-kicker">ELF Capability</p>
-                        <h3 class="tle-dashboard__subheading">Influence</h3>
-                    </div>
-
-                    <span class="tle-dashboard__placeholder-label">
-                        Evaluation data area
-                    </span>
-                </div>
-
-                <div class="tle-dashboard__placeholder">
-                    Influence charts, capability results and reporting content will appear here.
-                </div>
-            </section>
-
-            <section class="tle-dashboard__report-section">
-                <div class="tle-dashboard__report-section-header">
-                    <div>
-                        <p class="tle-dashboard__section-kicker">ELF Capability</p>
-                        <h3 class="tle-dashboard__subheading">Impact</h3>
-                    </div>
-
-                    <span class="tle-dashboard__placeholder-label">
-                        Evaluation data area
-                    </span>
-                </div>
-
-                <div class="tle-dashboard__placeholder">
-                    Impact charts, capability results and reporting content will appear here.
-                </div>
-            </section>
-
-            <section class="tle-dashboard__card tle-dashboard__export-area">
-                <div>
-                    <p class="tle-dashboard__section-kicker">Reporting</p>
-                    <h3 class="tle-dashboard__subheading">PDF Export</h3>
-
-                    <p class="tle-dashboard__note">
-                        The existing PDF export functionality will later consume the
-                        same reporting data displayed in this workspace.
-                    </p>
-                </div>
+            <div class="tle-dashboard__final-actions-right">
+                <button
+                    type="button"
+                    class="tle-dashboard__action tle-dashboard__action--secondary"
+                    disabled
+                    aria-disabled="true"
+                    title="Saved report functionality is not connected yet."
+                >
+                    Save
+                </button>
 
                 <button
                     type="submit"
-                    class="tle-dashboard__export-button"
+                    class="tle-dashboard__action tle-dashboard__action--primary"
                 >
                     Export as PDF
                 </button>
-            </section>
-
-        </main>
+            </div>
+        </div>
 
     </div>
 
