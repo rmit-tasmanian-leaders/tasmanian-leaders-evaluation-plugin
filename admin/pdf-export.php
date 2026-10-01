@@ -615,51 +615,98 @@ function tle_export_pdf()
 
     $report_colour_key = isset($_POST['report_colour'])
         ? sanitize_key(wp_unslash($_POST['report_colour']))
-        : 'teal';
+        : 'aqua';
+
+    $report_colour_custom = isset($_POST['report_colour_custom'])
+        ? sanitize_hex_color(wp_unslash($_POST['report_colour_custom']))
+        : '';
 
     $report_colours = [
-        'teal' => '#4f7f84',
-        'coral' => '#ff756b',
-        'lime' => '#b8f06a',
+        'aqua'   => '#a2f8ff',
+        'green'  => '#5af474',
+        'yellow' => '#fff25c',
+        'orange' => '#ff643c',
+        'pink'   => '#ffb6ff',
+
+        // Retained for backwards compatibility with earlier dashboard exports.
+        'teal'   => '#4f7f84',
+        'coral'  => '#ff756b',
+        'lime'   => '#b8f06a',
         'purple' => '#c249df',
     ];
 
-    $report_colour = isset($report_colours[$report_colour_key])
-        ? $report_colours[$report_colour_key]
-        : $report_colours['teal'];
+    if (
+        $report_colour_key === 'custom' &&
+        !empty($report_colour_custom)
+    ) {
+        $report_colour = $report_colour_custom;
+    } else {
+        $report_colour = isset($report_colours[$report_colour_key])
+            ? $report_colours[$report_colour_key]
+            : $report_colours['aqua'];
+    }
 
-    $report_colour_tints = [
-        'teal'   => '#cbdcde',
-        'coral'  => '#ffd8d4',
-        'lime'   => '#e8f8cf',
-        'purple' => '#efd8f5',
-    ];
+    $mix_report_colour = static function (
+        $hex,
+        $target = '#ffffff',
+        $amount = 0.5
+    ) {
+        $hex = ltrim($hex, '#');
+        $target = ltrim($target, '#');
 
-    $report_colour_light = isset($report_colour_tints[$report_colour_key])
-        ? $report_colour_tints[$report_colour_key]
-        : $report_colour_tints['teal'];
+        $source_red = hexdec(substr($hex, 0, 2));
+        $source_green = hexdec(substr($hex, 2, 2));
+        $source_blue = hexdec(substr($hex, 4, 2));
 
-    $report_colour_secondary = [
-        'teal'   => '#9fc4c7',
-        'coral'  => '#ffaaa3',
-        'lime'   => '#d3ef9a',
-        'purple' => '#daa4e7',
-    ];
+        $target_red = hexdec(substr($target, 0, 2));
+        $target_green = hexdec(substr($target, 2, 2));
+        $target_blue = hexdec(substr($target, 4, 2));
 
-    $before_bar_colour = isset($report_colour_secondary[$report_colour_key])
-        ? $report_colour_secondary[$report_colour_key]
-        : $report_colour_secondary['teal'];
+        $red = (int) round(
+            $source_red + (($target_red - $source_red) * $amount)
+        );
+        $green = (int) round(
+            $source_green + (($target_green - $source_green) * $amount)
+        );
+        $blue = (int) round(
+            $source_blue + (($target_blue - $source_blue) * $amount)
+        );
 
-    $report_colour_text = [
-        'teal'   => '#ffffff',
-        'coral'  => '#111111',
-        'lime'   => '#111111',
-        'purple' => '#ffffff',
-    ];
+        return sprintf(
+            '#%02x%02x%02x',
+            $red,
+            $green,
+            $blue
+        );
+    };
 
-    $recommendation_text_colour = isset($report_colour_text[$report_colour_key])
-        ? $report_colour_text[$report_colour_key]
-        : '#ffffff';
+    $report_colour_light = $mix_report_colour(
+        $report_colour,
+        '#ffffff',
+        0.68
+    );
+
+    $before_bar_colour = $mix_report_colour(
+        $report_colour,
+        '#ffffff',
+        0.42
+    );
+
+    $report_colour_rgb = sscanf(
+        ltrim($report_colour, '#'),
+        '%02x%02x%02x'
+    );
+
+    $report_colour_brightness = (
+        ($report_colour_rgb[0] * 299) +
+        ($report_colour_rgb[1] * 587) +
+        ($report_colour_rgb[2] * 114)
+    ) / 1000;
+
+    $recommendation_text_colour =
+        $report_colour_brightness >= 155
+            ? '#111111'
+            : '#ffffff';
 
     $cover_image_data = '';
 

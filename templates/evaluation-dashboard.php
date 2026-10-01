@@ -299,54 +299,128 @@ if (!defined('ABSPATH')) {
                     Appearance
                 </h2>
 
-                <div class="tle-dashboard__field">
-                    <label for="tle-cover-image">Cover Image</label>
+                <div class="tle-dashboard__appearance-grid">
+                    <div class="tle-dashboard__cover-control">
+                        <span class="tle-dashboard__field-label">Cover Image</span>
 
-                    <input
-                        id="tle-cover-image"
-                        type="file"
-                        name="cover_image"
-                        accept="image/*"
-                    >
+                        <label
+                            class="tle-dashboard__cover-upload"
+                            for="tle-cover-image"
+                            data-tle-cover-upload
+                        >
+                            <input
+                                id="tle-cover-image"
+                                class="tle-dashboard__cover-input"
+                                type="file"
+                                name="cover_image"
+                                accept="image/jpeg,image/png"
+                                data-tle-cover-input
+                            >
 
-                    <p class="tle-dashboard__field-help">
-                        Upload the image to appear on the report cover.
-                    </p>
-                </div>
+                            <span
+                                class="tle-dashboard__cover-placeholder"
+                                data-tle-cover-placeholder
+                            >
+                                Upload an image
+                            </span>
 
-                <fieldset class="tle-dashboard__fieldset">
-                    <legend>Report Colour</legend>
-
-                    <p class="tle-dashboard__field-help">
-                        Select the accent colour used throughout the exported report.
-                    </p>
-
-                    <div class="tle-dashboard__colour-options">
-                        <label class="tle-dashboard__colour-option">
-                            <input type="radio" name="report_colour" value="teal" checked>
-                            <span class="tle-dashboard__colour-swatch tle-dashboard__colour-swatch--teal"></span>
-                            <span>Teal</span>
-                        </label>
-
-                        <label class="tle-dashboard__colour-option">
-                            <input type="radio" name="report_colour" value="coral">
-                            <span class="tle-dashboard__colour-swatch tle-dashboard__colour-swatch--coral"></span>
-                            <span>Coral</span>
-                        </label>
-
-                        <label class="tle-dashboard__colour-option">
-                            <input type="radio" name="report_colour" value="lime">
-                            <span class="tle-dashboard__colour-swatch tle-dashboard__colour-swatch--lime"></span>
-                            <span>Lime</span>
-                        </label>
-
-                        <label class="tle-dashboard__colour-option">
-                            <input type="radio" name="report_colour" value="purple">
-                            <span class="tle-dashboard__colour-swatch tle-dashboard__colour-swatch--purple"></span>
-                            <span>Purple</span>
+                            <img
+                                class="tle-dashboard__cover-preview"
+                                data-tle-cover-preview
+                                alt="Selected report cover preview"
+                                hidden
+                            >
                         </label>
                     </div>
-                </fieldset>
+
+                    <fieldset class="tle-dashboard__fieldset tle-dashboard__colour-palette">
+                        <legend>Colour Palette</legend>
+
+                        <p class="tle-dashboard__field-help">
+                            Select a preset colour palette or upload an image to display more options.
+                        </p>
+
+                        <p class="tle-dashboard__palette-label">Brand Colours</p>
+
+                        <div class="tle-dashboard__palette-options">
+                            <label class="tle-dashboard__palette-choice" title="Aqua">
+                                <input type="radio" name="report_colour" value="aqua" checked>
+                                <span
+                                    class="tle-dashboard__palette-swatch"
+                                    style="--tle-swatch: #a2f8ff;"
+                                ></span>
+                            </label>
+
+                            <label class="tle-dashboard__palette-choice" title="Green">
+                                <input type="radio" name="report_colour" value="green">
+                                <span
+                                    class="tle-dashboard__palette-swatch"
+                                    style="--tle-swatch: #5af474;"
+                                ></span>
+                            </label>
+
+                            <label class="tle-dashboard__palette-choice" title="Yellow">
+                                <input type="radio" name="report_colour" value="yellow">
+                                <span
+                                    class="tle-dashboard__palette-swatch"
+                                    style="--tle-swatch: #fff25c;"
+                                ></span>
+                            </label>
+
+                            <label class="tle-dashboard__palette-choice" title="Orange">
+                                <input type="radio" name="report_colour" value="orange">
+                                <span
+                                    class="tle-dashboard__palette-swatch"
+                                    style="--tle-swatch: #ff643c;"
+                                ></span>
+                            </label>
+
+                            <label class="tle-dashboard__palette-choice" title="Pink">
+                                <input type="radio" name="report_colour" value="pink">
+                                <span
+                                    class="tle-dashboard__palette-swatch"
+                                    style="--tle-swatch: #ffb6ff;"
+                                ></span>
+                            </label>
+                        </div>
+
+                        <p class="tle-dashboard__palette-label">
+                            Based on your Cover Image
+                        </p>
+
+                        <div
+                            class="tle-dashboard__palette-options tle-dashboard__palette-options--image"
+                            data-tle-image-colours
+                        >
+                            <?php for ($colour_index = 0; $colour_index < 5; $colour_index++) : ?>
+                                <label
+                                    class="tle-dashboard__palette-choice"
+                                    title="Upload a cover image to generate this colour"
+                                >
+                                    <input
+                                        type="radio"
+                                        name="report_colour"
+                                        value="custom"
+                                        data-tle-image-colour-radio
+                                        disabled
+                                    >
+
+                                    <span
+                                        class="tle-dashboard__palette-swatch tle-dashboard__palette-swatch--unavailable"
+                                        data-tle-image-colour-swatch
+                                    ></span>
+                                </label>
+                            <?php endfor; ?>
+                        </div>
+
+                        <input
+                            type="hidden"
+                            name="report_colour_custom"
+                            value=""
+                            data-tle-report-colour-custom
+                        >
+                    </fieldset>
+                </div>
             </section>
 
             <section

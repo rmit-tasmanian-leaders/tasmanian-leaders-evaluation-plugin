@@ -263,5 +263,274 @@ document.addEventListener('DOMContentLoaded', function () {
         syncProgramRows();
     });
 
+    const coverInput = dashboard.querySelector('[data-tle-cover-input]');
+    const coverPreview = dashboard.querySelector('[data-tle-cover-preview]');
+    const coverPlaceholder = dashboard.querySelector('[data-tle-cover-placeholder]');
+    const imageColourRadios = Array.from(
+        dashboard.querySelectorAll('[data-tle-image-colour-radio]')
+    );
+    const imageColourSwatches = Array.from(
+        dashboard.querySelectorAll('[data-tle-image-colour-swatch]')
+    );
+    const customColourInput = dashboard.querySelector(
+        '[data-tle-report-colour-custom]'
+    );
+    const brandColourRadios = Array.from(
+        dashboard.querySelectorAll(
+            'input[name="report_colour"]:not([data-tle-image-colour-radio])'
+        )
+    );
+
+    function resetImageColours() {
+        imageColourRadios.forEach(function (radio, index) {
+            radio.checked = false;
+            radio.disabled = true;
+            radio.dataset.tleColour = '';
+
+            const swatch = imageColourSwatches[index];
+
+            if (swatch) {
+                swatch.style.removeProperty('--tle-swatch');
+                swatch.classList.add(
+                    'tle-dashboard__palette-swatch--unavailable'
+                );
+            }
+        });
+
+        if (customColourInput) {
+            customColourInput.value = '';
+        }
+    }
+
+    function rgbToHex(red, green, blue) {
+        return '#' + [red, green, blue].map(function (value) {
+            return value.toString(16).padStart(2, '0');
+        }).join('');
+    }
+
+    function colourDistance(first, second) {
+        const red = first[0] - second[0];
+        const green = first[1] - second[1];
+        const blue = first[2] - second[2];
+
+        return Math.sqrt(
+            (red * red) +
+            (green * green) +
+            (blue * blue)
+        );
+    }
+
+    function extractImageColours(image) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d', {
+            willReadFrequently: true
+        });
+
+        if (!context) {
+            return [];
+        }
+
+        const maxDimension = 90;
+        const scale = Math.min(
+            maxDimension / image.naturalWidth,
+            maxDimension / image.naturalHeight,
+            1
+        );
+
+        canvas.width = Math.max(
+            1,
+            Math.round(image.naturalWidth * scale)
+        );
+        canvas.height = Math.max(
+            1,
+            Math.round(image.naturalHeight * scale)
+        );
+
+        context.drawImage(
+            image,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+        const pixels = context.getImageData(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        ).data;
+
+        const buckets = new Map();
+
+        for (let index = 0; index < pixels.length; index += 4) {
+            const alpha = pixels[index + 3];
+
+            if (alpha < 180) {
+                continue;
+            }
+
+            const red = pixels[index];
+            const green = pixels[index + 1];
+            const blue = pixels[index + 2];
+
+            const brightness = red + green + blue;
+
+            if (brightness > 735 || brightness < 35) {
+                continue;
+            }
+
+            const quantised = [
+                Math.min(255, Math.round(red / 32) * 32),
+                Math.min(255, Math.round(green / 32) * 32),
+                Math.min(255, Math.round(blue / 32) * 32)
+            ];
+
+            const key = quantised.join(',');
+
+            buckets.set(
+                key,
+                (buckets.get(key) || 0) + 1
+            );
+        }
+
+        const candidates = Array.from(buckets.entries())
+            .sort(function (first, second) {
+                return second[1] - first[1];
+            })
+            .map(function (entry) {
+                return entry[0].split(',').map(Number);
+            });
+
+        const selected = [];
+
+        candidates.forEach(function (colour) {
+            if (selected.length >= 5) {
+                return;
+            }
+
+            const sufficientlyDifferent = selected.every(function (existing) {
+                return colourDistance(existing, colour) >= 65;
+            });
+
+            if (sufficientlyDifferent) {
+                selected.push(colour);
+            }
+        });
+
+        if (selected.length < 5) {
+            candidates.forEach(function (colour) {
+                if (selected.length >= 5) {
+                    return;
+                }
+
+                const alreadySelected = selected.some(function (existing) {
+                    return colourDistance(existing, colour) < 20;
+                });
+
+                if (!alreadySelected) {
+                    selected.push(colour);
+                }
+            });
+        }
+
+        return selected.slice(0, 5).map(function (colour) {
+            return rgbToHex(
+                colour[0],
+                colour[1],
+                colour[2]
+            );
+        });
+    }
+
+    function applyImageColours(colours) {
+        imageColourRadios.forEach(function (radio, index) {
+            const swatch = imageColourSwatches[index];
+            const colour = colours[index] || '';
+
+            radio.checked = false;
+            radio.disabled = colour === '';
+            radio.dataset.tleColour = colour;
+
+            if (!swatch) {
+                return;
+            }
+
+            if (colour) {
+                swatch.style.setProperty('--tle-swatch', colour);
+                swatch.classList.remove(
+                    'tle-dashboard__palette-swatch--unavailable'
+                );
+            } else {
+                swatch.style.removeProperty('--tle-swatch');
+                swatch.classList.add(
+                    'tle-dashboard__palette-swatch--unavailable'
+                );
+            }
+        });
+
+        if (customColourInput) {
+            customColourInput.value = '';
+        }
+    }
+
+    brandColourRadios.forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            if (radio.checked && customColourInput) {
+                customColourInput.value = '';
+            }
+        });
+    });
+
+    imageColourRadios.forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            if (
+                radio.checked &&
+                customColourInput
+            ) {
+                customColourInput.value =
+                    radio.dataset.tleColour || '';
+            }
+        });
+    });
+
+    if (coverInput && coverPreview && coverPlaceholder) {
+        coverInput.addEventListener('change', function () {
+            const file = coverInput.files && coverInput.files[0]
+                ? coverInput.files[0]
+                : null;
+
+            resetImageColours();
+
+            if (!file) {
+                coverPreview.hidden = true;
+                coverPreview.removeAttribute('src');
+                coverPlaceholder.hidden = false;
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.addEventListener('load', function () {
+                const image = new Image();
+
+                image.addEventListener('load', function () {
+                    coverPreview.src = reader.result;
+                    coverPreview.hidden = false;
+                    coverPlaceholder.hidden = true;
+
+                    applyImageColours(
+                        extractImageColours(image)
+                    );
+                });
+
+                image.src = reader.result;
+            });
+
+            reader.readAsDataURL(file);
+        });
+    }
+
+    resetImageColours();
     syncProgramRows();
 });
