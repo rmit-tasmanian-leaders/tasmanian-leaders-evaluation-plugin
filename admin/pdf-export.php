@@ -601,16 +601,20 @@ function tle_export_pdf()
         ? sanitize_textarea_field(wp_unslash($_POST['purpose_text']))
         : '';
 
-    $impact_text_1 = isset($_POST['impact_text_1'])
-        ? sanitize_textarea_field(wp_unslash($_POST['impact_text_1']))
+    $highlight_text_1 = isset($_POST['highlight_text_1'])
+        ? sanitize_text_field(wp_unslash($_POST['highlight_text_1']))
         : '';
 
-    $impact_text_2 = isset($_POST['impact_text_2'])
-        ? sanitize_textarea_field(wp_unslash($_POST['impact_text_2']))
+    $highlight_text_2 = isset($_POST['highlight_text_2'])
+        ? sanitize_text_field(wp_unslash($_POST['highlight_text_2']))
         : '';
 
-    $impact_text_3 = isset($_POST['impact_text_3'])
-        ? sanitize_textarea_field(wp_unslash($_POST['impact_text_3']))
+    $highlight_text_3 = isset($_POST['highlight_text_3'])
+        ? sanitize_text_field(wp_unslash($_POST['highlight_text_3']))
+        : '';
+
+    $highlight_text_4 = isset($_POST['highlight_text_4'])
+        ? sanitize_text_field(wp_unslash($_POST['highlight_text_4']))
         : '';
 
     $report_colour_key = isset($_POST['report_colour'])
@@ -1243,55 +1247,60 @@ usort(
     }
 );
 
-$top_impacts = array_slice($growth_items, 0, 3);
-$key_growth = array_slice($growth_items, 0, 5);
+$top_highlights = array_slice($growth_items, 0, 4);
 
-$impact_descriptions = [
-    $impact_text_1,
-    $impact_text_2,
-    $impact_text_3,
+$highlight_descriptions = [
+    'Self-awareness' => $highlight_text_1,
+    'Tolerance for ambiguity' => $highlight_text_2,
+    'Creative decision-making' => $highlight_text_3,
+    'Capacity to foster belonging' => $highlight_text_4,
 ];
 
-$strongest_impact_html = '';
+$highlight_cards = [];
 
-foreach ($top_impacts as $index => $item) {
-    $description = $impact_descriptions[$index] ?? '';
+foreach ($top_highlights as $item) {
+    $description = (
+        isset($highlight_descriptions[$item['measure']]) &&
+        trim($highlight_descriptions[$item['measure']]) !== ''
+    )
+        ? $highlight_descriptions[$item['measure']]
+        : sprintf(
+            '%s increased by %s%%.',
+            $item['measure'],
+            round($item['growth'])
+        );
 
-    $strongest_impact_html .= '
-        <td class="overview-impact-card">
-            <div class="overview-impact-percent">
+    $highlight_cards[] = '
+        <td class="overview-highlight-card">
+            <div class="overview-highlight-percent">
                 +' . esc_html(round($item['growth'])) . '%
             </div>
 
-            <div class="overview-impact-name">
+            <div class="overview-highlight-name">
                 ' . esc_html($item['measure']) . '
             </div>
 
-            <div class="overview-impact-description">
+            <div class="overview-highlight-description">
                 ' . esc_html($description) . '
             </div>
         </td>
     ';
 }
 
-$key_growth_html = '';
+$highlights_html = '';
 
-foreach ($key_growth as $item) {
-    $key_growth_html .= '
-        <td class="key-growth-cell">
-            <div
-                class="key-growth-circle"
-                style="background: ' . esc_attr($report_colour) . ';"
-            >
-                <strong>
-                    +' . esc_html(round($item['growth'])) . '%
-                </strong>
-
-                <span>
-                    ' . esc_html($item['measure']) . '
-                </span>
-            </div>
-        </td>
+if (!empty($highlight_cards)) {
+    $highlights_html .= '
+        <table class="overview-highlights-table">
+            <tr>
+                ' . ($highlight_cards[0] ?? '') . '
+                ' . ($highlight_cards[1] ?? '') . '
+            </tr>
+            <tr>
+                ' . ($highlight_cards[2] ?? '') . '
+                ' . ($highlight_cards[3] ?? '') . '
+            </tr>
+        </table>
     ';
 }
 $section_chart_data = [];
@@ -1741,68 +1750,40 @@ $html = '
         font-size: 21px;
     }
 
-    .overview-impact-table,
-    .key-growth-table {
+    .overview-highlights-table {
         width: 100%;
         border-collapse: separate;
-        border-spacing: 8px 0;
-        margin-left: -8px;
+        border-spacing: 8px;
+        margin: -8px 0 0 -8px;
     }
 
-    .overview-impact-card {
-        width: 33.33%;
+    .overview-highlight-card {
+        width: 50%;
         height: 92px;
-        padding: 16px;
+        padding: 14px 16px;
         vertical-align: top;
         background: ' . esc_attr($report_colour_light) . ';
     }
 
-    .overview-impact-percent {
+    .overview-highlight-percent {
         margin-bottom: 2px;
         color: #111111;
-        font-size: 28px;
+        font-size: 25px;
         font-weight: bold;
+        line-height: 1;
     }
 
-    .overview-impact-name {
+    .overview-highlight-name {
         margin-bottom: 5px;
         color: #111111;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: bold;
     }
 
-    .overview-impact-description {
+    .overview-highlight-description {
         color: #222222;
         font-size: 10px;
-        line-height: 1.35;
-    }
-
-    .key-growth-cell {
-        width: 20%;
-        text-align: center;
-        vertical-align: top;
-    }
-
-    .key-growth-circle {
-        width: 96px;
-        height: 96px;
-        margin: 0 auto;
-        border-radius: 48px;
-        color: ' . esc_attr($recommendation_text_colour) . ';
-        text-align: center;
-    }
-
-    .key-growth-circle strong {
-        display: block;
-        padding-top: 21px;
-        font-size: 15px;
-    }
-
-    .key-growth-circle span {
-        display: block;
-        padding: 4px 8px 0;
-        font-size: 9px;
-        line-height: 1.15;
+        line-height: 1.3;
     }
 
     .mock-page-footer {
@@ -2096,24 +2077,10 @@ $html = '
     </div>
 
     <h3 class="overview-subheading">
-        Strongest Impact
+        Highlights
     </h3>
 
-    <table class="overview-impact-table">
-        <tr>
-            ' . $strongest_impact_html . '
-        </tr>
-    </table>
-
-    <h3 class="overview-subheading">
-        Key Growth
-    </h3>
-
-    <table class="key-growth-table">
-        <tr>
-            ' . $key_growth_html . '
-        </tr>
-    </table>
+    ' . $highlights_html . '
 
     <div class="mock-page-footer">
         Page 2 of 5
