@@ -23,6 +23,50 @@ document.addEventListener('DOMContentLoaded', function () {
     let nextProgramIndex =
         programsContainer.querySelectorAll('[data-tle-program-row]').length;
 
+    function normaliseProgramFieldNames() {
+        const rows = Array.from(
+            programsContainer.querySelectorAll('[data-tle-program-row]')
+        );
+
+        rows.forEach(function (row, index) {
+            const searchInput = row.querySelector('[data-tle-program-search]');
+
+            if (searchInput) {
+                searchInput.name = index === 0
+                    ? 'program'
+                    : 'additional_programs[' + index + '][program]';
+            }
+
+            row.querySelectorAll(
+                '[data-tle-evaluation-menu] input[type="checkbox"]'
+            ).forEach(function (checkbox) {
+                checkbox.name = index === 0
+                    ? 'evaluation_points[]'
+                    : 'additional_programs[' + index + '][evaluation_points][]';
+            });
+        });
+    }
+
+    function updateProgramRemovalControls() {
+        const rows = Array.from(
+            programsContainer.querySelectorAll('[data-tle-program-row]')
+        );
+
+        rows.forEach(function (row) {
+            const removeButton = row.querySelector('[data-tle-remove-program]');
+
+            if (removeButton) {
+                removeButton.hidden = rows.length <= 1;
+            }
+        });
+    }
+
+    function syncProgramRows() {
+        normaliseProgramFieldNames();
+        updateProgramRemovalControls();
+        updateReportOverview();
+    }
+
     function getSelectedEvaluationPoints(row) {
         return Array.from(
             row.querySelectorAll(
@@ -175,8 +219,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (removeButton) {
             removeButton.addEventListener('click', function () {
+                const rowCount =
+                    programsContainer.querySelectorAll('[data-tle-program-row]').length;
+
+                if (rowCount <= 1) {
+                    return;
+                }
+
                 row.remove();
-                updateReportOverview();
+                syncProgramRows();
             });
         }
     }
@@ -209,8 +260,8 @@ document.addEventListener('DOMContentLoaded', function () {
             searchInput.focus();
         }
 
-        updateReportOverview();
+        syncProgramRows();
     });
 
-    updateReportOverview();
+    syncProgramRows();
 });

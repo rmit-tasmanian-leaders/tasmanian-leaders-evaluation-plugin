@@ -699,6 +699,7 @@ function tle_export_pdf()
 
     $allowed_programs = [
     'I-LEAD Young Professionals',
+    'Emerging Leaders Program',
     'I-LEAD Women in Industry',
     'I-LEAD Tassie Wine',
 ];

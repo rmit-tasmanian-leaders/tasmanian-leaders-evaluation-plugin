@@ -156,6 +156,15 @@ if (!defined('ABSPATH')) {
                                 <span>Manager Evaluation</span>
                             </label>
                         </div>
+
+                        <button
+                            type="button"
+                            class="tle-dashboard__remove-program"
+                            data-tle-remove-program
+                            hidden
+                        >
+                            Remove program
+                        </button>
                     </div>
 
                 </div>
