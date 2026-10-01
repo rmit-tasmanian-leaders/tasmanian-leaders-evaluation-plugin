@@ -542,7 +542,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="insight_self_awareness_text"
                                 data-tle-auto-text
-                                data-tle-default="Self-awareness saw a major improvement of 93%."
+                                data-tle-default="Participants demonstrated positive growth in self-awareness."
                             >
                         </div>
 
@@ -553,7 +553,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="insight_social_awareness_text"
                                 data-tle-auto-text
-                                data-tle-default="Social awareness saw an improvement of 29%."
+                                data-tle-default="Participants demonstrated positive growth in social awareness."
                             >
                         </div>
 
@@ -564,7 +564,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="insight_situational_awareness_text"
                                 data-tle-auto-text
-                                data-tle-default="Situational awareness steadily increased by 35%."
+                                data-tle-default="Participants demonstrated positive growth in situational awareness."
                             >
                         </div>
 
@@ -575,7 +575,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="insight_clarity_purpose_text"
                                 data-tle-auto-text
-                                data-tle-default="Clarity of purpose steadily increased by 39%."
+                                data-tle-default="Participants demonstrated positive growth in clarity of purpose."
                             >
                         </div>
 
@@ -586,7 +586,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="insight_strategic_foresight_text"
                                 data-tle-auto-text
-                                data-tle-default="Strategic foresight saw an improvement of 27%."
+                                data-tle-default="Participants demonstrated positive growth in strategic foresight."
                             >
                         </div>
 
@@ -597,7 +597,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="insight_balanced_processing_text"
                                 data-tle-auto-text
-                                data-tle-default="Balanced processing increased by 15%."
+                                data-tle-default="Participants demonstrated positive growth in balanced processing."
                             >
                         </div>
 
@@ -608,7 +608,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="insight_self_compassion_text"
                                 data-tle-auto-text
-                                data-tle-default="Self-compassion greatly improved by 50%."
+                                data-tle-default="Participants demonstrated positive growth in self-compassion."
                             >
                         </div>
                     </div>
@@ -638,7 +638,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="influence_tolerance_ambiguity_text"
                                 data-tle-auto-text
-                                data-tle-default="Tolerance for ambiguity saw a major improvement of 84%."
+                                data-tle-default="Participants demonstrated positive growth in tolerance for ambiguity."
                             >
                         </div>
 
@@ -649,7 +649,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="influence_informal_influence_text"
                                 data-tle-auto-text
-                                data-tle-default="Capacity for informal influence saw an improvement of 29%."
+                                data-tle-default="Participants demonstrated positive growth in capacity for informal influence."
                             >
                         </div>
 
@@ -660,7 +660,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="influence_tolerance_complexity_text"
                                 data-tle-auto-text
-                                data-tle-default="Tolerance for complexity steadily increased by 35%."
+                                data-tle-default="Participants demonstrated positive growth in tolerance for complexity."
                             >
                         </div>
 
@@ -671,7 +671,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="influence_collaboration_text"
                                 data-tle-auto-text
-                                data-tle-default="Capacity for collaboration saw an improvement of 27%."
+                                data-tle-default="Participants demonstrated positive growth in capacity for collaboration."
                             >
                         </div>
 
@@ -682,7 +682,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="influence_networks_text"
                                 data-tle-auto-text
-                                data-tle-default="Capacity to establish networks greatly improved by 50%."
+                                data-tle-default="Participants demonstrated positive growth in capacity to establish networks."
                             >
                         </div>
 
@@ -693,7 +693,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="influence_creative_decision_text"
                                 data-tle-auto-text
-                                data-tle-default="Creative decision-making greatly improved by 77%."
+                                data-tle-default="Participants demonstrated positive growth in creative decision-making."
                             >
                         </div>
                     </div>
@@ -723,7 +723,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="impact_belonging_text"
                                 data-tle-auto-text
-                                data-tle-default="Capacity to foster belonging greatly improved by 75%."
+                                data-tle-default="Participants demonstrated positive growth in capacity to foster belonging."
                             >
                         </div>
 
@@ -734,7 +734,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="impact_intrinsic_motivation_text"
                                 data-tle-auto-text
-                                data-tle-default="Capacity to foster intrinsic motivation steadily increased by 39%."
+                                data-tle-default="Participants demonstrated positive growth in capacity to foster intrinsic motivation."
                             >
                         </div>
 
@@ -745,7 +745,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="impact_place_attachment_text"
                                 data-tle-auto-text
-                                data-tle-default="Place-attachment increased by 19%."
+                                data-tle-default="Participants demonstrated positive growth in place-attachment."
                             >
                         </div>
 
@@ -756,7 +756,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="impact_extra_role_text"
                                 data-tle-auto-text
-                                data-tle-default="Extra-role behaviours greatly improved by 50%."
+                                data-tle-default="Participants demonstrated positive growth in extra-role behaviours."
                             >
                         </div>
                     </div>
