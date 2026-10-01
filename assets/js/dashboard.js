@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
         normaliseProgramFieldNames();
         updateProgramRemovalControls();
         updateReportOverview();
+        syncReportTextState();
     }
 
     function getSelectedEvaluationPoints(row) {
@@ -173,6 +174,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 updateSuggestions();
                 updateReportOverview();
+                syncReportTextState();
             });
 
             suggestionButtons.forEach(function (button) {
@@ -189,6 +191,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
 
                     updateReportOverview();
+                    syncReportTextState();
                 });
             });
 
@@ -531,6 +534,77 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    const reportAutoTextFields = Array.from(
+        dashboard.querySelectorAll('[data-tle-auto-text]')
+    );
+
+    const reportTitleField = dashboard.querySelector('[data-tle-auto-title]');
+    const purposeField = dashboard.querySelector('[data-tle-auto-purpose]');
+
+    reportAutoTextFields.forEach(function (field) {
+        field.dataset.tleUserEdited = 'false';
+
+        field.addEventListener('input', function () {
+            field.dataset.tleUserEdited = 'true';
+        });
+    });
+
+    function getSelectedProgramNames() {
+        return Array.from(
+            programsContainer.querySelectorAll('[data-tle-program-row]')
+        ).map(function (row) {
+            const input = row.querySelector('[data-tle-program-search]');
+
+            return input
+                ? input.dataset.tleProgramSelected || ''
+                : '';
+        }).filter(Boolean);
+    }
+
+    function buildAutomaticReportTitle(programs) {
+        if (programs.length !== 1) {
+            return 'Program Evaluation';
+        }
+
+        const program = programs[0];
+
+        return program.toLowerCase().endsWith('program')
+            ? program + ' Evaluation'
+            : program + ' Program Evaluation';
+    }
+
+    function syncReportTextState() {
+        const programs = getSelectedProgramNames();
+        const hasProgram = programs.length > 0;
+
+        reportAutoTextFields.forEach(function (field) {
+            if (field.dataset.tleUserEdited === 'true') {
+                return;
+            }
+
+            if (!hasProgram) {
+                field.value = '';
+                return;
+            }
+
+            if (field === reportTitleField) {
+                field.value = buildAutomaticReportTitle(programs);
+                return;
+            }
+
+            if (field === purposeField) {
+                field.value = programs.length === 1
+                    ? 'An evaluation of ' + programs[0] +
+                        '. Showcasing progress before and after the program.'
+                    : 'An evaluation of the selected programs. Showcasing progress before and after the programs.';
+                return;
+            }
+
+            field.value = field.dataset.tleDefault || '';
+        });
+    }
+
     resetImageColours();
     syncProgramRows();
+    syncReportTextState();
 });

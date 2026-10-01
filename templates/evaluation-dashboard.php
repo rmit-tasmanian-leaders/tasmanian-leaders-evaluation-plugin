@@ -425,23 +425,29 @@ if (!defined('ABSPATH')) {
 
             <section
                 id="tle-report-text"
-                class="tle-dashboard__card"
+                class="tle-dashboard__card tle-dashboard__text-customisation"
                 aria-labelledby="tle-report-text-heading"
             >
                 <p class="tle-dashboard__step">Step 3</p>
 
                 <h2 id="tle-report-text-heading" class="tle-dashboard__section-title">
-                    Report Text
+                    Text Customisation
                 </h2>
 
+                <p class="tle-dashboard__field-help">
+                    Edit text within the report here.
+                </p>
+
                 <div class="tle-dashboard__field">
-                    <label for="tle-report-title">Title</label>
+                    <label for="tle-report-title">Report Title</label>
 
                     <input
                         id="tle-report-title"
                         type="text"
                         name="report_title"
-                        value="Initial Leadership Capability Survey"
+                        placeholder="Title your report here"
+                        data-tle-auto-title
+                        data-tle-auto-text
                     >
                 </div>
 
@@ -451,38 +457,313 @@ if (!defined('ABSPATH')) {
                     <textarea
                         id="tle-purpose-text"
                         name="purpose_text"
-                        rows="4"
-                    >A comparison between pre-program and post-program.</textarea>
+                        rows="3"
+                        placeholder="Describe your report briefly"
+                        data-tle-auto-purpose
+                        data-tle-auto-text
+                    ></textarea>
                 </div>
 
-                <div class="tle-dashboard__field">
-                    <label for="tle-impact-text-1">Strongest Impact #1</label>
+                <div class="tle-dashboard__text-grid tle-dashboard__text-grid--two">
+                    <div class="tle-dashboard__field">
+                        <label for="tle-highlight-1">
+                            Highlight #1 (Self-awareness)
+                        </label>
 
-                    <textarea
-                        id="tle-impact-text-1"
-                        name="impact_text_1"
-                        rows="3"
-                    >Example text that you can customise.</textarea>
+                        <input
+                            id="tle-highlight-1"
+                            type="text"
+                            name="highlight_text_1"
+                            data-tle-auto-text
+                            data-tle-default="Participants saw an incredible improvement in self-awareness."
+                        >
+                    </div>
+
+                    <div class="tle-dashboard__field">
+                        <label for="tle-highlight-2">
+                            Highlight #2 (Tolerance for ambiguity)
+                        </label>
+
+                        <input
+                            id="tle-highlight-2"
+                            type="text"
+                            name="highlight_text_2"
+                            data-tle-auto-text
+                            data-tle-default="A major increase was seen here. This was very promising for the program."
+                        >
+                    </div>
+
+                    <div class="tle-dashboard__field">
+                        <label for="tle-highlight-3">
+                            Highlight #3 (Creative decision-making)
+                        </label>
+
+                        <input
+                            id="tle-highlight-3"
+                            type="text"
+                            name="highlight_text_3"
+                            data-tle-auto-text
+                            data-tle-default="A significant improvement to a necessary skill."
+                        >
+                    </div>
+
+                    <div class="tle-dashboard__field">
+                        <label for="tle-highlight-4">
+                            Highlight #4 (Capacity to foster belonging)
+                        </label>
+
+                        <input
+                            id="tle-highlight-4"
+                            type="text"
+                            name="highlight_text_4"
+                            data-tle-auto-text
+                            data-tle-default="Participants saw an incredible improvement in fostering belonging."
+                        >
+                    </div>
                 </div>
 
-                <div class="tle-dashboard__field">
-                    <label for="tle-impact-text-2">Strongest Impact #2</label>
+                <div class="tle-dashboard__text-section">
+                    <h3 class="tle-dashboard__text-section-title">Insight</h3>
 
-                    <textarea
-                        id="tle-impact-text-2"
-                        name="impact_text_2"
-                        rows="3"
-                    >A significant increase.</textarea>
+                    <div class="tle-dashboard__text-grid tle-dashboard__text-grid--three">
+                        <div class="tle-dashboard__field">
+                            <label for="tle-insight-self-awareness">Self-awareness</label>
+                            <input
+                                id="tle-insight-self-awareness"
+                                type="text"
+                                name="insight_self_awareness_text"
+                                data-tle-auto-text
+                                data-tle-default="Self-awareness saw a major improvement of 93%."
+                            >
+                        </div>
+
+                        <div class="tle-dashboard__field">
+                            <label for="tle-insight-social-awareness">Social awareness</label>
+                            <input
+                                id="tle-insight-social-awareness"
+                                type="text"
+                                name="insight_social_awareness_text"
+                                data-tle-auto-text
+                                data-tle-default="Social awareness saw an improvement of 29%."
+                            >
+                        </div>
+
+                        <div class="tle-dashboard__field">
+                            <label for="tle-insight-situational-awareness">Situational awareness</label>
+                            <input
+                                id="tle-insight-situational-awareness"
+                                type="text"
+                                name="insight_situational_awareness_text"
+                                data-tle-auto-text
+                                data-tle-default="Situational awareness steadily increased by 35%."
+                            >
+                        </div>
+
+                        <div class="tle-dashboard__field">
+                            <label for="tle-insight-clarity-purpose">Clarity of purpose</label>
+                            <input
+                                id="tle-insight-clarity-purpose"
+                                type="text"
+                                name="insight_clarity_purpose_text"
+                                data-tle-auto-text
+                                data-tle-default="Clarity of purpose steadily increased by 39%."
+                            >
+                        </div>
+
+                        <div class="tle-dashboard__field">
+                            <label for="tle-insight-strategic-foresight">Strategic foresight</label>
+                            <input
+                                id="tle-insight-strategic-foresight"
+                                type="text"
+                                name="insight_strategic_foresight_text"
+                                data-tle-auto-text
+                                data-tle-default="Strategic foresight saw an improvement of 27%."
+                            >
+                        </div>
+
+                        <div class="tle-dashboard__field">
+                            <label for="tle-insight-balanced-processing">Balanced processing</label>
+                            <input
+                                id="tle-insight-balanced-processing"
+                                type="text"
+                                name="insight_balanced_processing_text"
+                                data-tle-auto-text
+                                data-tle-default="Balanced processing increased by 15%."
+                            >
+                        </div>
+
+                        <div class="tle-dashboard__field">
+                            <label for="tle-insight-self-compassion">Self-compassion</label>
+                            <input
+                                id="tle-insight-self-compassion"
+                                type="text"
+                                name="insight_self_compassion_text"
+                                data-tle-auto-text
+                                data-tle-default="Self-compassion greatly improved by 50%."
+                            >
+                        </div>
+                    </div>
+
+                    <div class="tle-dashboard__field tle-dashboard__quote-field">
+                        <label for="tle-insight-quote">
+                            Participant Quote (optional)
+                        </label>
+
+                        <textarea
+                            id="tle-insight-quote"
+                            name="insight_quote"
+                            rows="2"
+                            placeholder="Enter a participant's quote here"
+                        ></textarea>
+                    </div>
                 </div>
 
-                <div class="tle-dashboard__field">
-                    <label for="tle-impact-text-3">Strongest Impact #3</label>
+                <div class="tle-dashboard__text-section">
+                    <h3 class="tle-dashboard__text-section-title">Influence</h3>
 
-                    <textarea
-                        id="tle-impact-text-3"
-                        name="impact_text_3"
-                        rows="3"
-                    >A substantial change is seen here.</textarea>
+                    <div class="tle-dashboard__text-grid tle-dashboard__text-grid--three">
+                        <div class="tle-dashboard__field">
+                            <label for="tle-influence-ambiguity">Tolerance for ambiguity</label>
+                            <input
+                                id="tle-influence-ambiguity"
+                                type="text"
+                                name="influence_tolerance_ambiguity_text"
+                                data-tle-auto-text
+                                data-tle-default="Tolerance for ambiguity saw a major improvement of 84%."
+                            >
+                        </div>
+
+                        <div class="tle-dashboard__field">
+                            <label for="tle-influence-informal">Capacity for informal influence</label>
+                            <input
+                                id="tle-influence-informal"
+                                type="text"
+                                name="influence_informal_influence_text"
+                                data-tle-auto-text
+                                data-tle-default="Capacity for informal influence saw an improvement of 29%."
+                            >
+                        </div>
+
+                        <div class="tle-dashboard__field">
+                            <label for="tle-influence-complexity">Tolerance for complexity</label>
+                            <input
+                                id="tle-influence-complexity"
+                                type="text"
+                                name="influence_tolerance_complexity_text"
+                                data-tle-auto-text
+                                data-tle-default="Tolerance for complexity steadily increased by 35%."
+                            >
+                        </div>
+
+                        <div class="tle-dashboard__field">
+                            <label for="tle-influence-collaboration">Capacity for collaboration</label>
+                            <input
+                                id="tle-influence-collaboration"
+                                type="text"
+                                name="influence_collaboration_text"
+                                data-tle-auto-text
+                                data-tle-default="Capacity for collaboration saw an improvement of 27%."
+                            >
+                        </div>
+
+                        <div class="tle-dashboard__field">
+                            <label for="tle-influence-networks">Capacity to establish networks</label>
+                            <input
+                                id="tle-influence-networks"
+                                type="text"
+                                name="influence_networks_text"
+                                data-tle-auto-text
+                                data-tle-default="Capacity to establish networks greatly improved by 50%."
+                            >
+                        </div>
+
+                        <div class="tle-dashboard__field">
+                            <label for="tle-influence-creative">Creative decision-making</label>
+                            <input
+                                id="tle-influence-creative"
+                                type="text"
+                                name="influence_creative_decision_text"
+                                data-tle-auto-text
+                                data-tle-default="Creative decision-making greatly improved by 77%."
+                            >
+                        </div>
+                    </div>
+
+                    <div class="tle-dashboard__field tle-dashboard__quote-field">
+                        <label for="tle-influence-quote">
+                            Participant Quote (optional)
+                        </label>
+
+                        <textarea
+                            id="tle-influence-quote"
+                            name="influence_quote"
+                            rows="2"
+                            placeholder="Enter a participant's quote here"
+                        ></textarea>
+                    </div>
+                </div>
+
+                <div class="tle-dashboard__text-section">
+                    <h3 class="tle-dashboard__text-section-title">Impact</h3>
+
+                    <div class="tle-dashboard__text-grid tle-dashboard__text-grid--three">
+                        <div class="tle-dashboard__field">
+                            <label for="tle-impact-belonging">Capacity to foster belonging</label>
+                            <input
+                                id="tle-impact-belonging"
+                                type="text"
+                                name="impact_belonging_text"
+                                data-tle-auto-text
+                                data-tle-default="Capacity to foster belonging greatly improved by 75%."
+                            >
+                        </div>
+
+                        <div class="tle-dashboard__field">
+                            <label for="tle-impact-motivation">Capacity to foster intrinsic motivation</label>
+                            <input
+                                id="tle-impact-motivation"
+                                type="text"
+                                name="impact_intrinsic_motivation_text"
+                                data-tle-auto-text
+                                data-tle-default="Capacity to foster intrinsic motivation steadily increased by 39%."
+                            >
+                        </div>
+
+                        <div class="tle-dashboard__field">
+                            <label for="tle-impact-place">Place-attachment</label>
+                            <input
+                                id="tle-impact-place"
+                                type="text"
+                                name="impact_place_attachment_text"
+                                data-tle-auto-text
+                                data-tle-default="Place-attachment increased by 19%."
+                            >
+                        </div>
+
+                        <div class="tle-dashboard__field">
+                            <label for="tle-impact-extra-role">Extra-role behaviours</label>
+                            <input
+                                id="tle-impact-extra-role"
+                                type="text"
+                                name="impact_extra_role_text"
+                                data-tle-auto-text
+                                data-tle-default="Extra-role behaviours greatly improved by 50%."
+                            >
+                        </div>
+                    </div>
+
+                    <div class="tle-dashboard__field tle-dashboard__quote-field">
+                        <label for="tle-impact-quote">
+                            Participant Quote (optional)
+                        </label>
+
+                        <textarea
+                            id="tle-impact-quote"
+                            name="impact_quote"
+                            rows="2"
+                            placeholder="Enter a participant's quote here"
+                        ></textarea>
+                    </div>
                 </div>
             </section>
 
