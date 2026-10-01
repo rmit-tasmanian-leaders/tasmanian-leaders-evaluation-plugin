@@ -1443,23 +1443,6 @@ $section_chart_data = [];
 $section_movers_chart_data = [];
 $section_growth_html = [];
 
-$section_recommendations = [
-    'Insight' => [
-        'Add a reflective check-in between post-program and delayed evaluation.',
-        'Introduce goal-setting earlier in the program to reinforce clarity of purpose.',
-        'Review social-awareness content and build on existing participant strengths.',
-    ],
-    'Influence' => [
-        'Extend structured peer contact beyond the formal program end date.',
-        'Introduce networking opportunities earlier so participants have longer to apply them.',
-        'Continue providing stretch opportunities that strengthen collaboration.',
-    ],
-    'Impact' => [
-        'Document what contributed to the strongest belonging result.',
-        'Review how place-attachment is measured and interpreted across evaluation points.',
-        'Include manager evaluation where available to support behavioural evidence.',
-    ],
-];
 
 $section_chart_y = static function ($percentage) {
     return 205 - ($percentage * 1.55);
@@ -3344,8 +3327,7 @@ $html = '
         margin-left: -8px;
     }
 
-    .growth-box,
-    .recommendations-box {
+    .growth-box {
         width: 50%;
         padding: 15px;
         vertical-align: top;
@@ -3356,9 +3338,6 @@ $html = '
         color: #111111;
     }
 
-    .recommendations-box {
-        color: ' . esc_attr($recommendation_text_colour) . ';
-    }
 
     .box-heading {
         margin-bottom: 12px;
@@ -3366,8 +3345,7 @@ $html = '
         font-weight: bold;
     }
 
-    .growth-line,
-    .recommendation-line {
+    .growth-line {
         margin-bottom: 11px;
         font-size: 10px;
         line-height: 1.35;
@@ -3425,8 +3403,7 @@ $html = '
         page-break-inside: avoid;
     }
 
-    .growth-box,
-    .recommendations-box {
+    .growth-box {
         height: 130px;
         padding: 14px;
         vertical-align: top;
@@ -3437,8 +3414,7 @@ $html = '
         font-size: 18px;
     }
 
-    .growth-line,
-    .recommendation-line {
+    .growth-line {
         margin-bottom: 8px;
         font-size: 10px;
         line-height: 1.35;
