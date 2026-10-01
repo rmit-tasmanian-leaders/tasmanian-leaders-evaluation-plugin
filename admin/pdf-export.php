@@ -54,11 +54,39 @@ function tle_get_test_report_data()
                 'benchmark' => 5.2,
             ],
             [
+                'measure' => 'Situational awareness',
+                'pre' => 4.9,
+                'completion' => 5.3,
+                'delay' => 5.6,
+                'benchmark' => 5.1,
+            ],
+            [
                 'measure' => 'Clarity of purpose',
                 'pre' => 4.7,
                 'completion' => 5.4,
                 'delay' => 5.6,
                 'benchmark' => 5.0,
+            ],
+            [
+                'measure' => 'Strategic foresight',
+                'pre' => 4.6,
+                'completion' => 5.0,
+                'delay' => 5.4,
+                'benchmark' => 4.9,
+            ],
+            [
+                'measure' => 'Balanced processing',
+                'pre' => 5.2,
+                'completion' => 5.5,
+                'delay' => 5.7,
+                'benchmark' => 5.2,
+            ],
+            [
+                'measure' => 'Self-compassion',
+                'pre' => 4.5,
+                'completion' => 5.1,
+                'delay' => 5.5,
+                'benchmark' => 4.9,
             ],
         ],
 
@@ -615,6 +643,38 @@ function tle_export_pdf()
 
     $highlight_text_4 = isset($_POST['highlight_text_4'])
         ? sanitize_text_field(wp_unslash($_POST['highlight_text_4']))
+        : '';
+
+    $insight_self_awareness_text = isset($_POST['insight_self_awareness_text'])
+        ? sanitize_text_field(wp_unslash($_POST['insight_self_awareness_text']))
+        : '';
+
+    $insight_social_awareness_text = isset($_POST['insight_social_awareness_text'])
+        ? sanitize_text_field(wp_unslash($_POST['insight_social_awareness_text']))
+        : '';
+
+    $insight_situational_awareness_text = isset($_POST['insight_situational_awareness_text'])
+        ? sanitize_text_field(wp_unslash($_POST['insight_situational_awareness_text']))
+        : '';
+
+    $insight_clarity_purpose_text = isset($_POST['insight_clarity_purpose_text'])
+        ? sanitize_text_field(wp_unslash($_POST['insight_clarity_purpose_text']))
+        : '';
+
+    $insight_strategic_foresight_text = isset($_POST['insight_strategic_foresight_text'])
+        ? sanitize_text_field(wp_unslash($_POST['insight_strategic_foresight_text']))
+        : '';
+
+    $insight_balanced_processing_text = isset($_POST['insight_balanced_processing_text'])
+        ? sanitize_text_field(wp_unslash($_POST['insight_balanced_processing_text']))
+        : '';
+
+    $insight_self_compassion_text = isset($_POST['insight_self_compassion_text'])
+        ? sanitize_text_field(wp_unslash($_POST['insight_self_compassion_text']))
+        : '';
+
+    $insight_quote = isset($_POST['insight_quote'])
+        ? sanitize_textarea_field(wp_unslash($_POST['insight_quote']))
         : '';
 
     $report_colour_key = isset($_POST['report_colour'])
@@ -1514,6 +1574,480 @@ foreach ($overview_sections as $section_name => $measures) {
 
     $section_growth_html[$section_name] = $growth_lines;
 }
+
+/*
+ * Final Sprint 2 Insight report visualisation.
+ *
+ * This overrides the earlier prototype Insight chart/output only.
+ * Influence and Impact continue using the previous rendering until
+ * their final UX pass is applied.
+ */
+
+$insight_measures = $overview_sections['Insight'];
+
+$insight_text_map = [
+    'Self-awareness' => $insight_self_awareness_text,
+    'Social awareness' => $insight_social_awareness_text,
+    'Situational awareness' => $insight_situational_awareness_text,
+    'Clarity of purpose' => $insight_clarity_purpose_text,
+    'Strategic foresight' => $insight_strategic_foresight_text,
+    'Balanced processing' => $insight_balanced_processing_text,
+    'Self-compassion' => $insight_self_compassion_text,
+];
+
+/*
+ * Build the all-capability Insight line chart.
+ * The y-axis adapts to the range of the available prototype data
+ * instead of always forcing 0–100%.
+ */
+
+$insight_percentages = [];
+
+foreach ($insight_measures as $measure) {
+    foreach (['pre', 'completion', 'delay'] as $point) {
+        $insight_percentages[] = ($measure[$point] / 7) * 100;
+    }
+}
+
+$insight_axis_min = max(
+    0,
+    floor((min($insight_percentages) - 5) / 10) * 10
+);
+
+$insight_axis_max = min(
+    100,
+    ceil((max($insight_percentages) + 5) / 10) * 10
+);
+
+if (($insight_axis_max - $insight_axis_min) < 20) {
+    $insight_axis_min = max(0, $insight_axis_min - 10);
+    $insight_axis_max = min(100, $insight_axis_max + 10);
+}
+
+$insight_plot_top = 36;
+$insight_plot_bottom = 205;
+$insight_plot_height = $insight_plot_bottom - $insight_plot_top;
+$insight_axis_range = max(
+    1,
+    $insight_axis_max - $insight_axis_min
+);
+
+$insight_chart_y = static function ($percentage) use (
+    $insight_plot_bottom,
+    $insight_plot_height,
+    $insight_axis_min,
+    $insight_axis_range
+) {
+    return $insight_plot_bottom -
+        (
+            (($percentage - $insight_axis_min) / $insight_axis_range) *
+            $insight_plot_height
+        );
+};
+
+$insight_x_positions = [
+    'pre' => 100,
+    'completion' => 305,
+    'delay' => 510,
+];
+
+$insight_line_colours = [
+    $report_colour,
+    '#111111',
+    '#666666',
+    $mix_report_colour($report_colour, '#111111', 0.28),
+    $mix_report_colour($report_colour, '#ffffff', 0.28),
+    $mix_report_colour($report_colour, '#111111', 0.52),
+    $mix_report_colour($report_colour, '#ffffff', 0.48),
+];
+
+$insight_grid = '';
+
+for ($grid_index = 0; $grid_index <= 4; $grid_index++) {
+    $grid_percentage =
+        $insight_axis_min +
+        (
+            ($insight_axis_max - $insight_axis_min) *
+            ($grid_index / 4)
+        );
+
+    $grid_y = $insight_chart_y($grid_percentage);
+
+    $insight_grid .= '
+        <line
+            x1="65"
+            y1="' . $grid_y . '"
+            x2="550"
+            y2="' . $grid_y . '"
+        />
+
+        <text
+            x="54"
+            y="' . ($grid_y + 4) . '"
+            text-anchor="end"
+        >' . esc_html(round($grid_percentage)) . '%</text>
+    ';
+}
+
+$insight_lines = '';
+$insight_legend = '';
+
+foreach ($insight_measures as $index => $measure) {
+    $colour = $insight_line_colours[
+        $index % count($insight_line_colours)
+    ];
+
+    $pre_percentage = ($measure['pre'] / 7) * 100;
+    $completion_percentage = ($measure['completion'] / 7) * 100;
+    $delay_percentage = ($measure['delay'] / 7) * 100;
+
+    $points =
+        $insight_x_positions['pre'] . ',' .
+        $insight_chart_y($pre_percentage) . ' ' .
+        $insight_x_positions['completion'] . ',' .
+        $insight_chart_y($completion_percentage) . ' ' .
+        $insight_x_positions['delay'] . ',' .
+        $insight_chart_y($delay_percentage);
+
+    $insight_lines .= '
+        <polyline
+            points="' . $points . '"
+            fill="none"
+            stroke="' . esc_attr($colour) . '"
+            stroke-width="2.5"
+        />
+
+        <g fill="' . esc_attr($colour) . '">
+            <circle
+                cx="' . $insight_x_positions['pre'] . '"
+                cy="' . $insight_chart_y($pre_percentage) . '"
+                r="4"
+            />
+            <circle
+                cx="' . $insight_x_positions['completion'] . '"
+                cy="' . $insight_chart_y($completion_percentage) . '"
+                r="4"
+            />
+            <circle
+                cx="' . $insight_x_positions['delay'] . '"
+                cy="' . $insight_chart_y($delay_percentage) . '"
+                r="4"
+            />
+        </g>
+    ';
+
+    $legend_column = $index % 2;
+    $legend_row = floor($index / 2);
+
+    $legend_x = $legend_column === 0
+        ? 72
+        : 320;
+
+    $legend_y = 239 + ($legend_row * 14);
+
+    $insight_legend .= '
+        <line
+            x1="' . $legend_x . '"
+            y1="' . ($legend_y - 3) . '"
+            x2="' . ($legend_x + 18) . '"
+            y2="' . ($legend_y - 3) . '"
+            stroke="' . esc_attr($colour) . '"
+            stroke-width="3"
+        />
+
+        <text
+            x="' . ($legend_x + 24) . '"
+            y="' . $legend_y . '"
+        >' . esc_html($measure['measure']) . '</text>
+    ';
+}
+
+$insight_svg = '
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="600"
+    height="300"
+    viewBox="0 0 600 300"
+>
+    <rect width="600" height="300" fill="#ffffff"/>
+
+    <g
+        stroke="#dedede"
+        stroke-width="1"
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="10"
+    >
+        ' . $insight_grid . '
+    </g>
+
+    <g
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="10"
+    >
+        <text x="75" y="224">Pre-program</text>
+        <text x="270" y="224">Post-program</text>
+        <text x="490" y="224">Delayed</text>
+
+        ' . $insight_legend . '
+    </g>
+
+    ' . $insight_lines . '
+</svg>
+';
+
+$section_chart_data['Insight'] =
+    'data:image/svg+xml;base64,' .
+    base64_encode($insight_svg);
+
+/*
+ * Key Growth: rank all Insight capabilities by pre-to-delayed
+ * percentage-point increase, then show the top three with
+ * Pre-program, Post-program and Delayed bars.
+ */
+
+$insight_growth_items = [];
+
+foreach ($insight_measures as $measure) {
+    $pre_percentage = ($measure['pre'] / 7) * 100;
+    $completion_percentage = ($measure['completion'] / 7) * 100;
+    $delay_percentage = ($measure['delay'] / 7) * 100;
+
+    $insight_growth_items[] = [
+        'measure' => $measure['measure'],
+        'pre' => $pre_percentage,
+        'completion' => $completion_percentage,
+        'delay' => $delay_percentage,
+        'increase' => $delay_percentage - $pre_percentage,
+    ];
+}
+
+usort(
+    $insight_growth_items,
+    static function ($first, $second) {
+        return $second['increase'] <=> $first['increase'];
+    }
+);
+
+$insight_key_growth = array_slice(
+    $insight_growth_items,
+    0,
+    3
+);
+
+$insight_bar_pre = $report_colour_light;
+$insight_bar_post = $before_bar_colour;
+$insight_bar_delayed = $report_colour;
+
+$insight_key_growth_content = '';
+$insight_group_x = [105, 275, 445];
+
+foreach ($insight_key_growth as $index => $item) {
+    $group_x = $insight_group_x[$index];
+
+    $pre_height = $item['pre'] * 1.35;
+    $post_height = $item['completion'] * 1.35;
+    $delay_height = $item['delay'] * 1.35;
+
+    $pre_y = 170 - $pre_height;
+    $post_y = 170 - $post_height;
+    $delay_y = 170 - $delay_height;
+
+    $insight_key_growth_content .= '
+        <rect
+            x="' . $group_x . '"
+            y="' . $pre_y . '"
+            width="25"
+            height="' . $pre_height . '"
+            fill="' . esc_attr($insight_bar_pre) . '"
+        />
+
+        <rect
+            x="' . ($group_x + 28) . '"
+            y="' . $post_y . '"
+            width="25"
+            height="' . $post_height . '"
+            fill="' . esc_attr($insight_bar_post) . '"
+        />
+
+        <rect
+            x="' . ($group_x + 56) . '"
+            y="' . $delay_y . '"
+            width="25"
+            height="' . $delay_height . '"
+            fill="' . esc_attr($insight_bar_delayed) . '"
+        />
+
+        <text
+            x="' . ($group_x + 40) . '"
+            y="192"
+            text-anchor="middle"
+            font-family="DejaVu Sans"
+            font-size="9"
+            font-weight="600"
+            fill="#111111"
+        >' . esc_html($item['measure']) . '</text>
+    ';
+}
+
+$insight_key_growth_svg = '
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="600"
+    height="205"
+    viewBox="0 0 600 205"
+>
+    <rect width="600" height="205" fill="#ffffff"/>
+
+    <g
+        font-family="DejaVu Sans"
+        font-size="9"
+        fill="#555555"
+    >
+        <rect
+            x="325"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($insight_bar_pre) . '"
+        />
+        <text x="341" y="17">Pre-program</text>
+
+        <rect
+            x="410"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($insight_bar_post) . '"
+        />
+        <text x="426" y="17">Post-program</text>
+
+        <rect
+            x="503"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($insight_bar_delayed) . '"
+        />
+        <text x="519" y="17">Delayed</text>
+    </g>
+
+    <g stroke="#dedede" stroke-width="1">
+        <line x1="65" y1="35" x2="550" y2="35"/>
+        <line x1="65" y1="62" x2="550" y2="62"/>
+        <line x1="65" y1="89" x2="550" y2="89"/>
+        <line x1="65" y1="116" x2="550" y2="116"/>
+        <line x1="65" y1="143" x2="550" y2="143"/>
+        <line x1="65" y1="170" x2="550" y2="170"/>
+    </g>
+
+    <g
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="10"
+    >
+        <text x="54" y="39" text-anchor="end">100%</text>
+        <text x="54" y="66" text-anchor="end">80%</text>
+        <text x="54" y="93" text-anchor="end">60%</text>
+        <text x="54" y="120" text-anchor="end">40%</text>
+        <text x="54" y="147" text-anchor="end">20%</text>
+        <text x="54" y="174" text-anchor="end">0%</text>
+    </g>
+
+    ' . $insight_key_growth_content . '
+</svg>
+';
+
+$section_movers_chart_data['Insight'] =
+    'data:image/svg+xml;base64,' .
+    base64_encode($insight_key_growth_svg);
+
+/*
+ * Growth Summary contains every Insight capability, ordered by
+ * pre-to-delayed change, and displays its editable dashboard text.
+ */
+
+$insight_growth_summary_html = '';
+
+foreach ($insight_growth_items as $item) {
+    $custom_text = isset($insight_text_map[$item['measure']])
+        ? trim($insight_text_map[$item['measure']])
+        : '';
+
+    if ($custom_text === '') {
+        $custom_text = sprintf(
+            '%s increased by %s percentage points.',
+            $item['measure'],
+            round($item['increase'])
+        );
+    }
+
+    $insight_growth_summary_html .= '
+        <div class="growth-summary-line">
+            <strong>
+                ' . esc_html($item['measure']) . '
+                <span>
+                    +' . esc_html(round($item['increase'])) . ' pp
+                </span>
+            </strong>
+
+            <div>
+                ' . esc_html($custom_text) . '
+            </div>
+        </div>
+    ';
+}
+
+/*
+ * Participant quote is optional and anonymous.
+ * Scale the text according to its length.
+ */
+
+$insight_quote_html = '';
+
+if (trim($insight_quote) !== '') {
+    $quote_length = strlen($insight_quote);
+
+    if ($quote_length > 220) {
+        $insight_quote_size = '9px';
+    } elseif ($quote_length > 140) {
+        $insight_quote_size = '10px';
+    } elseif ($quote_length > 80) {
+        $insight_quote_size = '11px';
+    } else {
+        $insight_quote_size = '13px';
+    }
+
+    $insight_quote_html = '
+        <td
+            class="participant-quote-box"
+            style="
+                background: ' . esc_attr($report_colour) . ';
+                color: ' . esc_attr($recommendation_text_colour) . ';
+            "
+        >
+            <div class="box-heading">
+                Participant Quote
+            </div>
+
+            <div
+                class="participant-quote-text"
+                style="font-size: ' . esc_attr($insight_quote_size) . ';"
+            >
+                &ldquo;' .
+                nl2br(esc_html($insight_quote)) .
+                '&rdquo;
+            </div>
+        </td>
+    ';
+
+    $insight_growth_summary_class =
+        'growth-summary-box growth-summary-box--with-quote';
+} else {
+    $insight_growth_summary_class =
+        'growth-summary-box growth-summary-box--full';
+}
 $html = '
 <!DOCTYPE html>
 <html>
@@ -1989,6 +2523,147 @@ $html = '
     page-break-before: always;
     }
 
+
+    /* Final Sprint 2 Insight PDF page */
+
+    .final-insight-page .section-chart {
+        margin: 4px 0 4px;
+    }
+
+    .final-insight-page .section-chart img {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    .final-insight-page .section-movers-title {
+        margin: 2px 0 2px;
+        font-size: 19px;
+    }
+
+    .final-insight-page .movers-chart {
+        margin-bottom: 4px;
+    }
+
+    .final-insight-page .movers-chart img {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    .final-insight-page .section-summary-table {
+        width: 100%;
+        margin: 6px 0 0;
+        border-collapse: separate;
+        border-spacing: 8px 0;
+        page-break-inside: avoid;
+    }
+
+    .growth-summary-box,
+    .participant-quote-box {
+        padding: 12px 14px;
+        vertical-align: top;
+    }
+
+    .growth-summary-box {
+        background: ' . esc_attr($report_colour_light) . ';
+        color: #111111;
+    }
+
+    .growth-summary-box--with-quote {
+        width: 66%;
+    }
+
+    .growth-summary-box--full {
+        width: 100%;
+    }
+
+    .participant-quote-box {
+        width: 34%;
+    }
+
+    .growth-summary-line {
+        margin-bottom: 6px;
+        font-size: 8.5px;
+        line-height: 1.25;
+    }
+
+    .growth-summary-line strong {
+        display: block;
+        margin-bottom: 1px;
+        font-size: 9px;
+    }
+
+    .growth-summary-line strong span {
+        margin-left: 4px;
+        font-weight: normal;
+    }
+
+    .participant-quote-text {
+        line-height: 1.45;
+        font-style: italic;
+    }
+
+    /* Keep final Insight report on one A4 page. */
+
+    .final-insight-page {
+        padding-top: 38px;
+        padding-bottom: 40px;
+    }
+
+    .final-insight-page .brand {
+        margin-bottom: 18px;
+        font-size: 30px;
+    }
+
+    .final-insight-page .cover-rule {
+        margin-bottom: 13px;
+    }
+
+    .final-insight-page .section-report-title {
+        margin-bottom: 0;
+        font-size: 29px;
+    }
+
+    .final-insight-page .section-chart {
+        width: 86%;
+        margin: 0 auto 0;
+    }
+
+    .final-insight-page .section-movers-title {
+        margin: 0 0 0;
+        font-size: 18px;
+    }
+
+    .final-insight-page .movers-chart {
+        width: 86%;
+        margin: 0 auto 0;
+    }
+
+    .final-insight-page .section-summary-table {
+        margin-top: 2px;
+    }
+
+    .final-insight-page .growth-summary-box,
+    .final-insight-page .participant-quote-box {
+        padding: 9px 12px;
+    }
+
+    .final-insight-page .box-heading {
+        margin-bottom: 5px;
+        font-size: 16px;
+    }
+
+    .final-insight-page .growth-summary-line {
+        margin-bottom: 3px;
+        font-size: 8px;
+        line-height: 1.18;
+    }
+
+    .final-insight-page .growth-summary-line strong {
+        margin-bottom: 0;
+        font-size: 8.5px;
+    }
 </style>
 </head>
 
@@ -2087,7 +2762,7 @@ $html = '
     </div>
 
 </div>
-<div class="page content-page insight-page">
+<div class="page content-page insight-page final-insight-page">
 
     <div class="brand">
         Tasmanian
@@ -2112,7 +2787,7 @@ $html = '
     </div>
 
     <h3 class="section-movers-title">
-        Top 3 Positive Movers
+        Key Growth
     </h3>
 
     <div class="movers-chart">
@@ -2125,34 +2800,15 @@ $html = '
     <table class="section-summary-table">
         <tr>
 
-            <td class="growth-box">
+            <td class="' . esc_attr($insight_growth_summary_class) . '">
                 <div class="box-heading">
-                    Growth
+                    Growth Summary
                 </div>
 
-                ' . $section_growth_html['Insight'] . '
+                ' . $insight_growth_summary_html . '
             </td>
 
-            <td
-                class="recommendations-box"
-                style="background: ' . esc_attr($report_colour) . ';"
-            >
-                <div class="box-heading">
-                    Recommendations
-                </div>
-
-                <div class="recommendation-line">
-                    1. ' . esc_html($section_recommendations['Insight'][0]) . '
-                </div>
-
-                <div class="recommendation-line">
-                    2. ' . esc_html($section_recommendations['Insight'][1]) . '
-                </div>
-
-                <div class="recommendation-line">
-                    3. ' . esc_html($section_recommendations['Insight'][2]) . '
-                </div>
-            </td>
+            ' . $insight_quote_html . '
 
         </tr>
     </table>
