@@ -92,24 +92,45 @@ function tle_get_test_report_data()
 
         'influence' => [
             [
-                'measure' => 'Collaboration',
+                'measure' => 'Tolerance for ambiguity',
+                'pre' => 4.4,
+                'completion' => 4.9,
+                'delay' => 5.1,
+                'benchmark' => 4.8,
+            ],
+            [
+                'measure' => 'Capacity for informal influence',
+                'pre' => 4.8,
+                'completion' => 5.3,
+                'delay' => 5.5,
+                'benchmark' => 5.0,
+            ],
+            [
+                'measure' => 'Tolerance for complexity',
+                'pre' => 4.7,
+                'completion' => 5.2,
+                'delay' => 5.5,
+                'benchmark' => 4.9,
+            ],
+            [
+                'measure' => 'Capacity for collaboration',
                 'pre' => 5.1,
                 'completion' => 5.6,
                 'delay' => 5.8,
                 'benchmark' => 5.2,
             ],
             [
-                'measure' => 'Networking',
+                'measure' => 'Capacity to establish networks',
                 'pre' => 4.6,
                 'completion' => 5.2,
                 'delay' => 5.5,
                 'benchmark' => 4.9,
             ],
             [
-                'measure' => 'Tolerance for ambiguity',
-                'pre' => 4.4,
-                'completion' => 4.9,
-                'delay' => 5.1,
+                'measure' => 'Creative decision-making',
+                'pre' => 4.5,
+                'completion' => 5.1,
+                'delay' => 5.4,
                 'benchmark' => 4.8,
             ],
         ],
@@ -675,6 +696,34 @@ function tle_export_pdf()
 
     $insight_quote = isset($_POST['insight_quote'])
         ? sanitize_textarea_field(wp_unslash($_POST['insight_quote']))
+        : '';
+
+    $influence_tolerance_ambiguity_text = isset($_POST['influence_tolerance_ambiguity_text'])
+        ? sanitize_text_field(wp_unslash($_POST['influence_tolerance_ambiguity_text']))
+        : '';
+
+    $influence_informal_influence_text = isset($_POST['influence_informal_influence_text'])
+        ? sanitize_text_field(wp_unslash($_POST['influence_informal_influence_text']))
+        : '';
+
+    $influence_tolerance_complexity_text = isset($_POST['influence_tolerance_complexity_text'])
+        ? sanitize_text_field(wp_unslash($_POST['influence_tolerance_complexity_text']))
+        : '';
+
+    $influence_collaboration_text = isset($_POST['influence_collaboration_text'])
+        ? sanitize_text_field(wp_unslash($_POST['influence_collaboration_text']))
+        : '';
+
+    $influence_networks_text = isset($_POST['influence_networks_text'])
+        ? sanitize_text_field(wp_unslash($_POST['influence_networks_text']))
+        : '';
+
+    $influence_creative_decision_text = isset($_POST['influence_creative_decision_text'])
+        ? sanitize_text_field(wp_unslash($_POST['influence_creative_decision_text']))
+        : '';
+
+    $influence_quote = isset($_POST['influence_quote'])
+        ? sanitize_textarea_field(wp_unslash($_POST['influence_quote']))
         : '';
 
     $report_colour_key = isset($_POST['report_colour'])
@@ -2048,6 +2097,470 @@ if (trim($insight_quote) !== '') {
     $insight_growth_summary_class =
         'growth-summary-box growth-summary-box--full';
 }
+
+/*
+ * Final Sprint 2 Influence report visualisation.
+ */
+
+$influence_measures = $overview_sections['Influence'];
+
+$influence_text_map = [
+    'Tolerance for ambiguity' => $influence_tolerance_ambiguity_text,
+    'Capacity for informal influence' => $influence_informal_influence_text,
+    'Tolerance for complexity' => $influence_tolerance_complexity_text,
+    'Capacity for collaboration' => $influence_collaboration_text,
+    'Capacity to establish networks' => $influence_networks_text,
+    'Creative decision-making' => $influence_creative_decision_text,
+];
+
+/*
+ * All-capability Influence line chart with dynamic vertical scale.
+ */
+
+$influence_percentages = [];
+
+foreach ($influence_measures as $measure) {
+    foreach (['pre', 'completion', 'delay'] as $point) {
+        $influence_percentages[] = ($measure[$point] / 7) * 100;
+    }
+}
+
+$influence_axis_min = max(
+    0,
+    floor((min($influence_percentages) - 5) / 10) * 10
+);
+
+$influence_axis_max = min(
+    100,
+    ceil((max($influence_percentages) + 5) / 10) * 10
+);
+
+if (($influence_axis_max - $influence_axis_min) < 20) {
+    $influence_axis_min = max(0, $influence_axis_min - 10);
+    $influence_axis_max = min(100, $influence_axis_max + 10);
+}
+
+$influence_plot_top = 36;
+$influence_plot_bottom = 205;
+$influence_plot_height =
+    $influence_plot_bottom - $influence_plot_top;
+
+$influence_axis_range = max(
+    1,
+    $influence_axis_max - $influence_axis_min
+);
+
+$influence_chart_y = static function ($percentage) use (
+    $influence_plot_bottom,
+    $influence_plot_height,
+    $influence_axis_min,
+    $influence_axis_range
+) {
+    return $influence_plot_bottom -
+        (
+            (($percentage - $influence_axis_min) / $influence_axis_range) *
+            $influence_plot_height
+        );
+};
+
+$influence_x_positions = [
+    'pre' => 100,
+    'completion' => 305,
+    'delay' => 510,
+];
+
+$influence_line_colours = [
+    $report_colour,
+    '#111111',
+    '#666666',
+    $mix_report_colour($report_colour, '#111111', 0.28),
+    $mix_report_colour($report_colour, '#ffffff', 0.28),
+    $mix_report_colour($report_colour, '#111111', 0.52),
+];
+
+$influence_grid = '';
+
+for ($grid_index = 0; $grid_index <= 4; $grid_index++) {
+    $grid_percentage =
+        $influence_axis_min +
+        (
+            ($influence_axis_max - $influence_axis_min) *
+            ($grid_index / 4)
+        );
+
+    $grid_y = $influence_chart_y($grid_percentage);
+
+    $influence_grid .= '
+        <line
+            x1="65"
+            y1="' . $grid_y . '"
+            x2="550"
+            y2="' . $grid_y . '"
+        />
+
+        <text
+            x="54"
+            y="' . ($grid_y + 4) . '"
+            text-anchor="end"
+        >' . esc_html(round($grid_percentage)) . '%</text>
+    ';
+}
+
+$influence_lines = '';
+$influence_legend = '';
+
+foreach ($influence_measures as $index => $measure) {
+    $colour = $influence_line_colours[
+        $index % count($influence_line_colours)
+    ];
+
+    $pre_percentage = ($measure['pre'] / 7) * 100;
+    $completion_percentage = ($measure['completion'] / 7) * 100;
+    $delay_percentage = ($measure['delay'] / 7) * 100;
+
+    $points =
+        $influence_x_positions['pre'] . ',' .
+        $influence_chart_y($pre_percentage) . ' ' .
+        $influence_x_positions['completion'] . ',' .
+        $influence_chart_y($completion_percentage) . ' ' .
+        $influence_x_positions['delay'] . ',' .
+        $influence_chart_y($delay_percentage);
+
+    $influence_lines .= '
+        <polyline
+            points="' . $points . '"
+            fill="none"
+            stroke="' . esc_attr($colour) . '"
+            stroke-width="2.5"
+        />
+
+        <g fill="' . esc_attr($colour) . '">
+            <circle
+                cx="' . $influence_x_positions['pre'] . '"
+                cy="' . $influence_chart_y($pre_percentage) . '"
+                r="4"
+            />
+            <circle
+                cx="' . $influence_x_positions['completion'] . '"
+                cy="' . $influence_chart_y($completion_percentage) . '"
+                r="4"
+            />
+            <circle
+                cx="' . $influence_x_positions['delay'] . '"
+                cy="' . $influence_chart_y($delay_percentage) . '"
+                r="4"
+            />
+        </g>
+    ';
+
+    $legend_column = $index % 2;
+    $legend_row = floor($index / 2);
+
+    $legend_x = $legend_column === 0
+        ? 72
+        : 320;
+
+    $legend_y = 239 + ($legend_row * 14);
+
+    $influence_legend .= '
+        <line
+            x1="' . $legend_x . '"
+            y1="' . ($legend_y - 3) . '"
+            x2="' . ($legend_x + 18) . '"
+            y2="' . ($legend_y - 3) . '"
+            stroke="' . esc_attr($colour) . '"
+            stroke-width="3"
+        />
+
+        <text
+            x="' . ($legend_x + 24) . '"
+            y="' . $legend_y . '"
+        >' . esc_html($measure['measure']) . '</text>
+    ';
+}
+
+$influence_svg = '
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="600"
+    height="290"
+    viewBox="0 0 600 290"
+>
+    <rect width="600" height="290" fill="#ffffff"/>
+
+    <g
+        stroke="#dedede"
+        stroke-width="1"
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="10"
+    >
+        ' . $influence_grid . '
+    </g>
+
+    <g
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="9"
+    >
+        <text x="75" y="224">Pre-program</text>
+        <text x="270" y="224">Post-program</text>
+        <text x="490" y="224">Delayed</text>
+
+        ' . $influence_legend . '
+    </g>
+
+    ' . $influence_lines . '
+</svg>
+';
+
+$section_chart_data['Influence'] =
+    'data:image/svg+xml;base64,' .
+    base64_encode($influence_svg);
+
+/*
+ * Key Growth — highest three pre-to-delayed improvements.
+ */
+
+$influence_growth_items = [];
+
+foreach ($influence_measures as $measure) {
+    $pre_percentage = ($measure['pre'] / 7) * 100;
+    $completion_percentage = ($measure['completion'] / 7) * 100;
+    $delay_percentage = ($measure['delay'] / 7) * 100;
+
+    $influence_growth_items[] = [
+        'measure' => $measure['measure'],
+        'pre' => $pre_percentage,
+        'completion' => $completion_percentage,
+        'delay' => $delay_percentage,
+        'increase' => $delay_percentage - $pre_percentage,
+    ];
+}
+
+usort(
+    $influence_growth_items,
+    static function ($first, $second) {
+        return $second['increase'] <=> $first['increase'];
+    }
+);
+
+$influence_key_growth = array_slice(
+    $influence_growth_items,
+    0,
+    3
+);
+
+$influence_bar_pre = $report_colour_light;
+$influence_bar_post = $before_bar_colour;
+$influence_bar_delayed = $report_colour;
+
+$influence_key_growth_content = '';
+$influence_group_x = [105, 275, 445];
+
+foreach ($influence_key_growth as $index => $item) {
+    $group_x = $influence_group_x[$index];
+
+    $pre_height = $item['pre'] * 1.35;
+    $post_height = $item['completion'] * 1.35;
+    $delay_height = $item['delay'] * 1.35;
+
+    $pre_y = 170 - $pre_height;
+    $post_y = 170 - $post_height;
+    $delay_y = 170 - $delay_height;
+
+    $influence_key_growth_content .= '
+        <rect
+            x="' . $group_x . '"
+            y="' . $pre_y . '"
+            width="25"
+            height="' . $pre_height . '"
+            fill="' . esc_attr($influence_bar_pre) . '"
+        />
+
+        <rect
+            x="' . ($group_x + 28) . '"
+            y="' . $post_y . '"
+            width="25"
+            height="' . $post_height . '"
+            fill="' . esc_attr($influence_bar_post) . '"
+        />
+
+        <rect
+            x="' . ($group_x + 56) . '"
+            y="' . $delay_y . '"
+            width="25"
+            height="' . $delay_height . '"
+            fill="' . esc_attr($influence_bar_delayed) . '"
+        />
+
+        <text
+            x="' . ($group_x + 40) . '"
+            y="192"
+            text-anchor="middle"
+            font-family="DejaVu Sans"
+            font-size="7.5"
+            font-weight="600"
+            fill="#111111"
+        >' . esc_html($item['measure']) . '</text>
+    ';
+}
+
+$influence_key_growth_svg = '
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="600"
+    height="205"
+    viewBox="0 0 600 205"
+>
+    <rect width="600" height="205" fill="#ffffff"/>
+
+    <g
+        font-family="DejaVu Sans"
+        font-size="9"
+        fill="#555555"
+    >
+        <rect
+            x="325"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($influence_bar_pre) . '"
+        />
+        <text x="341" y="17">Pre-program</text>
+
+        <rect
+            x="410"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($influence_bar_post) . '"
+        />
+        <text x="426" y="17">Post-program</text>
+
+        <rect
+            x="503"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($influence_bar_delayed) . '"
+        />
+        <text x="519" y="17">Delayed</text>
+    </g>
+
+    <g stroke="#dedede" stroke-width="1">
+        <line x1="65" y1="35" x2="550" y2="35"/>
+        <line x1="65" y1="62" x2="550" y2="62"/>
+        <line x1="65" y1="89" x2="550" y2="89"/>
+        <line x1="65" y1="116" x2="550" y2="116"/>
+        <line x1="65" y1="143" x2="550" y2="143"/>
+        <line x1="65" y1="170" x2="550" y2="170"/>
+    </g>
+
+    <g
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="10"
+    >
+        <text x="54" y="39" text-anchor="end">100%</text>
+        <text x="54" y="66" text-anchor="end">80%</text>
+        <text x="54" y="93" text-anchor="end">60%</text>
+        <text x="54" y="120" text-anchor="end">40%</text>
+        <text x="54" y="147" text-anchor="end">20%</text>
+        <text x="54" y="174" text-anchor="end">0%</text>
+    </g>
+
+    ' . $influence_key_growth_content . '
+</svg>
+';
+
+$section_movers_chart_data['Influence'] =
+    'data:image/svg+xml;base64,' .
+    base64_encode($influence_key_growth_svg);
+
+/*
+ * Growth Summary — all six capabilities, ordered by growth.
+ */
+
+$influence_growth_summary_html = '';
+
+foreach ($influence_growth_items as $item) {
+    $custom_text = isset($influence_text_map[$item['measure']])
+        ? trim($influence_text_map[$item['measure']])
+        : '';
+
+    if ($custom_text === '') {
+        $custom_text = sprintf(
+            '%s increased by %s percentage points.',
+            $item['measure'],
+            round($item['increase'])
+        );
+    }
+
+    $influence_growth_summary_html .= '
+        <div class="growth-summary-line">
+            <strong>
+                ' . esc_html($item['measure']) . '
+                <span>
+                    +' . esc_html(round($item['increase'])) . ' pp
+                </span>
+            </strong>
+
+            <div>
+                ' . esc_html($custom_text) . '
+            </div>
+        </div>
+    ';
+}
+
+/*
+ * Optional anonymous participant quote.
+ */
+
+$influence_quote_html = '';
+
+if (trim($influence_quote) !== '') {
+    $quote_length = strlen($influence_quote);
+
+    if ($quote_length > 220) {
+        $influence_quote_size = '9px';
+    } elseif ($quote_length > 140) {
+        $influence_quote_size = '10px';
+    } elseif ($quote_length > 80) {
+        $influence_quote_size = '11px';
+    } else {
+        $influence_quote_size = '13px';
+    }
+
+    $influence_quote_html = '
+        <td
+            class="participant-quote-box"
+            style="
+                background: ' . esc_attr($report_colour) . ';
+                color: ' . esc_attr($recommendation_text_colour) . ';
+            "
+        >
+            <div class="box-heading">
+                Participant Quote
+            </div>
+
+            <div
+                class="participant-quote-text"
+                style="font-size: ' . esc_attr($influence_quote_size) . ';"
+            >
+                &ldquo;' .
+                nl2br(esc_html($influence_quote)) .
+                '&rdquo;
+            </div>
+        </td>
+    ';
+
+    $influence_growth_summary_class =
+        'growth-summary-box growth-summary-box--with-quote';
+} else {
+    $influence_growth_summary_class =
+        'growth-summary-box growth-summary-box--full';
+}
 $html = '
 <!DOCTYPE html>
 <html>
@@ -2664,6 +3177,79 @@ $html = '
         margin-bottom: 0;
         font-size: 8.5px;
     }
+
+    /* Final Sprint 2 Influence PDF page */
+
+    .final-influence-page {
+        padding-top: 38px;
+        padding-bottom: 40px;
+    }
+
+    .final-influence-page .brand {
+        margin-bottom: 18px;
+        font-size: 30px;
+    }
+
+    .final-influence-page .cover-rule {
+        margin-bottom: 13px;
+    }
+
+    .final-influence-page .section-report-title {
+        margin-bottom: 0;
+        font-size: 29px;
+    }
+
+    .final-influence-page .section-chart {
+        width: 86%;
+        margin: 0 auto;
+    }
+
+    .final-influence-page .section-chart img {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    .final-influence-page .section-movers-title {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .final-influence-page .movers-chart {
+        width: 86%;
+        margin: 0 auto;
+    }
+
+    .final-influence-page .movers-chart img {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    .final-influence-page .section-summary-table {
+        margin-top: 2px;
+    }
+
+    .final-influence-page .growth-summary-box,
+    .final-influence-page .participant-quote-box {
+        padding: 9px 12px;
+    }
+
+    .final-influence-page .box-heading {
+        margin-bottom: 5px;
+        font-size: 16px;
+    }
+
+    .final-influence-page .growth-summary-line {
+        margin-bottom: 3px;
+        font-size: 8px;
+        line-height: 1.18;
+    }
+
+    .final-influence-page .growth-summary-line strong {
+        margin-bottom: 0;
+        font-size: 8.5px;
+    }
 </style>
 </head>
 
@@ -2818,7 +3404,7 @@ $html = '
     </div>
 
 </div>
-<div class="page content-page insight-page">
+<div class="page content-page insight-page final-influence-page">
 
     <div class="brand">
         Tasmanian
@@ -2843,7 +3429,7 @@ $html = '
     </div>
 
     <h3 class="section-movers-title">
-        Top 3 Positive Movers
+        Key Growth
     </h3>
 
     <div class="movers-chart">
@@ -2856,34 +3442,15 @@ $html = '
     <table class="section-summary-table">
         <tr>
 
-            <td class="growth-box">
+            <td class="' . esc_attr($influence_growth_summary_class) . '">
                 <div class="box-heading">
-                    Growth
+                    Growth Summary
                 </div>
 
-                ' . $section_growth_html['Influence'] . '
+                ' . $influence_growth_summary_html . '
             </td>
 
-            <td
-                class="recommendations-box"
-                style="background: ' . esc_attr($report_colour) . ';"
-            >
-                <div class="box-heading">
-                    Recommendations
-                </div>
-
-                <div class="recommendation-line">
-                    1. ' . esc_html($section_recommendations['Influence'][0]) . '
-                </div>
-
-                <div class="recommendation-line">
-                    2. ' . esc_html($section_recommendations['Influence'][1]) . '
-                </div>
-
-                <div class="recommendation-line">
-                    3. ' . esc_html($section_recommendations['Influence'][2]) . '
-                </div>
-            </td>
+            ' . $influence_quote_html . '
 
         </tr>
     </table>
