@@ -14,11 +14,6 @@ if (!defined('ABSPATH')) {
 
 class TLE_REST_API
 {
-    /**
-     * Register REST API routes.
-     *
-     * @return void
-     */
     public static function register_routes()
     {
         register_rest_route(
@@ -32,62 +27,108 @@ class TLE_REST_API
         );
     }
 
-    /**
-     * Check whether the current user can access evaluation data.
-     *
-     * @return bool
-     */
     public static function permissions_check()
     {
         return is_user_logged_in();
     }
 
     /**
-     * Retrieve evaluation report data.
+     * Retrieve a report using complete evaluation datasets.
      *
      * @param WP_REST_Request $request REST request.
-     * @return WP_REST_Response
+     * @return WP_REST_Response|WP_Error
      */
     public static function get_evaluations($request)
     {
-        $records = [];
-
-        foreach (['ELF-I', 'ELF-E', 'ELF-D'] as $form_key) {
-            $records = array_merge(
-                $records,
-                TLE_Evaluation_Data_Service::get_evaluations($form_key)
-            );
-        }
-
         $filters = [];
 
-        $program = $request->get_param('program');
-        $cohort = $request->get_param('cohort');
-        $evaluation_stage = $request->get_param('evaluation_stage');
-        $comparison = $request->get_param('comparison');
+        foreach (
+            ['program', 'cohort', 'evaluation_stage', 'comparison']
+            as $parameter
+        ) {
+            $value = $request->get_param($parameter);
 
-        if ($program !== null && $program !== '') {
-            $filters['program'] = sanitize_text_field($program);
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            if (!is_scalar($value)) {
+                return new WP_Error(
+                    'tle_invalid_filter',
+                    'Report filters must be text values.',
+                    ['status' => 400]
+                );
+            }
+
+            $filters[$parameter] = sanitize_text_field($value);
         }
 
-        if ($cohort !== null && $cohort !== '') {
-            $filters['cohort'] = sanitize_text_field($cohort);
-        }
+        $supported_forms = [
+            'pre_program' => 'ELF-I',
+            'completion' => 'ELF-E',
+            'delay' => 'ELF-D',
+        ];
 
-        if ($evaluation_stage !== null && $evaluation_stage !== '') {
-            $filters['evaluation_stage'] = sanitize_text_field(
-                $evaluation_stage
+        if (
+            isset($filters['evaluation_stage']) &&
+            !isset($supported_forms[$filters['evaluation_stage']])
+        ) {
+            return new WP_Error(
+                'tle_invalid_evaluation_stage',
+                'Choose pre_program, completion or delay.',
+                ['status' => 400]
             );
         }
 
-        if ($comparison !== null && $comparison !== '') {
-            $filters['comparison'] = sanitize_text_field($comparison);
+        $records = [];
+        $retrieved_stages = [];
+
+        foreach ($supported_forms as $stage => $form_key) {
+            if (
+                isset($filters['evaluation_stage']) &&
+                $filters['evaluation_stage'] !== $stage
+            ) {
+                continue;
+            }
+
+            $form_records = TLE_Evaluation_Data_Service::get_all_evaluations(
+                $form_key,
+                ['status' => 'active']
+            );
+
+            if (is_wp_error($form_records)) {
+                return new WP_Error(
+                    'tle_report_retrieval_failed',
+                    'Could not retrieve the complete '
+                        . $stage . ' evaluation dataset.',
+                    ['status' => 502]
+                );
+            }
+
+            $records = array_merge($records, $form_records);
+            $retrieved_stages[] = $stage;
         }
 
         $report = TLE_Reporting_Service::generate_report(
             $records,
             $filters
         );
+
+        $report['scoring_status'] = $report['capability_scoring']['status'];
+        $report['retrieved_stages'] = $retrieved_stages;
+
+        $report['limitations'] = [
+            'Capability mappings and scoring rules are provisional.',
+            'Adjusted capability scoring currently supports Form 37 only.',
+            'Q13 uses equal category intervals rescaled to 1-7.',
+            'Q14 excludes N/A and converts agreement scores to 1-7.',
+            'Q26 and Q37.1 scoring direction remains unresolved.',
+            'Forms 40 and 43 lack shared participant, program and cohort fields.',
+            'Program/cohort filters exclude records without matching context.',
+            'Question averages and change values use raw scores.',
+            'Stage differences do not establish participant-linked change.',
+            'Form 50 is pending field mapping and integration.',
+        ];
 
         return rest_ensure_response($report);
     }

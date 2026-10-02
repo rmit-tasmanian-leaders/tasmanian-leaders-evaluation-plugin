@@ -3,8 +3,7 @@
 /**
  * Evaluation Data Service
  *
- * Normalises evaluation data into a consistent structure
- * for reporting, dashboard, and PDF components.
+ * Normalises evaluation data for reporting, dashboard and PDF components.
  *
  * @package TasmanianLeadersEvaluation
  */
@@ -81,9 +80,8 @@ class TLE_Evaluation_Data_Service
     /**
      * Validate a normalised evaluation record.
      *
-     * Participant information is optional because Forms 40 and 43
-     * currently do not provide a participant key, program, program
-     * group, or cohort.
+     * Participant context is optional because some forms
+     * do not currently provide shared identity/context fields.
      *
      * @param array $record Normalised evaluation record.
      * @return bool
@@ -99,6 +97,7 @@ class TLE_Evaluation_Data_Service
             'submission_id',
             'submission_date',
             'question',
+            'score',
         ];
 
         foreach ($required_fields as $field) {
@@ -134,15 +133,11 @@ class TLE_Evaluation_Data_Service
     }
 
     /**
-     * Retrieve normalised evaluation records from the
-     * Gravity Forms REST API through the provider.
+     * Retrieve one page of normalised evaluation records.
      *
-     * Invalid records are excluded from the returned dataset.
+     * Preserves the existing interface.
+     * Invalid records are excluded.
      *
-     * @param string $form_key Gravity Forms mapping key.
-     * @param array  $search_criteria Search criteria.
-     * @param array  $sorting Sorting options.
-     * @param array  $paging Paging options.
      * @return array
      */
     public static function get_evaluations(
@@ -172,5 +167,50 @@ class TLE_Evaluation_Data_Service
                 [self::class, 'validate_record']
             )
         );
+    }
+
+    /**
+     * Retrieve all matching evaluation records for reporting.
+     *
+     * Retrieval or validation failures return an explicit error.
+     * Callers must check is_wp_error() before using the result.
+     *
+     * @return array|WP_Error
+     */
+    public static function get_all_evaluations(
+        $form_key,
+        $search_criteria = [],
+        $page_size = 100
+    ) {
+        if (!TLE_Gravity_Forms_Provider::is_available()) {
+            return new WP_Error(
+                'tle_provider_unavailable',
+                'The Gravity Forms REST connection is not configured.',
+                ['status' => 503]
+            );
+        }
+
+        $records = TLE_Gravity_Forms_Provider::get_all_normalised_entries(
+            $form_key,
+            $search_criteria,
+            $page_size
+        );
+
+        if (is_wp_error($records)) {
+            return $records;
+        }
+
+        foreach ($records as $record) {
+            if (!self::validate_record($record)) {
+                return new WP_Error(
+                    'tle_invalid_evaluation_record',
+                    'An evaluation record failed validation. '
+                        . 'The report was stopped to avoid incomplete results.',
+                    ['status' => 502]
+                );
+            }
+        }
+
+        return $records;
     }
 }

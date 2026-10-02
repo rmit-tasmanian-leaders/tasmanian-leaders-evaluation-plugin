@@ -3,7 +3,7 @@
 /**
  * Gravity Forms Provider
  *
- * Provides access to Gravity Forms through the Gravity Forms REST API.
+ * Retrieves and normalises evaluation data through the REST API.
  *
  * @package TasmanianLeadersEvaluation
  */
@@ -19,7 +19,8 @@ class TLE_Gravity_Forms_Provider
         static $field_map = null;
 
         if ($field_map === null) {
-            $field_map = require plugin_dir_path(__FILE__) . '../config/gravity-forms-field-map.php';
+            $field_map = require plugin_dir_path(__FILE__)
+                . '../config/gravity-forms-field-map.php';
         }
 
         return $field_map;
@@ -41,7 +42,8 @@ class TLE_Gravity_Forms_Provider
             return false;
         }
 
-        $url = trailingslashit(TLE_GF_API_BASE_URL) . ltrim($endpoint, '/');
+        $url = trailingslashit(TLE_GF_API_BASE_URL)
+            . ltrim($endpoint, '/');
 
         $response = wp_remote_get(
             $url,
@@ -49,7 +51,8 @@ class TLE_Gravity_Forms_Provider
                 'timeout' => 30,
                 'headers' => [
                     'Authorization' => 'Basic ' . base64_encode(
-                        TLE_GF_CONSUMER_KEY . ':' . TLE_GF_CONSUMER_SECRET
+                        TLE_GF_CONSUMER_KEY . ':'
+                        . TLE_GF_CONSUMER_SECRET
                     ),
                     'Accept' => 'application/json',
                 ],
@@ -66,14 +69,12 @@ class TLE_Gravity_Forms_Provider
             return false;
         }
 
-        $body = wp_remote_retrieve_body($response);
-        $data = json_decode($body, true);
+        $data = json_decode(
+            wp_remote_retrieve_body($response),
+            true
+        );
 
-        if (!is_array($data)) {
-            return false;
-        }
-
-        return $data;
+        return is_array($data) ? $data : false;
     }
 
     public static function get_forms()
@@ -94,7 +95,12 @@ class TLE_Gravity_Forms_Provider
         return self::request('forms/' . $form_id);
     }
 
-    public static function get_entries(
+    /**
+     * Retrieve one page, retaining its total count.
+     *
+     * @return array|WP_Error
+     */
+    private static function get_entries_page(
         $form_id,
         $search_criteria = [],
         $sorting = [],
@@ -102,41 +108,186 @@ class TLE_Gravity_Forms_Provider
     ) {
         $form_id = absint($form_id);
 
-        if (!$form_id) {
-            return [];
+        if (
+            !$form_id ||
+            !is_array($search_criteria) ||
+            !is_array($sorting) ||
+            !is_array($paging)
+        ) {
+            return new WP_Error(
+                'tle_invalid_entries_arguments',
+                'Invalid entry retrieval arguments.'
+            );
         }
 
-        $endpoint = 'forms/' . $form_id . '/entries';
         $query_parameters = [];
 
-        if (!empty($paging['page'])) {
-            $query_parameters['page'] = absint($paging['page']);
+        if (!empty($search_criteria)) {
+            $query_parameters['search'] = wp_json_encode(
+                $search_criteria
+            );
         }
 
-        if (!empty($paging['page_size'])) {
-            $query_parameters['page_size'] = absint($paging['page_size']);
+        if (!empty($sorting)) {
+            $query_parameters['sorting'] = $sorting;
         }
 
-        if (!empty($sorting['key'])) {
-            $query_parameters['sorting_key'] = sanitize_text_field($sorting['key']);
+        $page_size = !empty($paging['page_size'])
+            ? max(1, absint($paging['page_size']))
+            : 100;
+
+        $offset = isset($paging['offset'])
+            ? absint($paging['offset'])
+            : 0;
+
+        if (!isset($paging['offset']) && !empty($paging['page'])) {
+            $page = max(1, absint($paging['page']));
+            $offset = ($page - 1) * $page_size;
         }
 
-        if (!empty($sorting['direction'])) {
-            $query_parameters['sorting_direction'] = sanitize_text_field($sorting['direction']);
+        $query_parameters['paging'] = [
+            'page_size' => $page_size,
+            'offset' => $offset,
+        ];
+
+        $endpoint = 'forms/' . $form_id . '/entries?'
+            . http_build_query(
+                $query_parameters,
+                '',
+                '&',
+                PHP_QUERY_RFC3986
+            );
+
+        $response = self::request($endpoint);
+
+        if (
+            !is_array($response) ||
+            !isset($response['entries']) ||
+            !is_array($response['entries']) ||
+            !isset($response['total_count']) ||
+            !is_numeric($response['total_count']) ||
+            $response['total_count'] < 0
+        ) {
+            return new WP_Error(
+                'tle_entries_request_failed',
+                'Could not retrieve a valid entry page for form '
+                    . $form_id . ' at offset ' . $offset . '.'
+            );
         }
 
-        if (!empty($query_parameters)) {
-            $endpoint .= '?' . http_build_query($query_parameters);
-        }
+        return [
+            'entries' => $response['entries'],
+            'total_count' => (int) $response['total_count'],
+        ];
+    }
 
-        $entries = self::request($endpoint);
+    /**
+     * Retrieve one page.
+     *
+     * Preserves the existing array-returning interface.
+     * Use get_all_entries() for complete reporting retrieval.
+     *
+     * @return array
+     */
+    public static function get_entries(
+        $form_id,
+        $search_criteria = [],
+        $sorting = [],
+        $paging = []
+    ) {
+        $response = self::get_entries_page(
+            $form_id,
+            $search_criteria,
+            $sorting,
+            $paging
+        );
 
-        if (!is_array($entries)) {
-            return [];
-        }
+        return is_wp_error($response)
+            ? []
+            : $response['entries'];
+    }
 
-        if (isset($entries['entries']) && is_array($entries['entries'])) {
-            return $entries['entries'];
+    /**
+     * Retrieve all matching entries.
+     *
+     * Uses stable entry-ID ordering and verifies the total count.
+     * Returns an error instead of a partial dataset on failure.
+     *
+     * @return array|WP_Error
+     */
+    public static function get_all_entries(
+        $form_id,
+        $search_criteria = [],
+        $page_size = 100
+    ) {
+        $page_size = max(1, min(100, absint($page_size)));
+        $offset = 0;
+        $expected_total = null;
+        $entries = [];
+        $seen_ids = [];
+
+        do {
+            $response = self::get_entries_page(
+                $form_id,
+                $search_criteria,
+                ['key' => 'id', 'direction' => 'ASC'],
+                [
+                    'page_size' => $page_size,
+                    'offset' => $offset,
+                ]
+            );
+
+            if (is_wp_error($response)) {
+                return $response;
+            }
+
+            if ($expected_total === null) {
+                $expected_total = $response['total_count'];
+            } elseif ($expected_total !== $response['total_count']) {
+                return new WP_Error(
+                    'tle_entries_changed',
+                    'The entry count changed during retrieval. Retry.'
+                );
+            }
+
+            $page_entries = $response['entries'];
+
+            if (empty($page_entries) && $offset < $expected_total) {
+                return new WP_Error(
+                    'tle_entries_incomplete',
+                    'An entry page was empty before retrieval completed.'
+                );
+            }
+
+            foreach ($page_entries as $entry) {
+                if (!is_array($entry) || empty($entry['id'])) {
+                    return new WP_Error(
+                        'tle_invalid_entry',
+                        'An entry was missing its submission ID.'
+                    );
+                }
+
+                $entry_id = (string) $entry['id'];
+
+                if (isset($seen_ids[$entry_id])) {
+                    return new WP_Error(
+                        'tle_duplicate_entry_page',
+                        'Entry pages overlapped. Retrieval was stopped.'
+                    );
+                }
+
+                $seen_ids[$entry_id] = true;
+                $entries[] = $entry;
+            }
+
+            $offset += count($page_entries);
+        } while ($offset < $expected_total);
+
+        if (count($entries) !== $expected_total) {
+            return new WP_Error(
+                'tle_entries_count_mismatch',
+                'Retrieved entries did not match the API total count.'
+            );
         }
 
         return $entries;
@@ -157,7 +308,9 @@ class TLE_Gravity_Forms_Provider
     }
 
     /**
-     * Convert a Gravity Forms response into its numeric score.
+     * Read the raw score assigned to a selected survey choice.
+     *
+     * Does not apply psychometric reverse scoring.
      */
     private static function get_score_from_field($field, $response)
     {
@@ -171,16 +324,7 @@ class TLE_Gravity_Forms_Provider
 
         $response_value = (string) $response;
 
-        /*
-         * Likert responses are stored as:
-         *
-         * row_value:choice_value
-         *
-         * Example:
-         * glikertrowb86af978:glikertcol12918f30fa
-         *
-         * The choice value is the part after the colon.
-         */
+        // Likert responses use row_value:choice_value.
         if (strpos($response_value, ':') !== false) {
             $parts = explode(':', $response_value);
             $response_value = end($parts);
@@ -191,7 +335,11 @@ class TLE_Gravity_Forms_Provider
                 isset($choice['value']) &&
                 (string) $choice['value'] === $response_value
             ) {
-                if (isset($choice['score']) && $choice['score'] !== '') {
+                if (
+                    isset($choice['score']) &&
+                    $choice['score'] !== '' &&
+                    is_numeric($choice['score'])
+                ) {
                     return floatval($choice['score']);
                 }
 
@@ -203,13 +351,20 @@ class TLE_Gravity_Forms_Provider
     }
 
     /**
-     * Build a lookup of Gravity Forms fields by field ID.
+     * Build and cache the field lookup for this PHP request.
      *
-     * Subfields such as 12.1 are mapped to their parent field 12
-     * so that choices and scoring metadata can be retrieved.
+     * Subfields inherit their parent field's scoring choices.
      */
     private static function get_form_fields($form_id)
     {
+        static $cache = [];
+
+        $form_id = absint($form_id);
+
+        if (isset($cache[$form_id])) {
+            return $cache[$form_id];
+        }
+
         $form = self::get_form($form_id);
 
         if (
@@ -227,34 +382,18 @@ class TLE_Gravity_Forms_Provider
                 continue;
             }
 
-            $field_id = (string) $field['id'];
+            $fields[(string) $field['id']] = $field;
 
-            $fields[$field_id] = $field;
-
-            /*
-             * Survey/Likert fields have inputs such as:
-             *
-             * 12.1
-             * 12.2
-             * 12.3
-             *
-             * Their choices belong to the parent field 12.
-             *
-             * Add the parent field under each input ID so that
-             * score lookup works automatically.
-             */
             if (!empty($field['inputs']) && is_array($field['inputs'])) {
                 foreach ($field['inputs'] as $input) {
-                    if (!isset($input['id'])) {
-                        continue;
+                    if (isset($input['id'])) {
+                        $fields[(string) $input['id']] = $field;
                     }
-
-                    $input_id = (string) $input['id'];
-
-                    $fields[$input_id] = $field;
                 }
             }
         }
+
+        $cache[$form_id] = $fields;
 
         return $fields;
     }
@@ -268,7 +407,6 @@ class TLE_Gravity_Forms_Provider
         }
 
         $mapping = $field_map[$form_key];
-
         $fields = $mapping['fields'] ?? [];
         $evaluation_fields = $mapping['evaluation_fields'] ?? [];
 
@@ -295,7 +433,6 @@ class TLE_Gravity_Forms_Provider
         };
 
         $evaluation_stage = $mapping['evaluation_stage'] ?? '';
-
         $records = [];
 
         foreach ($evaluation_fields as $field_id) {
@@ -311,25 +448,19 @@ class TLE_Gravity_Forms_Provider
 
             $field = $form_fields[(string) $field_id] ?? [];
 
-            $score = self::get_score_from_field(
-                $field,
-                $response
-            );
-
             $records[] = TLE_Evaluation_Data_Service::normalise_record([
                 'participant_key' => $get_value('participant_key'),
                 'program' => $get_value('program'),
                 'program_group' => $get_value('program_group'),
                 'cohort' => $get_value('cohort'),
                 'evaluation_stage' => $evaluation_stage,
-                'submission_id' => isset($entry['id'])
-                    ? $entry['id']
-                    : 0,
-                'submission_date' => isset($entry['date_created'])
-                    ? $entry['date_created']
-                    : '',
+                'submission_id' => $entry['id'] ?? 0,
+                'submission_date' => $entry['date_created'] ?? '',
                 'question' => (string) $field_id,
-                'score' => $score,
+                'score' => self::get_score_from_field(
+                    $field,
+                    $response
+                ),
                 'response' => is_scalar($response)
                     ? (string) $response
                     : '',
@@ -339,6 +470,11 @@ class TLE_Gravity_Forms_Provider
         return $records;
     }
 
+    /**
+     * Retrieve and normalise one page.
+     *
+     * @return array
+     */
     public static function get_normalised_entries(
         $form_key,
         $search_criteria = [],
@@ -361,19 +497,68 @@ class TLE_Gravity_Forms_Provider
             $paging
         );
 
-        $normalised_entries = [];
+        $records = [];
 
         foreach ($entries as $entry) {
-            $records = self::normalise_entry(
-                $entry,
-                $form_key
-            );
-
-            foreach ($records as $record) {
-                $normalised_entries[] = $record;
+            foreach (self::normalise_entry($entry, $form_key) as $record) {
+                $records[] = $record;
             }
         }
 
-        return $normalised_entries;
+        return $records;
+    }
+
+    /**
+     * Retrieve and normalise all matching entries.
+     *
+     * Callers must check is_wp_error() before generating a report.
+     *
+     * @return array|WP_Error
+     */
+    public static function get_all_normalised_entries(
+        $form_key,
+        $search_criteria = [],
+        $page_size = 100
+    ) {
+        $field_map = self::get_field_map();
+
+        if (
+            !isset($field_map[$form_key]) ||
+            empty($field_map[$form_key]['form_id'])
+        ) {
+            return new WP_Error(
+                'tle_unknown_form',
+                'No form mapping exists for the requested evaluation.'
+            );
+        }
+
+        $form_id = $field_map[$form_key]['form_id'];
+
+        if (empty(self::get_form_fields($form_id))) {
+            return new WP_Error(
+                'tle_form_fields_unavailable',
+                'Could not retrieve the evaluation form field definitions.'
+            );
+        }
+
+        $entries = self::get_all_entries(
+            $form_id,
+            $search_criteria,
+            $page_size
+        );
+
+        if (is_wp_error($entries)) {
+            return $entries;
+        }
+
+        $records = [];
+
+        foreach ($entries as $entry) {
+            foreach (self::normalise_entry($entry, $form_key) as $record) {
+                $records[] = $record;
+            }
+        }
+
+        return $records;
     }
 }
