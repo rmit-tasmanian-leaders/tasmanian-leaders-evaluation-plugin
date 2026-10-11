@@ -10,6 +10,11 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Shared form discovery, reporting and administrator setup.
+require_once plugin_dir_path(__FILE__) . 'includes/class-form-registry.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-report-service.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-form-setup.php';
+
 // Load the existing WordPress Admin report and PDF export functionality.
 require_once plugin_dir_path(__FILE__) . 'admin/pdf-export.php';
 

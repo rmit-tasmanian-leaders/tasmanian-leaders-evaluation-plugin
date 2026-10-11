@@ -23,6 +23,12 @@ class TLE_Evaluation_Data_Service
     public static function normalise_record($data)
     {
         return [
+            'form_id' => absint($data['form_id'] ?? 0),
+            'form_key' => sanitize_text_field($data['form_key'] ?? ''),
+            'item_id' => sanitize_text_field($data['item_id'] ?? ''),
+            'section' => sanitize_text_field($data['section'] ?? ''),
+            'scoring_rule' => (array) ($data['scoring_rule'] ?? []),
+            'scoring_confirmed' => !empty($data['scoring_confirmed']),
             'participant_key' => isset($data['participant_key'])
                 ? sanitize_text_field($data['participant_key'])
                 : '',
@@ -59,7 +65,7 @@ class TLE_Evaluation_Data_Service
                 ? sanitize_text_field($data['question'])
                 : '',
 
-            'score' => isset($data['score']) && $data['score'] !== null
+            'score' => isset($data['score']) && is_numeric($data['score']) && is_finite((float) $data['score'])
                 ? floatval($data['score'])
                 : null,
 

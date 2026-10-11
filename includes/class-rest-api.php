@@ -1,140 +1,44 @@
 <?php
-
-/**
- * REST API
- *
- * Provides read-only access to evaluation reporting data.
- *
- * @package TasmanianLeadersEvaluation
- */
-
-if (!defined('ABSPATH')) {
-    exit;
-}
-
+if (!defined('ABSPATH')) { exit; }
 class TLE_REST_API
 {
-    public static function register_routes()
-    {
-        register_rest_route(
-            'tle/v1',
-            '/evaluations',
-            [
-                'methods' => WP_REST_Server::READABLE,
-                'callback' => [self::class, 'get_evaluations'],
-                'permission_callback' => [self::class, 'permissions_check'],
-            ]
-        );
+    public static function permissions_check() { return is_user_logged_in(); }
+    public static function setup_permissions_check() { return current_user_can('manage_options'); }
+    public static function register_routes() {
+        register_rest_route('tle/v1', '/evaluations', ['methods' => WP_REST_Server::READABLE, 'callback' => [self::class, 'get_evaluations'], 'permission_callback' => [self::class, 'permissions_check']]);
+        register_rest_route('tle/v1', '/forms', ['methods' => WP_REST_Server::READABLE, 'callback' => [self::class, 'get_forms'], 'permission_callback' => [self::class, 'setup_permissions_check']]);
+        register_rest_route('tle/v1', '/forms/(?P<id>\d+)/profile', [
+            ['methods' => WP_REST_Server::READABLE, 'callback' => [self::class, 'get_profile'], 'permission_callback' => [self::class, 'setup_permissions_check']],
+            ['methods' => 'POST', 'callback' => [self::class, 'save_profile'], 'permission_callback' => [self::class, 'setup_permissions_check']],
+        ]);
     }
-
-    public static function permissions_check()
-    {
-        return is_user_logged_in();
+    public static function get_forms($request) {
+        $data = TLE_Form_Registry::discover();
+        return is_wp_error($data) ? $data : rest_ensure_response($data);
     }
-
-    /**
-     * Retrieve a report using complete evaluation datasets.
-     *
-     * @param WP_REST_Request $request REST request.
-     * @return WP_REST_Response|WP_Error
-     */
-    public static function get_evaluations($request)
-    {
+    public static function get_profile($request) {
+        $data = TLE_Form_Registry::profile($request['id']);
+        return is_wp_error($data) ? $data : rest_ensure_response($data);
+    }
+    public static function save_profile($request) {
+        $existing = TLE_Form_Registry::profile($request['id']);
+        if (is_wp_error($existing)) { return $existing; }
+        $data = TLE_Form_Registry::save($request['id'], $request->get_json_params());
+        return is_wp_error($data) ? $data : rest_ensure_response($data);
+    }
+    public static function get_evaluations($request) {
         $filters = [];
-
-        foreach (
-            ['program', 'cohort', 'evaluation_stage', 'comparison']
-            as $parameter
-        ) {
-            $value = $request->get_param($parameter);
-
-            if ($value === null || $value === '') {
-                continue;
-            }
-
-            if (!is_scalar($value)) {
-                return new WP_Error(
-                    'tle_invalid_filter',
-                    'Report filters must be text values.',
-                    ['status' => 400]
-                );
-            }
-
-            $filters[$parameter] = sanitize_text_field($value);
+        foreach (['participant_key', 'program', 'program_group', 'cohort', 'evaluation_stage', 'comparison', 'form_id', 'form_key'] as $key) {
+            $value = $request->get_param($key);
+            if ($value === null || $value === '') { continue; }
+            if (!is_scalar($value)) { return new WP_Error('tle_invalid_filter', 'Report filters must be text values.', ['status' => 400]); }
+            $filters[$key] = sanitize_text_field((string) $value);
         }
-
-        $supported_forms = [
-            'pre_program' => 'ELF-I',
-            'completion' => 'ELF-E',
-            'delay' => 'ELF-D',
-        ];
-
-        if (
-            isset($filters['evaluation_stage']) &&
-            !isset($supported_forms[$filters['evaluation_stage']])
-        ) {
-            return new WP_Error(
-                'tle_invalid_evaluation_stage',
-                'Choose pre_program, completion or delay.',
-                ['status' => 400]
-            );
-        }
-
-        $records = [];
-        $retrieved_stages = [];
-
-        foreach ($supported_forms as $stage => $form_key) {
-            if (
-                isset($filters['evaluation_stage']) &&
-                $filters['evaluation_stage'] !== $stage
-            ) {
-                continue;
-            }
-
-            $form_records = TLE_Evaluation_Data_Service::get_all_evaluations(
-                $form_key,
-                ['status' => 'active']
-            );
-
-            if (is_wp_error($form_records)) {
-                return new WP_Error(
-                    'tle_report_retrieval_failed',
-                    'Could not retrieve the complete '
-                        . $stage . ' evaluation dataset.',
-                    ['status' => 502]
-                );
-            }
-
-            $records = array_merge($records, $form_records);
-            $retrieved_stages[] = $stage;
-        }
-
-        $report = TLE_Reporting_Service::generate_report(
-            $records,
-            $filters
-        );
-
-        $report['scoring_status'] = $report['capability_scoring']['status'];
-        $report['retrieved_stages'] = $retrieved_stages;
-
-        $report['limitations'] = [
-            'Capability mappings and scoring rules are provisional.',
-            'Adjusted capability scoring currently supports Form 37 only.',
-            'Q13 uses equal category intervals rescaled to 1-7.',
-            'Q14 excludes N/A and converts agreement scores to 1-7.',
-            'Q26 and Q37.1 scoring direction remains unresolved.',
-            'Forms 40 and 43 lack shared participant, program and cohort fields.',
-            'Program/cohort filters exclude records without matching context.',
-            'Question averages and change values use raw scores.',
-            'Stage differences do not establish participant-linked change.',
-            'Form 50 is pending field mapping and integration.',
-        ];
-
-        return rest_ensure_response($report);
+        $ids = $request->get_param('form_ids');
+        if ($ids === null) { $ids = []; }
+        if (!is_array($ids)) { return new WP_Error('tle_invalid_form_ids', 'Pass form_ids as an array.', ['status' => 400]); }
+        $data = TLE_Report_Service::get_report($filters, $ids);
+        return is_wp_error($data) ? $data : rest_ensure_response($data);
     }
 }
-
-add_action(
-    'rest_api_init',
-    ['TLE_REST_API', 'register_routes']
-);
+add_action('rest_api_init', ['TLE_REST_API', 'register_routes']);

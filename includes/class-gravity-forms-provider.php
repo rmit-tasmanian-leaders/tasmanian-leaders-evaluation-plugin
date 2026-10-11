@@ -39,7 +39,7 @@ class TLE_Gravity_Forms_Provider
     private static function request($endpoint)
     {
         if (!self::is_available()) {
-            return false;
+            return new WP_Error('tle_provider_unavailable', 'Configure the remote Gravity Forms API URL and credentials.', ['status' => 503]);
         }
 
         $url = trailingslashit(TLE_GF_API_BASE_URL)
@@ -60,13 +60,13 @@ class TLE_Gravity_Forms_Provider
         );
 
         if (is_wp_error($response)) {
-            return false;
+            return new WP_Error('tle_connection_failed', 'Unable to connect to the configured Gravity Forms API.', ['status' => 502]);
         }
 
         $status_code = wp_remote_retrieve_response_code($response);
 
         if ($status_code < 200 || $status_code >= 300) {
-            return false;
+            return new WP_Error(in_array($status_code, [401, 403], true) ? 'tle_api_authentication_failed' : 'tle_api_http_error', 'Gravity Forms API returned HTTP ' . $status_code . '. Check the remote API URL and access permissions.', ['status' => 502, 'upstream_status' => $status_code]);
         }
 
         $data = json_decode(
@@ -74,14 +74,14 @@ class TLE_Gravity_Forms_Provider
             true
         );
 
-        return is_array($data) ? $data : false;
+        return is_array($data) ? $data : new WP_Error('tle_api_invalid_json', 'Gravity Forms API returned invalid JSON.', ['status' => 502]);
     }
 
     public static function get_forms()
     {
         $forms = self::request('forms');
 
-        return is_array($forms) ? $forms : [];
+        return is_wp_error($forms) ? $forms : (is_array($forms) ? $forms : []);
     }
 
     public static function get_form($form_id)
@@ -159,6 +159,7 @@ class TLE_Gravity_Forms_Provider
             );
 
         $response = self::request($endpoint);
+        if (is_wp_error($response)) { return $response; }
 
         if (
             !is_array($response) ||
@@ -400,13 +401,8 @@ class TLE_Gravity_Forms_Provider
 
     public static function normalise_entry($entry, $form_key)
     {
-        $field_map = self::get_field_map();
-
-        if (!isset($field_map[$form_key])) {
-            return [];
-        }
-
-        $mapping = $field_map[$form_key];
+        $mapping = TLE_Form_Registry::profile($form_key);
+        if (is_wp_error($mapping)) { return []; }
         $fields = $mapping['fields'] ?? [];
         $evaluation_fields = $mapping['evaluation_fields'] ?? [];
 
@@ -449,6 +445,15 @@ class TLE_Gravity_Forms_Provider
             $field = $form_fields[(string) $field_id] ?? [];
 
             $records[] = TLE_Evaluation_Data_Service::normalise_record([
+                'form_id' => $form_id,
+                'form_key' => $mapping['form_key'],
+                'item_id' => $mapping['questions'][(string) $field_id]['id'] ?? '',
+                'section' => $mapping['questions'][(string) $field_id]['section'] ?? '',
+                'capability' => $mapping['questions'][(string) $field_id]['capability'] ?? '',
+                'scoring_rule' => $mapping['questions'][(string) $field_id]['scoring'] ?? [],
+                'scoring_confirmed' => !empty($mapping['scoring_confirmed']),
+                'location' => $get_value('location'),
+                'sector' => $get_value('sector'),
                 'participant_key' => $get_value('participant_key'),
                 'program' => $get_value('program'),
                 'program_group' => $get_value('program_group'),
@@ -481,17 +486,10 @@ class TLE_Gravity_Forms_Provider
         $sorting = [],
         $paging = []
     ) {
-        $field_map = self::get_field_map();
-
-        if (
-            !isset($field_map[$form_key]) ||
-            empty($field_map[$form_key]['form_id'])
-        ) {
-            return [];
-        }
-
+        $mapping = TLE_Form_Registry::profile($form_key);
+        if (is_wp_error($mapping)) { return []; }
         $entries = self::get_entries(
-            $field_map[$form_key]['form_id'],
+            $mapping['form_id'],
             $search_criteria,
             $sorting,
             $paging
@@ -520,27 +518,12 @@ class TLE_Gravity_Forms_Provider
         $search_criteria = [],
         $page_size = 100
     ) {
-        $field_map = self::get_field_map();
-
-        if (
-            !isset($field_map[$form_key]) ||
-            empty($field_map[$form_key]['form_id'])
-        ) {
-            return new WP_Error(
-                'tle_unknown_form',
-                'No form mapping exists for the requested evaluation.'
-            );
-        }
-
-        $form_id = $field_map[$form_key]['form_id'];
-
-        if (empty(self::get_form_fields($form_id))) {
-            return new WP_Error(
-                'tle_form_fields_unavailable',
-                'Could not retrieve the evaluation form field definitions.'
-            );
-        }
-
+        $mapping = TLE_Form_Registry::profile($form_key);
+        if (is_wp_error($mapping)) { return $mapping; }
+        if (empty($mapping['enabled']) || empty($mapping['evaluation_stage'])) { return new WP_Error('tle_form_setup_required', 'Enable the form and configure its evaluation stage in Evaluation Forms.', ['status' => 422]); }
+        if (!empty($mapping['issues']) || !empty($mapping['ambiguous_fields'])) { return new WP_Error('tle_form_mapping_issues', 'Resolve the form mapping issues before reporting.', ['status' => 422, 'issues' => $mapping['issues'], 'ambiguous_fields' => $mapping['ambiguous_fields']]); }
+        if (empty($mapping['questions'])) { return new WP_Error('tle_no_matched_questions', 'No questions matched the capability document. Configure question overrides.', ['status' => 422]); }
+        $form_id = $mapping['form_id'];
         $entries = self::get_all_entries(
             $form_id,
             $search_criteria,
