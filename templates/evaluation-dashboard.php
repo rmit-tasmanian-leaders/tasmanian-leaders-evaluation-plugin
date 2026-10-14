@@ -546,7 +546,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="insight_self_awareness_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in self-awareness."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
 
@@ -557,7 +557,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="insight_social_awareness_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in social awareness."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
 
@@ -568,7 +568,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="insight_situational_awareness_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in situational awareness."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
 
@@ -579,7 +579,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="insight_clarity_purpose_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in clarity of purpose."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
 
@@ -590,7 +590,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="insight_strategic_foresight_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in strategic foresight."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
 
@@ -601,7 +601,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="insight_balanced_processing_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in balanced processing."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
 
@@ -612,7 +612,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="insight_self_compassion_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in self-compassion."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
                     </div>
@@ -642,7 +642,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="influence_tolerance_ambiguity_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in tolerance for ambiguity."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
 
@@ -653,7 +653,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="influence_informal_influence_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in capacity for informal influence."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
 
@@ -664,7 +664,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="influence_tolerance_complexity_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in tolerance for complexity."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
 
@@ -675,7 +675,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="influence_collaboration_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in capacity for collaboration."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
 
@@ -686,7 +686,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="influence_networks_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in capacity to establish networks."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
 
@@ -697,7 +697,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="influence_creative_decision_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in creative decision-making."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
                     </div>
@@ -727,7 +727,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="impact_belonging_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in capacity to foster belonging."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
 
@@ -738,7 +738,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="impact_intrinsic_motivation_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in capacity to foster intrinsic motivation."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
 
@@ -749,7 +749,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="impact_place_attachment_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in place-attachment."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
 
@@ -760,7 +760,7 @@ if (!defined('ABSPATH')) {
                                 type="text"
                                 name="impact_extra_role_text"
                                 data-tle-auto-text
-                                data-tle-default="Participants demonstrated positive growth in extra-role behaviours."
+                                placeholder="Automatically generated from report data unless edited."
                             >
                         </div>
                     </div>

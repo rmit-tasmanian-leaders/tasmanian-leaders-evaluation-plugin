@@ -2204,6 +2204,38 @@ $section_movers_chart_data['Insight'] =
     'data:image/svg+xml;base64,' .
     base64_encode($insight_key_growth_svg);
 
+/* Sprint 3 direction-aware growth summary */
+
+/*
+ * Generate automatic summary wording from the real score movement.
+ * Manually entered dashboard text still takes precedence.
+ */
+$build_change_summary_text = static function (float $change) {
+    $rounded_change = round($change);
+    $absolute_change = abs($rounded_change);
+    $point_label = ($absolute_change == 1)
+        ? 'percentage point'
+        : 'percentage points';
+
+    if ($change > 0.05) {
+        return sprintf(
+            'Participants demonstrated positive growth, increasing by %s %s.',
+            $absolute_change,
+            $point_label
+        );
+    }
+
+    if ($change < -0.05) {
+        return sprintf(
+            "Participants' average score decreased by %s %s.",
+            $absolute_change,
+            $point_label
+        );
+    }
+
+    return "Participants' average score was unchanged between the first and final available evaluation points.";
+};
+
 /*
  * Growth Summary contains every Insight capability, ordered by
  * pre-to-delayed change, and displays its editable dashboard text.
@@ -2217,10 +2249,8 @@ foreach ($insight_growth_items as $item) {
         : '';
 
     if ($custom_text === '') {
-        $custom_text = sprintf(
-            '%s increased by %s percentage points.',
-            $item['measure'],
-            round($item['increase'])
+        $custom_text = $build_change_summary_text(
+            (float) $item['increase']
         );
     }
 
@@ -2676,10 +2706,8 @@ foreach ($influence_growth_items as $item) {
         : '';
 
     if ($custom_text === '') {
-        $custom_text = sprintf(
-            '%s increased by %s percentage points.',
-            $item['measure'],
-            round($item['increase'])
+        $custom_text = $build_change_summary_text(
+            (float) $item['increase']
         );
     }
 
@@ -3130,10 +3158,8 @@ foreach ($impact_growth_items as $item) {
         : '';
 
     if ($custom_text === '') {
-        $custom_text = sprintf(
-            '%s increased by %s percentage points.',
-            $item['measure'],
-            round($item['increase'])
+        $custom_text = $build_change_summary_text(
+            (float) $item['increase']
         );
     }
 
