@@ -1158,3 +1158,14 @@ input:disabled + span {
         margin-left: 0;
     }
 }
+
+/* Live evaluation-stage availability */
+.tle-dashboard__checkbox--disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.tle-dashboard__checkbox--disabled input,
+.tle-dashboard__checkbox--disabled span {
+    cursor: not-allowed;
+}

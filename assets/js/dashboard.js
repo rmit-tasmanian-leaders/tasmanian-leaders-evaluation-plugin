@@ -39,6 +39,27 @@ document.addEventListener('DOMContentLoaded', function () {
         dashboard.querySelectorAll('[data-tle-comparison-point]')
     );
 
+    const normalEvaluationStageValues = [
+        'pre-program',
+        'completion',
+        'three-month-delay'
+    ];
+
+    const normalEvaluationStageLabels = {
+        'pre-program': 'Pre-program',
+        'completion': 'Post-program',
+        'three-month-delay': 'Delayed'
+    };
+
+    const backendEvaluationStageMap = {
+        pre_program: 'pre-program',
+        completion: 'completion',
+        delay: 'three-month-delay'
+    };
+
+    let primaryAvailableStageValues = [];
+    let primaryStageAvailabilityLoaded = false;
+    let primaryStageAvailabilityRequest = 0;
     const cohortSelect = dashboard.querySelector('#tle-cohort');
 
     const summaryPrograms = dashboard.querySelector('[data-tle-summary-programs]');
@@ -89,14 +110,206 @@ document.addEventListener('DOMContentLoaded', function () {
         return text ? text.textContent.trim() : selectedPoint.value;
     }
 
-    function getPrimaryEvaluationPoints() {
-        const points = [
-            'Pre-program',
-            'Post-program',
-            'Delayed'
-        ];
+    function hasNumericScore(value) {
+        if (
+            typeof value === 'number' &&
+            Number.isFinite(value)
+        ) {
+            return true;
+        }
 
-        if (managerCheckbox && managerCheckbox.checked) {
+        if (Array.isArray(value)) {
+            return value.some(hasNumericScore);
+        }
+
+        if (value && typeof value === 'object') {
+            return Object.keys(value).some(function (key) {
+                return hasNumericScore(value[key]);
+            });
+        }
+
+        return false;
+    }
+
+    function deriveAvailableStageValues(report) {
+        const availableStages = new Set();
+
+        const groups =
+            report && Array.isArray(report.groups)
+                ? report.groups
+                : [];
+
+        groups.forEach(function (group) {
+            const series =
+                group && Array.isArray(group.series)
+                    ? group.series
+                    : [];
+
+            series.forEach(function (item) {
+                if (
+                    !item ||
+                    !item.evaluation_stage ||
+                    !hasNumericScore(item.capability_averages)
+                ) {
+                    return;
+                }
+
+                const frontendStage =
+                    backendEvaluationStageMap[
+                        item.evaluation_stage
+                    ];
+
+                if (frontendStage) {
+                    availableStages.add(frontendStage);
+                }
+            });
+        });
+
+        return normalEvaluationStageValues.filter(
+            function (stage) {
+                return availableStages.has(stage);
+            }
+        );
+    }
+
+    function clearPrimaryStageAvailability() {
+        primaryStageAvailabilityRequest++;
+        primaryAvailableStageValues = [];
+        primaryStageAvailabilityLoaded = false;
+
+        comparisonPoints.forEach(function (checkbox) {
+            checkbox.checked = false;
+        });
+
+        syncComparisonPointState();
+    }
+
+    async function loadPrimaryStageAvailability() {
+        const primaryProgram = getPrimaryProgramName();
+
+        if (!primaryProgram) {
+            clearPrimaryStageAvailability();
+            updateReportOverview();
+            return;
+        }
+
+        if (
+            !window.tleDashboardConfig ||
+            !window.tleDashboardConfig.evaluationsUrl
+        ) {
+            return;
+        }
+
+        const requestId =
+            ++primaryStageAvailabilityRequest;
+
+        primaryStageAvailabilityLoaded = false;
+
+        try {
+            const url = new URL(
+                window.tleDashboardConfig.evaluationsUrl,
+                window.location.origin
+            );
+
+            url.searchParams.set('program', primaryProgram);
+
+            if (cohortSelect && cohortSelect.value) {
+                url.searchParams.set(
+                    'cohort',
+                    cohortSelect.value
+                );
+            }
+
+            const headers = {
+                Accept: 'application/json'
+            };
+
+            if (window.tleDashboardConfig.restNonce) {
+                headers['X-WP-Nonce'] =
+                    window.tleDashboardConfig.restNonce;
+            }
+
+            const response = await fetch(
+                url.toString(),
+                {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: headers
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    'Stage availability request failed with HTTP ' +
+                    response.status
+                );
+            }
+
+            const report = await response.json();
+
+            if (
+                requestId !==
+                primaryStageAvailabilityRequest
+            ) {
+                return;
+            }
+
+            primaryAvailableStageValues =
+                deriveAvailableStageValues(report);
+
+            primaryStageAvailabilityLoaded = true;
+
+            comparisonPoints.forEach(
+                function (checkbox) {
+                    if (
+                        !primaryAvailableStageValues.includes(
+                            checkbox.value
+                        )
+                    ) {
+                        checkbox.checked = false;
+                    }
+                }
+            );
+
+            syncComparisonPointState();
+            updateReportOverview();
+            syncReportTextState();
+        } catch (error) {
+            if (
+                requestId !==
+                primaryStageAvailabilityRequest
+            ) {
+                return;
+            }
+
+            primaryAvailableStageValues = [];
+            primaryStageAvailabilityLoaded = false;
+
+            syncComparisonPointState();
+
+            console.warn(
+                'Unable to load evaluation stage availability.',
+                error
+            );
+        }
+    }
+
+    function getPrimaryEvaluationPoints() {
+        const stageValues =
+            primaryStageAvailabilityLoaded
+                ? primaryAvailableStageValues
+                : normalEvaluationStageValues;
+
+        const points = stageValues.map(
+            function (stage) {
+                return normalEvaluationStageLabels[stage] || stage;
+            }
+        );
+
+        if (
+            managerCheckbox &&
+            managerCheckbox.checked
+        ) {
             points.push('Manager');
         }
 
@@ -157,13 +370,54 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function syncComparisonPointState() {
-        const selectedPoint = comparisonPoints.find(function (checkbox) {
-            return checkbox.checked;
+        comparisonPoints.forEach(function (checkbox) {
+            const unavailable =
+                primaryStageAvailabilityLoaded &&
+                !primaryAvailableStageValues.includes(
+                    checkbox.value
+                );
+
+            if (unavailable) {
+                checkbox.checked = false;
+            }
         });
 
+        const selectedPoint = comparisonPoints.find(
+            function (checkbox) {
+                return checkbox.checked;
+            }
+        );
+
         comparisonPoints.forEach(function (checkbox) {
+            const unavailable =
+                primaryStageAvailabilityLoaded &&
+                !primaryAvailableStageValues.includes(
+                    checkbox.value
+                );
+
+            const lockedBySelection =
+                Boolean(selectedPoint) &&
+                checkbox !== selectedPoint;
+
             checkbox.disabled =
-                Boolean(selectedPoint) && checkbox !== selectedPoint;
+                unavailable ||
+                lockedBySelection;
+
+            const label = checkbox.closest('label');
+
+            if (label) {
+                label.classList.toggle(
+                    'tle-dashboard__checkbox--disabled',
+                    checkbox.disabled
+                );
+
+                label.setAttribute(
+                    'aria-disabled',
+                    checkbox.disabled
+                        ? 'true'
+                        : 'false'
+                );
+            }
         });
     }
 
@@ -223,6 +477,7 @@ document.addEventListener('DOMContentLoaded', function () {
         primaryProgramInput.addEventListener('input', function () {
             primaryProgramInput.dataset.tleProgramSelected = '';
 
+            clearPrimaryStageAvailability();
             updateSuggestions();
             syncManagerOption();
             updateReportOverview();
@@ -242,6 +497,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 syncManagerOption();
                 updateReportOverview();
                 syncReportTextState();
+                loadPrimaryStageAvailability();
             });
         });
 
@@ -727,9 +983,18 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    if (cohortSelect) {
+        cohortSelect.addEventListener(
+            'change',
+            function () {
+                loadPrimaryStageAvailability();
+            }
+        );
+    }
     resetImageColours();
     syncManagerOption();
     syncComparisonState();
     updateReportOverview();
     syncReportTextState();
+    loadPrimaryStageAvailability();
 });
