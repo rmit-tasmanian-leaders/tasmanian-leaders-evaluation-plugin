@@ -958,61 +958,43 @@ function tle_export_pdf()
         }
     }
 
-    $allowed_programs = [
-    'I-LEAD Young Professionals',
-    'Emerging Leaders Program',
-    'I-LEAD Women in Industry',
-    'I-LEAD Tassie Wine',
-];
+    /*
+     * Program and cohort now come from the dashboard selection.
+     * Available programs are determined by the reporting backend rather
+     * than a hard-coded frontend allow-list.
+     */
+    $allowed_report_types = [
+        'Initial Leadership Capability Survey',
+        'Final ELF Evaluation Report',
+    ];
 
-$allowed_cohorts = [
-    '2025',
-    '2026',
-];
+    $program = isset($_POST['program'])
+        ? sanitize_text_field(wp_unslash($_POST['program']))
+        : $data['program'];
 
-$allowed_report_types = [
-    'Initial Leadership Capability Survey',
-    'Final ELF Evaluation Report',
-];
+    $cohort = isset($_POST['cohort'])
+        ? sanitize_text_field(wp_unslash($_POST['cohort']))
+        : $data['cohort'];
 
-$allowed_comparisons = [
-    'Pre-program / Completion / 3-Month Delay',
-    'Pre-program / Completion',
-    'Pre-program / Tasmanian Benchmark',
-];
+    if ($program === '') {
+        $program = $data['program'];
+    }
 
-$program = isset($_POST['program'])
-    ? sanitize_text_field(wp_unslash($_POST['program']))
-    : $data['program'];
+    if ($cohort === '') {
+        $cohort = $data['cohort'];
+    }
 
-$cohort = isset($_POST['cohort'])
-    ? sanitize_text_field(wp_unslash($_POST['cohort']))
-    : $data['cohort'];
+    $report_type = isset($_POST['report_type'])
+        ? sanitize_text_field(wp_unslash($_POST['report_type']))
+        : $data['report_type'];
 
-$report_type = isset($_POST['report_type'])
-    ? sanitize_text_field(wp_unslash($_POST['report_type']))
-    : $data['report_type'];
+    if (!in_array($report_type, $allowed_report_types, true)) {
+        $report_type = $data['report_type'];
+    }
 
-$comparison = isset($_POST['comparison'])
-    ? sanitize_text_field(wp_unslash($_POST['comparison']))
-    : $data['comparison'];
-
-if (!in_array($program, $allowed_programs, true)) {
-    $program = $data['program'];
-}
-
-if (!in_array($cohort, $allowed_cohorts, true)) {
-    $cohort = $data['cohort'];
-}
-
-if (!in_array($report_type, $allowed_report_types, true)) {
-    $report_type = $data['report_type'];
-}
-
-if (!in_array($comparison, $allowed_comparisons, true)) {
-    $comparison = $data['comparison'];
-}
-
+    $comparison = isset($_POST['comparison'])
+        ? sanitize_text_field(wp_unslash($_POST['comparison']))
+        : $data['comparison'];
 $evaluation_point = (
     $report_type === 'Initial Leadership Capability Survey'
 )
@@ -1033,6 +1015,61 @@ if ($purpose_text === '') {
     $purpose_text = 'A comparison between the selected evaluation points for this program.';
 }
 
+    /*
+     * Load the primary program from the central reporting backend.
+     *
+     * Do not treat an absent stage as zero. The available stage list below
+     * is derived from actual non-null capability scores returned for this
+     * program and cohort.
+     */
+    $live_report_data = tle_get_report_data(
+        $program,
+        $cohort
+    );
+
+    if (is_wp_error($live_report_data)) {
+        wp_die(
+            'Unable to load evaluation report data: ' .
+            esc_html($live_report_data->get_error_message())
+        );
+    }
+
+    $data = $live_report_data;
+
+    $primary_stage_labels = [
+        'pre'        => 'Pre-program',
+        'completion' => 'Post-program',
+        'delay'      => 'Delayed',
+    ];
+
+    $primary_available_stages = [];
+
+    foreach ($primary_stage_labels as $stage_key => $stage_label) {
+        $stage_has_scores = false;
+
+        foreach (['insight', 'influence', 'impact'] as $section_key) {
+            foreach ($data[$section_key] ?? [] as $measure) {
+                if (
+                    array_key_exists($stage_key, $measure) &&
+                    $measure[$stage_key] !== null &&
+                    is_numeric($measure[$stage_key])
+                ) {
+                    $stage_has_scores = true;
+                    break 2;
+                }
+            }
+        }
+
+        if ($stage_has_scores) {
+            $primary_available_stages[$stage_key] = $stage_label;
+        }
+    }
+
+    if (empty($primary_available_stages)) {
+        wp_die(
+            'No capability scores are available for the selected program and cohort.'
+        );
+    }
     $is_initial_report = (
     $report_type === 'Initial Leadership Capability Survey'
 );
@@ -3087,6 +3124,439 @@ if (trim($impact_quote) !== '') {
     $impact_growth_summary_class =
         'growth-summary-box growth-summary-box--full';
 }
+/*
+ * Sprint 3: stage-aware final rendering.
+ *
+ * Missing stages are unavailable, not zero. When only one real
+ * evaluation stage exists, render bar charts and remove growth-only
+ * content.
+ */
+
+$is_single_stage_report = (
+    count($primary_available_stages) === 1
+);
+
+$section_summary_heading = 'Growth Summary';
+
+$overview_highlights_section_html = '
+    <h3 class="overview-subheading">
+        Highlights
+    </h3>
+
+    ' . $highlights_html . '
+';
+
+$section_secondary_html = [
+    'Insight' => '
+        <h3 class="section-movers-title">
+            Key Growth
+        </h3>
+
+        <div class="movers-chart">
+            <img
+                src="' . esc_attr($section_movers_chart_data['Insight']) . '"
+                alt=""
+            >
+        </div>
+    ',
+    'Influence' => '
+        <h3 class="section-movers-title">
+            Key Growth
+        </h3>
+
+        <div class="movers-chart">
+            <img
+                src="' . esc_attr($section_movers_chart_data['Influence']) . '"
+                alt=""
+            >
+        </div>
+    ',
+    'Impact' => '
+        <h3 class="section-movers-title">
+            Key Growth
+        </h3>
+
+        <div class="movers-chart">
+            <img
+                src="' . esc_attr($section_movers_chart_data['Impact']) . '"
+                alt=""
+            >
+        </div>
+    ',
+];
+
+if ($is_single_stage_report) {
+    $single_stage_key = array_key_first(
+        $primary_available_stages
+    );
+
+    $single_stage_label =
+        $primary_available_stages[$single_stage_key];
+
+    $section_summary_heading = 'Summary';
+    $overview_highlights_section_html = '';
+
+    foreach (array_keys($section_secondary_html) as $section_name) {
+        $section_secondary_html[$section_name] = '';
+    }
+
+    $single_stage_average = static function (
+        array $measures,
+        string $stage_key
+    ) {
+        $scores = [];
+
+        foreach ($measures as $measure) {
+            if (
+                array_key_exists($stage_key, $measure) &&
+                $measure[$stage_key] !== null &&
+                is_numeric($measure[$stage_key])
+            ) {
+                $scores[] = (float) $measure[$stage_key];
+            }
+        }
+
+        return $scores
+            ? array_sum($scores) / count($scores)
+            : null;
+    };
+
+    /*
+     * Overview bar chart.
+     */
+    $overview_values = [];
+
+    foreach ($overview_sections as $section_name => $measures) {
+        $average = $single_stage_average(
+            $measures,
+            $single_stage_key
+        );
+
+        if ($average !== null) {
+            $overview_values[$section_name] =
+                ($average / 7) * 100;
+        }
+    }
+
+    $overview_x = [
+        'Insight' => 125,
+        'Influence' => 275,
+        'Impact' => 425,
+    ];
+
+    $overview_bars = '';
+
+    foreach ($overview_values as $section_name => $percentage) {
+        $x = $overview_x[$section_name];
+        $height = $percentage * 1.45;
+        $y = 190 - $height;
+
+        $overview_bars .= '
+            <rect
+                x="' . $x . '"
+                y="' . $y . '"
+                width="70"
+                height="' . $height . '"
+                fill="' . esc_attr($report_colour) . '"
+            />
+
+            <text
+                x="' . ($x + 35) . '"
+                y="' . ($y - 7) . '"
+                text-anchor="middle"
+                font-family="DejaVu Sans"
+                font-size="10"
+                font-weight="600"
+                fill="#111111"
+            >' . esc_html(round($percentage)) . '%</text>
+
+            <text
+                x="' . ($x + 35) . '"
+                y="216"
+                text-anchor="middle"
+                font-family="DejaVu Sans"
+                font-size="11"
+                font-weight="600"
+                fill="#111111"
+            >' . esc_html($section_name) . '</text>
+        ';
+    }
+
+    $overview_svg = '
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="600"
+        height="245"
+        viewBox="0 0 600 245"
+    >
+        <rect width="600" height="245" fill="#ffffff"/>
+
+        <g stroke="#dddddd" stroke-width="1">
+            <line x1="70" y1="45" x2="550" y2="45"/>
+            <line x1="70" y1="74" x2="550" y2="74"/>
+            <line x1="70" y1="103" x2="550" y2="103"/>
+            <line x1="70" y1="132" x2="550" y2="132"/>
+            <line x1="70" y1="161" x2="550" y2="161"/>
+            <line x1="70" y1="190" x2="550" y2="190"/>
+        </g>
+
+        <g
+            fill="#555555"
+            font-family="DejaVu Sans"
+            font-size="10"
+        >
+            <text x="35" y="48">100%</text>
+            <text x="42" y="77">80%</text>
+            <text x="42" y="106">60%</text>
+            <text x="42" y="135">40%</text>
+            <text x="42" y="164">20%</text>
+            <text x="49" y="193">0%</text>
+
+            <rect
+                x="448"
+                y="14"
+                width="12"
+                height="12"
+                fill="' . esc_attr($report_colour) . '"
+            />
+
+            <text x="466" y="24">
+                ' . esc_html($single_stage_label) . '
+            </text>
+        </g>
+
+        ' . $overview_bars . '
+    </svg>
+    ';
+
+    $overview_chart_data =
+        'data:image/svg+xml;base64,' .
+        base64_encode($overview_svg);
+
+    /*
+     * Single-stage capability bar chart.
+     */
+    $single_stage_section_chart = static function (
+        array $measures,
+        string $stage_key,
+        string $stage_label,
+        string $colour
+    ) {
+        $measures = array_values(
+            array_filter(
+                $measures,
+                static function ($measure) use ($stage_key) {
+                    return
+                        array_key_exists($stage_key, $measure) &&
+                        $measure[$stage_key] !== null &&
+                        is_numeric($measure[$stage_key]);
+                }
+            )
+        );
+
+        $count = max(1, count($measures));
+        $plot_left = 70;
+        $plot_width = 480;
+        $slot_width = $plot_width / $count;
+        $bar_width = min(42, $slot_width * 0.55);
+        $bars = '';
+
+        foreach ($measures as $index => $measure) {
+            $percentage =
+                ((float) $measure[$stage_key] / 7) * 100;
+
+            $height = $percentage * 1.45;
+            $y = 190 - $height;
+
+            $centre =
+                $plot_left +
+                ($slot_width * $index) +
+                ($slot_width / 2);
+
+            $x = $centre - ($bar_width / 2);
+
+            $label = (string) $measure['measure'];
+
+            if (strlen($label) > 22) {
+                $label = substr($label, 0, 20) . '...';
+            }
+
+            $bars .= '
+                <rect
+                    x="' . $x . '"
+                    y="' . $y . '"
+                    width="' . $bar_width . '"
+                    height="' . $height . '"
+                    fill="' . esc_attr($colour) . '"
+                />
+
+                <text
+                    x="' . $centre . '"
+                    y="' . ($y - 5) . '"
+                    text-anchor="middle"
+                    font-family="DejaVu Sans"
+                    font-size="8"
+                    font-weight="600"
+                    fill="#111111"
+                >' . esc_html(round($percentage)) . '%</text>
+
+                <text
+                    x="' . $centre . '"
+                    y="214"
+                    text-anchor="middle"
+                    font-family="DejaVu Sans"
+                    font-size="7"
+                    fill="#333333"
+                >' . esc_html($label) . '</text>
+            ';
+        }
+
+        $svg = '
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="600"
+            height="240"
+            viewBox="0 0 600 240"
+        >
+            <rect width="600" height="240" fill="#ffffff"/>
+
+            <g stroke="#dddddd" stroke-width="1">
+                <line x1="70" y1="45" x2="550" y2="45"/>
+                <line x1="70" y1="74" x2="550" y2="74"/>
+                <line x1="70" y1="103" x2="550" y2="103"/>
+                <line x1="70" y1="132" x2="550" y2="132"/>
+                <line x1="70" y1="161" x2="550" y2="161"/>
+                <line x1="70" y1="190" x2="550" y2="190"/>
+            </g>
+
+            <g
+                fill="#555555"
+                font-family="DejaVu Sans"
+                font-size="10"
+            >
+                <text x="35" y="48">100%</text>
+                <text x="42" y="77">80%</text>
+                <text x="42" y="106">60%</text>
+                <text x="42" y="135">40%</text>
+                <text x="42" y="164">20%</text>
+                <text x="49" y="193">0%</text>
+
+                <rect
+                    x="448"
+                    y="14"
+                    width="12"
+                    height="12"
+                    fill="' . esc_attr($colour) . '"
+                />
+
+                <text x="466" y="24">
+                    ' . esc_html($stage_label) . '
+                </text>
+            </g>
+
+            ' . $bars . '
+        </svg>
+        ';
+
+        return
+            'data:image/svg+xml;base64,' .
+            base64_encode($svg);
+    };
+
+    foreach ($overview_sections as $section_name => $measures) {
+        $section_chart_data[$section_name] =
+            $single_stage_section_chart(
+                $measures,
+                $single_stage_key,
+                $single_stage_label,
+                $report_colour
+            );
+    }
+
+    /*
+     * Single-stage report text.
+     */
+    $single_stage_summary = static function (
+        array $measures,
+        array $text_map,
+        string $stage_key,
+        string $stage_label
+    ) {
+        $html = '';
+
+        foreach ($measures as $measure) {
+            if (
+                !array_key_exists($stage_key, $measure) ||
+                $measure[$stage_key] === null ||
+                !is_numeric($measure[$stage_key])
+            ) {
+                continue;
+            }
+
+            $custom_text = isset($text_map[$measure['measure']])
+                ? trim($text_map[$measure['measure']])
+                : '';
+            if (
+                stripos(
+                    $custom_text,
+                    'Participants demonstrated positive growth in '
+                ) === 0
+            ) {
+                $custom_text = '';
+            }
+
+
+            if ($custom_text === '') {
+                $custom_text = sprintf(
+                    '%s average score: %s out of 7.',
+                    $stage_label,
+                    number_format(
+                        (float) $measure[$stage_key],
+                        2
+                    )
+                );
+            }
+
+            $html .= '
+                <div class="growth-summary-line">
+                    <strong>
+                        ' . esc_html($measure['measure']) . '
+                    </strong>
+
+                    <div>
+                        ' . esc_html($custom_text) . '
+                    </div>
+                </div>
+            ';
+        }
+
+        return $html;
+    };
+
+    $insight_growth_summary_html =
+        $single_stage_summary(
+            $insight_measures,
+            $insight_text_map,
+            $single_stage_key,
+            $single_stage_label
+        );
+
+    $influence_growth_summary_html =
+        $single_stage_summary(
+            $influence_measures,
+            $influence_text_map,
+            $single_stage_key,
+            $single_stage_label
+        );
+
+    $impact_growth_summary_html =
+        $single_stage_summary(
+            $impact_measures,
+            $impact_text_map,
+            $single_stage_key,
+            $single_stage_label
+        );
+}
 $html = '
 <!DOCTYPE html>
 <html>
@@ -3929,11 +4399,7 @@ $html = '
         <img src="' . esc_attr($overview_chart_data) . '" alt="">
     </div>
 
-    <h3 class="overview-subheading">
-        Highlights
-    </h3>
-
-    ' . $highlights_html . '
+    ' . $overview_highlights_section_html . '
 
     <div class="mock-page-footer">
         Page 2 of 5
@@ -3964,23 +4430,14 @@ $html = '
         >
     </div>
 
-    <h3 class="section-movers-title">
-        Key Growth
-    </h3>
-
-    <div class="movers-chart">
-        <img
-            src="' . esc_attr($section_movers_chart_data['Insight']) . '"
-            alt=""
-        >
-    </div>
+    ' . $section_secondary_html['Insight'] . '
 
     <table class="section-summary-table">
         <tr>
 
             <td class="' . esc_attr($insight_growth_summary_class) . '">
                 <div class="box-heading">
-                    Growth Summary
+                    ' . esc_html($section_summary_heading) . '
                 </div>
 
                 ' . $insight_growth_summary_html . '
@@ -4020,23 +4477,14 @@ $html = '
         >
     </div>
 
-    <h3 class="section-movers-title">
-        Key Growth
-    </h3>
-
-    <div class="movers-chart">
-        <img
-            src="' . esc_attr($section_movers_chart_data['Influence']) . '"
-            alt=""
-        >
-    </div>
+    ' . $section_secondary_html['Influence'] . '
 
     <table class="section-summary-table">
         <tr>
 
             <td class="' . esc_attr($influence_growth_summary_class) . '">
                 <div class="box-heading">
-                    Growth Summary
+                    ' . esc_html($section_summary_heading) . '
                 </div>
 
                 ' . $influence_growth_summary_html . '
@@ -4076,23 +4524,14 @@ $html = '
         >
     </div>
 
-    <h3 class="section-movers-title">
-        Key Growth
-    </h3>
-
-    <div class="movers-chart">
-        <img
-            src="' . esc_attr($section_movers_chart_data['Impact']) . '"
-            alt=""
-        >
-    </div>
+    ' . $section_secondary_html['Impact'] . '
 
     <table class="section-summary-table">
         <tr>
 
             <td class="' . esc_attr($impact_growth_summary_class) . '">
                 <div class="box-heading">
-                    Growth Summary
+                    ' . esc_html($section_summary_heading) . '
                 </div>
 
                 ' . $impact_growth_summary_html . '
