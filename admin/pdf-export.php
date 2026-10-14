@@ -5512,16 +5512,37 @@ if ($include_manager) {
             $manager_page_2_rows
         );
 
+    /*
+     * Official Tasmanian Leaders logo.
+     * Embedded as base64 so Dompdf does not depend on local file URLs.
+     */
+    $brand_logo_path =
+        dirname(__DIR__) .
+        '/assets/images/tasmanian-leaders-logo-black.png';
+
+    $brand_logo_html =
+        '<div class="brand">Tasmanian Leaders</div>';
+
+    if (is_readable($brand_logo_path)) {
+        $brand_logo_data =
+            'data:image/png;base64,' .
+            base64_encode(
+                file_get_contents($brand_logo_path)
+            );
+
+        $brand_logo_html =
+            '<div class="brand">' .
+                '<img src="' .
+                    esc_attr($brand_logo_data) .
+                    '" alt="Tasmanian Leaders">' .
+            '</div>';
+    }
+
     $manager_pages_html = '
 
     <div class="page content-page manager-page">
 
-        <div class="brand">
-            Tasmanian
-            <span class="brand-second-line">
-                Leaders
-            </span>
-        </div>
+        ' . $brand_logo_html . '
 
         <div class="cover-rule"></div>
 
@@ -5577,12 +5598,7 @@ if ($include_manager) {
 
     <div class="page content-page manager-page">
 
-        <div class="brand">
-            Tasmanian
-            <span class="brand-second-line">
-                Leaders
-            </span>
-        </div>
+        ' . $brand_logo_html . '
 
         <div class="cover-rule"></div>
 
@@ -5654,15 +5670,12 @@ $html = '
 
     .brand {
         margin-bottom: 58px;
-        color: #111111;
-        font-size: 38px;
-        font-weight: normal;
-        line-height: 0.92;
     }
 
-    .brand-second-line {
+    .brand img {
         display: block;
-        margin-left: 70px;
+        width: 205px;
+        height: auto;
     }
 
     .cover-rule {
@@ -6453,15 +6466,14 @@ $html = '
 
     /* Sprint 3 client branding refinement */
 
-    /* Smaller content-page Tasmanian Leaders mark. */
+    /* Official logo at 50% of the cover-page size. */
     .content-page .brand {
         margin-bottom: 12px;
-        font-size: 19px;
-        line-height: 0.92;
     }
 
-    .content-page .brand-second-line {
-        margin-left: 35px;
+    .content-page .brand img {
+        width: 103px;
+        height: auto;
     }
 
     /* Fine divider beneath the page branding. */
@@ -6536,10 +6548,7 @@ $html = '
 
 <div class="page cover">
 
-    <div class="brand">
-        Tasmanian
-        <span class="brand-second-line">Leaders</span>
-    </div>
+    ' . $brand_logo_html . '
 
     <div class="cover-rule"></div>
 
@@ -6569,10 +6578,7 @@ $html = '
 
 <div class="page content-page">
 
-    <div class="brand">
-        Tasmanian
-        <span class="brand-second-line">Leaders</span>
-    </div>
+    ' . $brand_logo_html . '
 
     <div class="cover-rule"></div>
 
@@ -6625,10 +6631,7 @@ $html = '
 </div>
 <div class="page content-page insight-page final-insight-page">
 
-    <div class="brand">
-        Tasmanian
-        <span class="brand-second-line">Leaders</span>
-    </div>
+    ' . $brand_logo_html . '
 
     <div class="cover-rule"></div>
 
@@ -6672,10 +6675,7 @@ $html = '
 </div>
 <div class="page content-page insight-page final-influence-page">
 
-    <div class="brand">
-        Tasmanian
-        <span class="brand-second-line">Leaders</span>
-    </div>
+    ' . $brand_logo_html . '
 
     <div class="cover-rule"></div>
 
@@ -6719,10 +6719,7 @@ $html = '
 </div>
 <div class="page content-page insight-page final-impact-page">
 
-    <div class="brand">
-        Tasmanian
-        <span class="brand-second-line">Leaders</span>
-    </div>
+    ' . $brand_logo_html . '
 
     <div class="cover-rule"></div>
 
