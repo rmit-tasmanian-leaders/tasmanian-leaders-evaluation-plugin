@@ -108,9 +108,23 @@ if (!defined('ABSPATH')) {
 
                                     <button
                                         type="button"
-                                        data-tle-program-option="Emerging Leaders Program"
+                                        data-tle-program-option="I-LEAD Women in Community"
                                     >
-                                        Emerging Leaders Program
+                                        I-LEAD Women in Community
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        data-tle-program-option="I-LEAD Wine Industry"
+                                    >
+                                        I-LEAD Wine Industry
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        data-tle-program-option="I-LEAD Pride"
+                                    >
+                                        I-LEAD Pride
                                     </button>
                                 </div>
                             </div>
@@ -262,9 +276,23 @@ if (!defined('ABSPATH')) {
 
                                     <button
                                         type="button"
-                                        data-tle-comparison-option="Emerging Leaders Program"
+                                        data-tle-comparison-option="I-LEAD Women in Community"
                                     >
-                                        Emerging Leaders Program
+                                        I-LEAD Women in Community
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        data-tle-comparison-option="I-LEAD Wine Industry"
+                                    >
+                                        I-LEAD Wine Industry
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        data-tle-comparison-option="I-LEAD Pride"
+                                    >
+                                        I-LEAD Pride
                                     </button>
                                 </div>
                             </div>

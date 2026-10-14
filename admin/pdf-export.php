@@ -1070,6 +1070,34 @@ if ($purpose_text === '') {
             'No capability scores are available for the selected program and cohort.'
         );
     }
+
+    /*
+     * Keep automatically generated cover wording truthful when the
+     * selected program has only one real evaluation stage.
+     * Preserve genuinely customised purpose text.
+     */
+    if (count($primary_available_stages) === 1) {
+        $automatic_purpose_text =
+            'An evaluation of ' .
+            $program .
+            '. Showcasing progress before and after the program.';
+
+        if (
+            trim($purpose_text) === '' ||
+            trim($purpose_text) === $automatic_purpose_text
+        ) {
+            $single_stage_cover_label =
+                reset($primary_available_stages);
+
+            $purpose_text =
+                'An evaluation of ' .
+                $program .
+                '. Showing results from the ' .
+                $single_stage_cover_label .
+                ' evaluation.';
+        }
+    }
+
     $is_initial_report = (
     $report_type === 'Initial Leadership Capability Survey'
 );
@@ -3482,7 +3510,8 @@ if ($is_single_stage_report) {
         string $stage_key,
         string $stage_label
     ) {
-        $html = '';
+
+$html = '';
 
         foreach ($measures as $measure) {
             if (
@@ -3557,6 +3586,662 @@ if ($is_single_stage_report) {
             $single_stage_label
         );
 }
+/*
+ * Sprint 3: live comparison rendering.
+ *
+ * Comparison data comes from the full reporting service rather than
+ * the legacy PDF adapter because multiple program contexts must remain
+ * separate report series.
+ */
+$comparison_stage_map = [
+    'pre-program'       => 'pre_program',
+    'completion'        => 'completion',
+    'three-month-delay' => 'delay',
+];
+
+$comparison_backend_stage =
+    isset($comparison_stage_map[$comparison_evaluation_point])
+        ? $comparison_stage_map[$comparison_evaluation_point]
+        : '';
+
+$comparison_program_series = [];
+
+if (
+    $has_comparisons &&
+    $comparison_backend_stage !== '' &&
+    class_exists('TLE_Report_Service')
+) {
+    /*
+     * Always include the primary program as the first comparison series.
+     */
+    $requested_comparison_programs = array_values(
+        array_unique(
+            array_merge(
+                [$program],
+                $comparison_programs
+            )
+        )
+    );
+
+    foreach (
+        $requested_comparison_programs
+        as $comparison_program_name
+    ) {
+        if (trim($comparison_program_name) === '') {
+            continue;
+        }
+
+        $comparison_report =
+            TLE_Report_Service::get_report(
+                [
+                    'program' =>
+                        $comparison_program_name,
+                    'cohort' =>
+                        $cohort,
+                    'evaluation_stage' =>
+                        $comparison_backend_stage,
+                ]
+            );
+
+        if (
+            is_wp_error($comparison_report) ||
+            empty($comparison_report['groups']) ||
+            !is_array($comparison_report['groups'])
+        ) {
+            continue;
+        }
+
+        /*
+         * A program/cohort/stage comparison must resolve to one
+         * unambiguous reporting context. Do not combine unrelated
+         * groups by averaging averages.
+         */
+        if (count($comparison_report['groups']) !== 1) {
+            continue;
+        }
+
+        $comparison_group =
+            $comparison_report['groups'][0];
+
+        if (
+            empty($comparison_group['capability_averages']) ||
+            !is_array(
+                $comparison_group['capability_averages']
+            )
+        ) {
+            continue;
+        }
+
+        $program_capabilities = [];
+
+        foreach (
+            $comparison_group['capability_averages']
+            as $section_key => $capabilities
+        ) {
+            if (!is_array($capabilities)) {
+                continue;
+            }
+
+            foreach (
+                $capabilities
+                as $capability_name => $stage_values
+            ) {
+                if (
+                    !is_array($stage_values) ||
+                    !array_key_exists(
+                        $comparison_backend_stage,
+                        $stage_values
+                    ) ||
+                    $stage_values[
+                        $comparison_backend_stage
+                    ] === null ||
+                    !is_numeric(
+                        $stage_values[
+                            $comparison_backend_stage
+                        ]
+                    )
+                ) {
+                    continue;
+                }
+
+                $program_capabilities[
+                    $section_key
+                ][
+                    $capability_name
+                ] = (float) $stage_values[
+                    $comparison_backend_stage
+                ];
+            }
+        }
+
+        if (!empty($program_capabilities)) {
+            $comparison_program_series[
+                $comparison_program_name
+            ] = $program_capabilities;
+        }
+    }
+
+    /*
+     * The primary program must have real data for the selected
+     * comparison stage. Otherwise the comparison has no valid basis.
+     */
+    if (
+        !isset(
+            $comparison_program_series[$program]
+        )
+    ) {
+        wp_die(
+            esc_html(
+                sprintf(
+                    '%s data is not available for %s.',
+                    $comparison_evaluation_label,
+                    $program
+                )
+            )
+        );
+    }
+
+    /*
+     * At least one different program must also have real data.
+     */
+    $valid_comparison_programs =
+        array_values(
+            array_filter(
+                array_keys(
+                    $comparison_program_series
+                ),
+                static function (
+                    $program_name
+                ) use ($program) {
+                    return $program_name !== $program;
+                }
+            )
+        );
+
+    if (empty($valid_comparison_programs)) {
+        wp_die(
+            esc_html(
+                sprintf(
+                    'No comparison program has %s data for the selected cohort.',
+                    $comparison_evaluation_label
+                )
+            )
+        );
+    }
+
+    /*
+     * Grouped capability comparison chart.
+     */
+    $build_comparison_chart =
+        static function (
+            array $measures,
+            array $program_series,
+            string $section_key,
+            string $primary_program,
+            string $primary_colour
+        ) {
+            /*
+             * Keep only programs that have real scores in this
+             * particular report section.
+             */
+            $section_series = [];
+
+            foreach (
+                $program_series
+                as $program_name => $sections
+            ) {
+                if (
+                    empty($sections[$section_key]) ||
+                    !is_array(
+                        $sections[$section_key]
+                    )
+                ) {
+                    continue;
+                }
+
+                $section_series[$program_name] =
+                    $sections[$section_key];
+            }
+
+            if (
+                !isset(
+                    $section_series[$primary_program]
+                ) ||
+                count($section_series) < 2
+            ) {
+                return '';
+            }
+
+            $palette = [
+                $primary_colour,
+                '#E66B5B',
+                '#7A5AA6',
+                '#93B83E',
+                '#4F7F9B',
+                '#D89A42',
+            ];
+
+            $series_count =
+                count($section_series);
+
+            $legend_columns = 2;
+            $legend_rows = (int) ceil(
+                $series_count /
+                $legend_columns
+            );
+
+            $plot_left = 70;
+            $plot_right = 550;
+            $plot_width =
+                $plot_right - $plot_left;
+
+            $plot_top =
+                44 + ($legend_rows * 15);
+
+            $plot_bottom = 196;
+            $plot_height =
+                $plot_bottom - $plot_top;
+
+            $filtered_measures = [];
+
+            foreach ($measures as $measure) {
+                $measure_name =
+                    isset($measure['measure'])
+                        ? (string) $measure['measure']
+                        : '';
+
+                if ($measure_name === '') {
+                    continue;
+                }
+
+                $has_score = false;
+
+                foreach (
+                    $section_series
+                    as $scores
+                ) {
+                    if (
+                        isset($scores[$measure_name]) &&
+                        is_numeric(
+                            $scores[$measure_name]
+                        )
+                    ) {
+                        $has_score = true;
+                        break;
+                    }
+                }
+
+                if ($has_score) {
+                    $filtered_measures[] =
+                        $measure_name;
+                }
+            }
+
+            if (empty($filtered_measures)) {
+                return '';
+            }
+
+            $capability_count =
+                count($filtered_measures);
+
+            $slot_width =
+                $plot_width /
+                max(1, $capability_count);
+
+            $group_width =
+                min(
+                    $slot_width * 0.78,
+                    62
+                );
+
+            $bar_gap = 2;
+
+            $bar_width =
+                min(
+                    18,
+                    max(
+                        4,
+                        (
+                            $group_width -
+                            (
+                                $bar_gap *
+                                max(
+                                    0,
+                                    $series_count - 1
+                                )
+                            )
+                        ) /
+                        max(1, $series_count)
+                    )
+                );
+
+            $actual_group_width =
+                ($bar_width * $series_count) +
+                (
+                    $bar_gap *
+                    max(
+                        0,
+                        $series_count - 1
+                    )
+                );
+
+            $bars = '';
+            $legend = '';
+            $series_index = 0;
+
+            foreach (
+                $section_series
+                as $program_name => $scores
+            ) {
+                $colour =
+                    $palette[
+                        $series_index %
+                        count($palette)
+                    ];
+
+                $legend_column =
+                    $series_index %
+                    $legend_columns;
+
+                $legend_row =
+                    intdiv(
+                        $series_index,
+                        $legend_columns
+                    );
+
+                $legend_x =
+                    75 +
+                    ($legend_column * 250);
+
+                $legend_y =
+                    20 +
+                    ($legend_row * 15);
+
+                $legend_label =
+                    $program_name;
+
+                if (
+                    strlen($legend_label) > 30
+                ) {
+                    $legend_label =
+                        substr(
+                            $legend_label,
+                            0,
+                            28
+                        ) . '...';
+                }
+
+                $legend .= '
+                    <rect
+                        x="' . $legend_x . '"
+                        y="' . ($legend_y - 9) . '"
+                        width="10"
+                        height="10"
+                        fill="' .
+                            esc_attr($colour) .
+                        '"
+                    />
+
+                    <text
+                        x="' . ($legend_x + 15) . '"
+                        y="' . $legend_y . '"
+                        font-family="DejaVu Sans"
+                        font-size="8"
+                        fill="#333333"
+                    >' .
+                        esc_html($legend_label) .
+                    '</text>
+                ';
+
+                foreach (
+                    $filtered_measures
+                    as $capability_index =>
+                        $capability_name
+                ) {
+                    if (
+                        !isset(
+                            $scores[
+                                $capability_name
+                            ]
+                        ) ||
+                        !is_numeric(
+                            $scores[
+                                $capability_name
+                            ]
+                        )
+                    ) {
+                        continue;
+                    }
+
+                    $percentage =
+                        (
+                            (float) $scores[
+                                $capability_name
+                            ] /
+                            7
+                        ) * 100;
+
+                    $height =
+                        ($percentage / 100) *
+                        $plot_height;
+
+                    $y =
+                        $plot_bottom -
+                        $height;
+
+                    $centre =
+                        $plot_left +
+                        (
+                            $slot_width *
+                            $capability_index
+                        ) +
+                        ($slot_width / 2);
+
+                    $group_start =
+                        $centre -
+                        ($actual_group_width / 2);
+
+                    $x =
+                        $group_start +
+                        (
+                            $series_index *
+                            (
+                                $bar_width +
+                                $bar_gap
+                            )
+                        );
+
+                    $bars .= '
+                        <rect
+                            x="' . $x . '"
+                            y="' . $y . '"
+                            width="' .
+                                $bar_width .
+                            '"
+                            height="' .
+                                $height .
+                            '"
+                            fill="' .
+                                esc_attr($colour) .
+                            '"
+                        />
+                    ';
+                }
+
+                $series_index++;
+            }
+
+            $labels = '';
+
+            foreach (
+                $filtered_measures
+                as $capability_index =>
+                    $capability_name
+            ) {
+                $centre =
+                    $plot_left +
+                    (
+                        $slot_width *
+                        $capability_index
+                    ) +
+                    ($slot_width / 2);
+
+                $label =
+                    $capability_name;
+
+                if (strlen($label) > 20) {
+                    $label =
+                        substr(
+                            $label,
+                            0,
+                            18
+                        ) . '...';
+                }
+
+                $labels .= '
+                    <text
+                        x="' . $centre . '"
+                        y="220"
+                        text-anchor="middle"
+                        font-family="DejaVu Sans"
+                        font-size="6.5"
+                        fill="#333333"
+                    >' .
+                        esc_html($label) .
+                    '</text>
+                ';
+            }
+
+            $grid = '';
+            $axis_labels = '';
+
+            foreach (
+                [100, 80, 60, 40, 20, 0]
+                as $percentage
+            ) {
+                $y =
+                    $plot_bottom -
+                    (
+                        ($percentage / 100) *
+                        $plot_height
+                    );
+
+                $grid .= '
+                    <line
+                        x1="' . $plot_left . '"
+                        y1="' . $y . '"
+                        x2="' . $plot_right . '"
+                        y2="' . $y . '"
+                    />
+                ';
+
+                $axis_labels .= '
+                    <text
+                        x="43"
+                        y="' . ($y + 3) . '"
+                    >' .
+                        $percentage .
+                        '%</text>
+                ';
+            }
+
+            $svg = '
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="600"
+                height="235"
+                viewBox="0 0 600 235"
+            >
+                <rect
+                    width="600"
+                    height="235"
+                    fill="#ffffff"
+                />
+
+                ' . $legend . '
+
+                <g
+                    stroke="#dddddd"
+                    stroke-width="1"
+                >
+                    ' . $grid . '
+                </g>
+
+                <g
+                    fill="#555555"
+                    font-family="DejaVu Sans"
+                    font-size="8"
+                >
+                    ' . $axis_labels . '
+                </g>
+
+                ' . $bars . '
+                ' . $labels . '
+            </svg>
+            ';
+
+            return
+                'data:image/svg+xml;base64,' .
+                base64_encode($svg);
+        };
+
+    $comparison_section_keys = [
+        'Insight'   => 'insight',
+        'Influence' => 'influence',
+        'Impact'    => 'impact',
+    ];
+
+    foreach (
+        $comparison_section_keys
+        as $section_name => $section_key
+    ) {
+        if (
+            empty($overview_sections[$section_name])
+        ) {
+            continue;
+        }
+
+        $comparison_chart_data =
+            $build_comparison_chart(
+                $overview_sections[
+                    $section_name
+                ],
+                $comparison_program_series,
+                $section_key,
+                $program,
+                $report_colour
+            );
+
+        if ($comparison_chart_data === '') {
+            continue;
+        }
+
+        $section_secondary_html[
+            $section_name
+        ] = '
+            <h3 class="section-movers-title">
+                Comparison - ' .
+                    esc_html(
+                        $comparison_evaluation_label
+                    ) .
+                '
+            </h3>
+
+            <div class="movers-chart">
+                <img
+                    src="' .
+                        esc_attr(
+                            $comparison_chart_data
+                        ) .
+                    '"
+                    alt=""
+                >
+            </div>
+        ';
+    }
+}
+
+
 $html = '
 <!DOCTYPE html>
 <html>
