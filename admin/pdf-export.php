@@ -5763,6 +5763,38 @@ $html = '
         font-size: 17px;
         font-weight: bold;
     }
+
+    /* Sprint 3 PDF typography refinement */
+
+    /*
+     * Temporary display-font substitute.
+     * Replace DejaVu Serif with approved Playfair/Larken font
+     * once the font assets are added to the project.
+     */
+    .cover-title,
+    .overview-title,
+    .section-report-title {
+        font-family: DejaVu Serif, serif;
+        font-weight: normal;
+    }
+
+    .cover-title {
+        font-size: 40px;
+        line-height: 1.12;
+    }
+
+    .overview-title {
+        font-size: 34px;
+        line-height: 1.05;
+    }
+
+    .final-insight-page .section-report-title,
+    .final-influence-page .section-report-title,
+    .final-impact-page .section-report-title,
+    .manager-page .section-report-title {
+        font-size: 28px;
+        line-height: 1.05;
+    }
 </style>
 </head>
 
