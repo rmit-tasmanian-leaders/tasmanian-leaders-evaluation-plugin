@@ -5312,7 +5312,7 @@ if ($include_manager) {
      */
     $manager_fallback_labels = [
         '11' =>
-            'How would you rate the overall satisfaction with the Tasmanian Leaders?',
+            'Overall satisfaction with Tasmanian Leaders.',
         '14' =>
             'Shows greater emotional consistency in how they respond to workplace situations.',
         '16' =>
@@ -5355,6 +5355,11 @@ if ($include_manager) {
                     $manager_fallback_labels[$field_id],
                 'choices' => [],
             ];
+
+        if ($field_id === '11') {
+            $field['label'] =
+                'Overall satisfaction with Tasmanian Leaders.';
+        }
 
         $positive_choices =
             $field_id === '11'
