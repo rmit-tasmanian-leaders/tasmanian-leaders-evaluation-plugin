@@ -5643,7 +5643,7 @@ if ($include_manager) {
         );
     } else {
         $manager_summary_output =
-            'Manager evaluation responses are not available for the selected program and cohort.';
+            'No manager responses could be matched to the selected program and cohort. The statements below are shown for reference; ratings will appear when matching manager responses are available.';
     }
 
     $build_manager_rows =
@@ -5654,12 +5654,25 @@ if ($include_manager) {
             $html = '';
 
             foreach ($rows as $row) {
+                $has_rating =
+                    $row['rating'] !== null;
+
                 $rating_text =
-                    $row['rating'] === null
-                        ? 'Not available'
-                        : round(
+                    $has_rating
+                        ? round(
                             (float) $row['rating']
-                        ) . '%';
+                        ) . '%'
+                        : '—';
+
+                $rating_background =
+                    $has_rating
+                        ? $report_colour
+                        : '#e8ebe9';
+
+                $rating_colour =
+                    $has_rating
+                        ? $recommendation_text_colour
+                        : '#555555';
 
                 $html .= '
                     <tr>
@@ -5676,12 +5689,12 @@ if ($include_manager) {
                             style="
                                 background: ' .
                                     esc_attr(
-                                        $report_colour
+                                        $rating_background
                                     ) .
                                 ';
                                 color: ' .
                                     esc_attr(
-                                        $recommendation_text_colour
+                                        $rating_colour
                                     ) .
                                 ';
                             "
