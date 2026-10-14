@@ -4242,6 +4242,483 @@ if (
 }
 
 
+
+/*
+ * Sprint 3: Manager PDF pages.
+ *
+ * Manager results are filtered by the selected program and cohort.
+ * Historical Form 50 submissions without matching context are never
+ * attributed to the selected report.
+ */
+$total_pages = $include_manager ? 7 : 5;
+$manager_pages_html = '';
+
+if ($include_manager) {
+    $manager_question_ids = [
+        '11',
+        '14',
+        '16',
+        '17',
+        '18',
+        '19',
+        '20',
+        '21',
+        '22',
+        '23',
+        '24',
+        '25',
+        '26',
+        '27',
+        '28',
+        '30',
+    ];
+
+    $manager_program_aliases = [
+        'I-LEAD Young Professionals' =>
+            'I-LEAD Young Professionals',
+        'I-LEAD Women in Community' =>
+            'I-LEAD Women in Community Services',
+        'I-LEAD Wine Industry' =>
+            'I-LEAD Tassie Wine',
+        'I-LEAD Pride' =>
+            'I-LEAD Pride',
+    ];
+
+    $manager_program_value =
+        $manager_program_aliases[$program] ??
+        $program;
+
+    $manager_form = null;
+    $manager_entries = [];
+    $manager_matching_entries = [];
+
+    if (
+        class_exists('TLE_Gravity_Forms_Provider') &&
+        TLE_Gravity_Forms_Provider::is_available()
+    ) {
+        $manager_form =
+            TLE_Gravity_Forms_Provider::get_form(50);
+
+        $manager_entries =
+            TLE_Gravity_Forms_Provider::get_all_entries(
+                50,
+                ['status' => 'active']
+            );
+
+        if (is_wp_error($manager_form)) {
+            $manager_form = null;
+        }
+
+        if (is_wp_error($manager_entries)) {
+            $manager_entries = [];
+        }
+    }
+
+    foreach ($manager_entries as $manager_entry) {
+        $entry_program = trim(
+            (string) ($manager_entry['45'] ?? '')
+        );
+
+        $entry_cohort = trim(
+            (string) ($manager_entry['43'] ?? '')
+        );
+
+        if (
+            $entry_program === $manager_program_value &&
+            $entry_cohort === (string) $cohort
+        ) {
+            $manager_matching_entries[] =
+                $manager_entry;
+        }
+    }
+
+    /*
+     * Build question labels and choice maps from Form 50.
+     */
+    $manager_fields = [];
+
+    if (
+        is_array($manager_form) &&
+        !empty($manager_form['fields']) &&
+        is_array($manager_form['fields'])
+    ) {
+        foreach ($manager_form['fields'] as $field) {
+            $field_id =
+                isset($field['id'])
+                    ? (string) $field['id']
+                    : '';
+
+            if (
+                $field_id === '' ||
+                !in_array(
+                    $field_id,
+                    $manager_question_ids,
+                    true
+                )
+            ) {
+                continue;
+            }
+
+            $choice_map = [];
+
+            if (
+                !empty($field['choices']) &&
+                is_array($field['choices'])
+            ) {
+                foreach ($field['choices'] as $choice) {
+                    if (!is_array($choice)) {
+                        continue;
+                    }
+
+                    $choice_text = trim(
+                        (string) ($choice['text'] ?? '')
+                    );
+
+                    $choice_value = trim(
+                        (string) (
+                            $choice['value'] ??
+                            $choice_text
+                        )
+                    );
+
+                    if ($choice_text === '') {
+                        continue;
+                    }
+
+                    $choice_map[$choice_text] =
+                        $choice_text;
+
+                    if ($choice_value !== '') {
+                        $choice_map[$choice_value] =
+                            $choice_text;
+                    }
+                }
+            }
+
+            $manager_fields[$field_id] = [
+                'label' =>
+                    trim(
+                        (string) (
+                            $field['label'] ??
+                            ('Question ' . $field_id)
+                        )
+                    ),
+                'choices' => $choice_map,
+            ];
+        }
+    }
+
+    /*
+     * Fallback labels preserve the approved Form 50 statements if
+     * remote field metadata is temporarily unavailable.
+     */
+    $manager_fallback_labels = [
+        '11' =>
+            'How would you rate the overall satisfaction with the Tasmanian Leaders?',
+        '14' =>
+            'Shows greater emotional consistency in how they respond to workplace situations.',
+        '16' =>
+            'Has clearer reasoning for their decisions.',
+        '17' =>
+            'Appears to be less defensive and self-critical when making mistakes.',
+        '18' =>
+            'Shows increased awareness in meetings and work situations.',
+        '19' =>
+            'Has a greater focus on short-term goals.',
+        '20' =>
+            'Engages more openly with colleagues who hold different or opposing views.',
+        '21' =>
+            'More often proposes innovative approaches to work.',
+        '22' =>
+            'Exerts greater positive influence on others beyond their role.',
+        '23' =>
+            'More deeply engages in conversations with colleagues and clients.',
+        '24' =>
+            'Appears more comfortable working in situations where outcomes are not fully defined.',
+        '25' =>
+            'Is more willing to make decisions with complex information.',
+        '26' =>
+            'More frequently contributes beyond their core role to support their team.',
+        '27' =>
+            'More often helps build connections between colleagues who might not otherwise interact.',
+        '28' =>
+            'Has a clearer personal motivation for work beyond salary or benefits.',
+        '30' =>
+            'Has a stronger sense of commitment to the community.',
+    ];
+
+    $manager_rows = [];
+
+    foreach ($manager_question_ids as $field_id) {
+        $field =
+            $manager_fields[$field_id] ??
+            [
+                'label' =>
+                    $manager_fallback_labels[$field_id],
+                'choices' => [],
+            ];
+
+        $positive_choices =
+            $field_id === '11'
+                ? [
+                    'Somewhat satisfied',
+                    'Extremely satisfied',
+                ]
+                : [
+                    'Agree',
+                    'Strongly agree',
+                ];
+
+        $answered_count = 0;
+        $positive_count = 0;
+
+        foreach (
+            $manager_matching_entries
+            as $manager_entry
+        ) {
+            $raw_value = trim(
+                (string) (
+                    $manager_entry[$field_id] ??
+                    ''
+                )
+            );
+
+            if ($raw_value === '') {
+                continue;
+            }
+
+            $answered_count++;
+
+            $display_value =
+                $field['choices'][$raw_value] ??
+                $raw_value;
+
+            if (
+                in_array(
+                    $display_value,
+                    $positive_choices,
+                    true
+                )
+            ) {
+                $positive_count++;
+            }
+        }
+
+        $positive_rating = null;
+
+        if ($answered_count > 0) {
+            $positive_rating =
+                ($positive_count / $answered_count) *
+                100;
+        }
+
+        $manager_rows[] = [
+            'statement' => $field['label'],
+            'rating' => $positive_rating,
+            'answered' => $answered_count,
+        ];
+    }
+
+    $manager_response_count =
+        count($manager_matching_entries);
+
+    if (trim($manager_summary_text) !== '') {
+        $manager_summary_output =
+            $manager_summary_text;
+    } elseif ($manager_response_count > 0) {
+        $manager_summary_output = sprintf(
+            'Manager feedback based on %d response%s for %s in %s.',
+            $manager_response_count,
+            $manager_response_count === 1
+                ? ''
+                : 's',
+            $program,
+            $cohort
+        );
+    } else {
+        $manager_summary_output =
+            'Manager evaluation responses are not available for the selected program and cohort.';
+    }
+
+    $build_manager_rows =
+        static function (array $rows) use (
+            $report_colour,
+            $recommendation_text_colour
+        ) {
+            $html = '';
+
+            foreach ($rows as $row) {
+                $rating_text =
+                    $row['rating'] === null
+                        ? 'Not available'
+                        : round(
+                            (float) $row['rating']
+                        ) . '%';
+
+                $html .= '
+                    <tr>
+                        <td class="manager-statement-cell">
+                            ' .
+                                esc_html(
+                                    $row['statement']
+                                ) .
+                            '
+                        </td>
+
+                        <td
+                            class="manager-rating-cell"
+                            style="
+                                background: ' .
+                                    esc_attr(
+                                        $report_colour
+                                    ) .
+                                ';
+                                color: ' .
+                                    esc_attr(
+                                        $recommendation_text_colour
+                                    ) .
+                                ';
+                            "
+                        >
+                            ' .
+                                esc_html(
+                                    $rating_text
+                                ) .
+                            '
+                        </td>
+                    </tr>
+                ';
+            }
+
+            return $html;
+        };
+
+    $manager_page_1_rows =
+        array_slice($manager_rows, 0, 8);
+
+    $manager_page_2_rows =
+        array_slice($manager_rows, 8);
+
+    $manager_page_1_table =
+        $build_manager_rows(
+            $manager_page_1_rows
+        );
+
+    $manager_page_2_table =
+        $build_manager_rows(
+            $manager_page_2_rows
+        );
+
+    $manager_pages_html = '
+
+    <div class="page content-page manager-page">
+
+        <div class="brand">
+            Tasmanian
+            <span class="brand-second-line">
+                Leaders
+            </span>
+        </div>
+
+        <div class="cover-rule"></div>
+
+        <div class="section-label">
+            ' .
+                esc_html($program) .
+                ' &middot; ' .
+                esc_html($cohort) .
+            '
+        </div>
+
+        <h2 class="section-report-title">
+            Managers
+        </h2>
+
+        <div class="manager-summary-box">
+            <div class="box-heading">
+                Summary
+            </div>
+
+            <div class="manager-summary-text">
+                ' .
+                    nl2br(
+                        esc_html(
+                            $manager_summary_output
+                        )
+                    ) .
+                '
+            </div>
+        </div>
+
+        <h3 class="manager-statements-heading">
+            Statements
+        </h3>
+
+        <table class="manager-statements-table">
+            <thead>
+                <tr>
+                    <th>Statement</th>
+                    <th>Positive rating</th>
+                </tr>
+            </thead>
+            <tbody>
+                ' . $manager_page_1_table . '
+            </tbody>
+        </table>
+
+        <div class="mock-page-footer">
+            Page 6 of 7
+        </div>
+
+    </div>
+
+    <div class="page content-page manager-page">
+
+        <div class="brand">
+            Tasmanian
+            <span class="brand-second-line">
+                Leaders
+            </span>
+        </div>
+
+        <div class="cover-rule"></div>
+
+        <div class="section-label">
+            ' .
+                esc_html($program) .
+                ' &middot; ' .
+                esc_html($cohort) .
+            '
+        </div>
+
+        <h2 class="section-report-title">
+            Managers
+        </h2>
+
+        <h3 class="manager-statements-heading manager-statements-heading--continued">
+            Statements
+        </h3>
+
+        <table class="manager-statements-table">
+            <thead>
+                <tr>
+                    <th>Statement</th>
+                    <th>Positive rating</th>
+                </tr>
+            </thead>
+            <tbody>
+                ' . $manager_page_2_table . '
+            </tbody>
+        </table>
+
+        <div class="mock-page-footer">
+            Page 7 of 7
+        </div>
+
+    </div>
+    ';
+}
+
 $html = '
 <!DOCTYPE html>
 <html>
@@ -4997,6 +5474,77 @@ $html = '
         margin-bottom: 0;
         font-size: 9px;
     }
+
+    /* Sprint 3 Manager pages */
+
+    .manager-page {
+        padding-top: 38px;
+        padding-bottom: 42px;
+    }
+
+    .manager-page .section-report-title {
+        margin-bottom: 16px;
+    }
+
+    .manager-summary-box {
+        margin: 0 0 18px;
+        padding: 14px 16px;
+        background: #f3f3f3;
+        color: #111111;
+    }
+
+    .manager-summary-text {
+        font-size: 10px;
+        line-height: 1.45;
+    }
+
+    .manager-statements-heading {
+        margin: 0 0 8px;
+        color: #111111;
+        font-size: 18px;
+    }
+
+    .manager-statements-heading--continued {
+        margin-top: 10px;
+    }
+
+    .manager-statements-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 7px;
+        table-layout: fixed;
+    }
+
+    .manager-statements-table th {
+        padding: 0 10px 4px;
+        color: #555555;
+        font-size: 8px;
+        text-align: left;
+        text-transform: uppercase;
+    }
+
+    .manager-statements-table th:last-child {
+        width: 22%;
+        text-align: center;
+    }
+
+    .manager-statement-cell {
+        padding: 9px 12px;
+        background: #f3f3f3;
+        color: #111111;
+        font-size: 9px;
+        line-height: 1.3;
+        vertical-align: middle;
+    }
+
+    .manager-rating-cell {
+        width: 22%;
+        padding: 9px 8px;
+        font-size: 12px;
+        font-weight: bold;
+        text-align: center;
+        vertical-align: middle;
+    }
 </style>
 </head>
 
@@ -5030,7 +5578,7 @@ $html = '
     </div>
 
     <div class="cover-bottom">
-        Page 1 of 5
+        Page 1 of ' . esc_html($total_pages) . '
     </div>
 
 </div>
@@ -5087,7 +5635,7 @@ $html = '
     ' . $overview_highlights_section_html . '
 
     <div class="mock-page-footer">
-        Page 2 of 5
+        Page 2 of ' . esc_html($total_pages) . '
     </div>
 
 </div>
@@ -5134,7 +5682,7 @@ $html = '
     </table>
 
     <div class="mock-page-footer">
-        Page 3 of 5
+        Page 3 of ' . esc_html($total_pages) . '
     </div>
 
 </div>
@@ -5181,7 +5729,7 @@ $html = '
     </table>
 
     <div class="mock-page-footer">
-        Page 4 of 5
+        Page 4 of ' . esc_html($total_pages) . '
     </div>
 
 </div>
@@ -5228,10 +5776,12 @@ $html = '
     </table>
 
     <div class="mock-page-footer">
-        Page 5 of 5
+        Page 5 of ' . esc_html($total_pages) . '
     </div>
 
 </div>
+' . $manager_pages_html . '
+
 </body>
 </html>
 ';
