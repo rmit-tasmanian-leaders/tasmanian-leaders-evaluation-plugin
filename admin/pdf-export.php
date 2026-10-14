@@ -5478,6 +5478,8 @@ $html = '
     /* Sprint 3 Manager pages */
 
     .manager-page {
+        page-break-before: always;
+        page-break-inside: avoid;
         padding-top: 38px;
         padding-bottom: 42px;
     }
@@ -5544,6 +5546,53 @@ $html = '
         font-weight: bold;
         text-align: center;
         vertical-align: middle;
+    }
+
+    /* Sprint 3 client branding refinement */
+
+    /* Smaller content-page Tasmanian Leaders mark. */
+    .content-page .brand {
+        margin-bottom: 12px;
+        font-size: 19px;
+        line-height: 0.92;
+    }
+
+    .content-page .brand-second-line {
+        margin-left: 35px;
+    }
+
+    /* Fine divider beneath the page branding. */
+    .content-page .cover-rule {
+        border-top-width: 1px;
+        margin-bottom: 13px;
+    }
+
+    /* Lighter, more compact page footer. */
+    .mock-page-footer {
+        bottom: 38px;
+        padding-top: 6px;
+        border-top-width: 1px;
+        font-size: 8px;
+    }
+
+    /* Cover footer uses the same fine rule. */
+    .cover-bottom {
+        padding-top: 6px;
+        border-top-width: 1px;
+        font-size: 9px;
+    }
+
+    /* Cohort year should read as text, not a button/pill. */
+    .cover-year {
+        display: block;
+        width: auto;
+        margin-top: 18px;
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
+        color: #222222;
+        font-size: 17px;
+        font-weight: bold;
     }
 </style>
 </head>
