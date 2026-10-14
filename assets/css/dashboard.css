@@ -1169,3 +1169,17 @@ input:disabled + span {
 .tle-dashboard__checkbox--disabled span {
     cursor: not-allowed;
 }
+
+/* Comparison export requirements */
+.tle-dashboard__comparison-requirement {
+    margin: 10px 0;
+    padding: 10px 12px;
+    border: 1px solid currentColor;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.tle-dashboard__action--primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}

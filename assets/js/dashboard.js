@@ -29,6 +29,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const comparisonTemplate = dashboard.querySelector(
         '#tle-comparison-row-template'
     );
+    const comparisonTitle = dashboard.querySelector(
+        '.tle-dashboard__comparison-title'
+    );
     const comparisonLabel = dashboard.querySelector(
         '[data-tle-comparison-label]'
     );
@@ -61,6 +64,13 @@ document.addEventListener('DOMContentLoaded', function () {
     let primaryStageAvailabilityLoaded = false;
     let primaryStageAvailabilityRequest = 0;
     const cohortSelect = dashboard.querySelector('#tle-cohort');
+
+    const exportForm = dashboard.querySelector('#tle-pdf-export-form');
+    const exportButton = exportForm
+        ? exportForm.querySelector('button[type="submit"]')
+        : null;
+
+    let comparisonRequirementNotice = null;
 
     const summaryPrograms = dashboard.querySelector('[data-tle-summary-programs]');
     const summaryCohort = dashboard.querySelector('[data-tle-summary-cohort]');
@@ -389,6 +399,109 @@ document.addEventListener('DOMContentLoaded', function () {
         return points;
     }
 
+    function ensureComparisonRequirementNotice() {
+        if (comparisonRequirementNotice) {
+            return comparisonRequirementNotice;
+        }
+
+        comparisonRequirementNotice =
+            document.createElement('p');
+
+        comparisonRequirementNotice.className =
+            'tle-dashboard__comparison-requirement';
+
+        comparisonRequirementNotice.setAttribute(
+            'role',
+            'status'
+        );
+
+        comparisonRequirementNotice.setAttribute(
+            'aria-live',
+            'polite'
+        );
+
+        comparisonRequirementNotice.hidden = true;
+
+        addComparisonButton.parentNode.insertBefore(
+            comparisonRequirementNotice,
+            addComparisonButton
+        );
+
+        return comparisonRequirementNotice;
+    }
+
+    function getExportRequirementMessage() {
+        const primaryProgram = getPrimaryProgramName();
+
+        if (
+            !primaryProgram ||
+            !primaryStageAvailabilityLoaded
+        ) {
+            return '';
+        }
+
+        const comparisons =
+            getComparisonProgramNames();
+
+        const comparisonPoint =
+            getComparisonEvaluationPoint();
+
+        if (
+            primaryAvailableStageValues.length === 1 &&
+            comparisons.length === 0
+        ) {
+            return 'This program has one available evaluation point. Select at least one comparison program to provide a basis for growth.';
+        }
+
+        if (
+            comparisons.length > 0 &&
+            !comparisonPoint
+        ) {
+            return 'Select one evaluation point for the comparison before exporting.';
+        }
+
+        return '';
+    }
+
+    function syncComparisonRequirementLabel() {
+        if (!comparisonTitle) {
+            return;
+        }
+
+        const comparisonRequired =
+            Boolean(getPrimaryProgramName()) &&
+            primaryStageAvailabilityLoaded &&
+            primaryAvailableStageValues.length === 1;
+
+        comparisonTitle.textContent =
+            comparisonRequired
+                ? 'Comparison (required)'
+                : 'Comparison (optional)';
+    }
+
+    function syncExportRequirements() {
+        syncComparisonRequirementLabel();
+        const notice =
+            ensureComparisonRequirementNotice();
+
+        const message =
+            getExportRequirementMessage();
+
+        notice.textContent = message;
+        notice.hidden = message === '';
+
+        if (exportButton) {
+            exportButton.disabled =
+                message !== '';
+
+            exportButton.setAttribute(
+                'aria-disabled',
+                message !== ''
+                    ? 'true'
+                    : 'false'
+            );
+        }
+    }
     function updateReportOverview() {
         const primaryProgram = getPrimaryProgramName();
         const comparisons = getComparisonProgramNames();
@@ -428,6 +541,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 summaryEvaluationPoints.textContent = text;
             }
         }
+
+        syncExportRequirements();
     }
 
     function syncManagerOption() {
@@ -495,20 +610,32 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function syncComparisonState() {
-        const hasComparisons =
-            comparisonRows.querySelectorAll('[data-tle-comparison-row]').length > 0;
+        const hasComparisonRows =
+            comparisonRows.querySelectorAll(
+                '[data-tle-comparison-row]'
+            ).length > 0;
+
+        const hasSelectedComparisons =
+            getComparisonProgramNames().length > 0;
 
         if (comparisonLabel) {
-            comparisonLabel.hidden = !hasComparisons;
+            comparisonLabel.hidden =
+                !hasComparisonRows;
         }
 
         if (comparisonEvaluation) {
-            comparisonEvaluation.hidden = !hasComparisons;
+            comparisonEvaluation.hidden =
+                !hasSelectedComparisons;
         }
 
-        if (!hasComparisons) {
+        if (!hasSelectedComparisons) {
             comparisonPoints.forEach(function (checkbox) {
                 checkbox.checked = false;
+            });
+        }
+
+        if (!hasComparisonRows) {
+            comparisonPoints.forEach(function (checkbox) {
                 checkbox.disabled = false;
             });
         } else {
@@ -569,6 +696,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 syncManagerOption();
                 syncComparisonProgramSelections();
+                syncComparisonState();
                 updateReportOverview();
                 syncReportTextState();
                 loadPrimaryStageAvailability();
@@ -633,6 +761,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 searchInput.dataset.tleProgramSelected = '';
 
                 updateSuggestions();
+                syncComparisonState();
                 updateReportOverview();
             });
 
@@ -657,6 +786,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     suggestions.hidden = true;
 
                     syncComparisonProgramSelections();
+                    syncComparisonState();
                     updateReportOverview();
                 });
             });
@@ -679,6 +809,30 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     initialisePrimaryProgramSearch();
+
+    if (exportForm) {
+        exportForm.addEventListener(
+            'submit',
+            function (event) {
+                const message =
+                    getExportRequirementMessage();
+
+                if (!message) {
+                    return;
+                }
+
+                event.preventDefault();
+                syncExportRequirements();
+
+                if (comparisonRequirementNotice) {
+                    comparisonRequirementNotice.scrollIntoView({
+                        block: 'center',
+                        behavior: 'smooth'
+                    });
+                }
+            }
+        );
+    }
 
     if (managerCheckbox) {
         managerCheckbox.addEventListener('change', function () {
