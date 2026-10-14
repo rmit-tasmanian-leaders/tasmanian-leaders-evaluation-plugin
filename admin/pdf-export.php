@@ -3718,6 +3718,663 @@ $html = '';
         );
 }
 /*
+ * Sprint 3: two-stage report rendering.
+ *
+ * The legacy multi-stage charts assume all three evaluation stages are
+ * present. When exactly two real stages exist, rebuild the primary and
+ * Key Growth charts using only those stages so missing data is never
+ * rendered as zero.
+ */
+if (count($primary_available_stages) === 2) {
+    $two_stage_keys = array_keys($primary_available_stages);
+    $two_stage_labels = array_values($primary_available_stages);
+
+    $two_stage_average = static function (
+        array $measures,
+        string $stage_key
+    ) {
+        $scores = [];
+
+        foreach ($measures as $measure) {
+            if (
+                array_key_exists($stage_key, $measure) &&
+                $measure[$stage_key] !== null &&
+                is_numeric($measure[$stage_key])
+            ) {
+                $scores[] = (float) $measure[$stage_key];
+            }
+        }
+
+        return $scores
+            ? array_sum($scores) / count($scores)
+            : null;
+    };
+
+    /*
+     * Overview: show only the two real evaluation points.
+     */
+    $two_stage_overview_x = [
+        $two_stage_keys[0] => 100,
+        $two_stage_keys[1] => 510,
+    ];
+
+    $two_stage_overview_styles = [
+        'Insight' => [
+            'colour' => $report_colour,
+            'width' => 4,
+            'dash' => '',
+            'radius' => 6,
+        ],
+        'Influence' => [
+            'colour' => '#111111',
+            'width' => 2,
+            'dash' => '7,5',
+            'radius' => 4,
+        ],
+        'Impact' => [
+            'colour' => '#777777',
+            'width' => 2,
+            'dash' => '2,4',
+            'radius' => 4,
+        ],
+    ];
+
+    $two_stage_overview_series = '';
+
+    foreach ($overview_sections as $section_name => $measures) {
+        $style = $two_stage_overview_styles[$section_name];
+        $points = [];
+        $circles = '';
+
+        foreach ($two_stage_keys as $stage_key) {
+            $average = $two_stage_average(
+                $measures,
+                $stage_key
+            );
+
+            if ($average === null) {
+                continue;
+            }
+
+            $percentage = ($average / 7) * 100;
+            $x = $two_stage_overview_x[$stage_key];
+            $y = $chart_y($percentage);
+
+            $points[] = $x . ',' . $y;
+
+            $circles .= '
+                <circle
+                    cx="' . $x . '"
+                    cy="' . $y . '"
+                    r="' . $style['radius'] . '"
+                    fill="' . esc_attr($style['colour']) . '"
+                />
+            ';
+        }
+
+        if (count($points) >= 2) {
+            $dash_attribute = $style['dash'] !== ''
+                ? ' stroke-dasharray="' .
+                    esc_attr($style['dash']) .
+                    '"'
+                : '';
+
+            $two_stage_overview_series .= '
+                <polyline
+                    points="' . esc_attr(implode(' ', $points)) . '"
+                    fill="none"
+                    stroke="' . esc_attr($style['colour']) . '"
+                    stroke-width="' . esc_attr($style['width']) . '"
+                    ' . $dash_attribute . '
+                />
+
+                ' . $circles . '
+            ';
+        }
+    }
+
+    $two_stage_overview_labels = '';
+
+    foreach ($two_stage_keys as $stage_key) {
+        $two_stage_overview_labels .= '
+            <text
+                x="' . $two_stage_overview_x[$stage_key] . '"
+                y="244"
+                text-anchor="middle"
+            >' .
+                esc_html(
+                    $primary_available_stages[$stage_key]
+                ) .
+            '</text>
+        ';
+    }
+
+    $overview_svg = '
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="600"
+        height="260"
+        viewBox="0 0 600 260"
+    >
+        <rect width="600" height="260" fill="#ffffff"/>
+
+        <g stroke="#dddddd" stroke-width="1">
+            <line x1="70" y1="50" x2="550" y2="50"/>
+            <line x1="70" y1="84" x2="550" y2="84"/>
+            <line x1="70" y1="118" x2="550" y2="118"/>
+            <line x1="70" y1="152" x2="550" y2="152"/>
+            <line x1="70" y1="186" x2="550" y2="186"/>
+            <line x1="70" y1="220" x2="550" y2="220"/>
+        </g>
+
+        <g
+            fill="#555555"
+            font-family="DejaVu Sans"
+            font-size="12"
+        >
+            <text x="35" y="53">100%</text>
+            <text x="42" y="87">80%</text>
+            <text x="42" y="121">60%</text>
+            <text x="42" y="155">40%</text>
+            <text x="42" y="189">20%</text>
+            <text x="49" y="223">0%</text>
+
+            ' . $two_stage_overview_labels . '
+        </g>
+
+        ' . $two_stage_overview_series . '
+    </svg>
+    ';
+
+    $overview_chart_data =
+        'data:image/svg+xml;base64,' .
+        base64_encode($overview_svg);
+
+    /*
+     * Capability line chart using only the two real stages.
+     */
+    $two_stage_section_chart = static function (
+        array $measures,
+        array $stage_keys,
+        array $stage_labels,
+        array $line_colours
+    ) {
+        $percentages = [];
+
+        foreach ($measures as $measure) {
+            foreach ($stage_keys as $stage_key) {
+                if (
+                    isset($measure[$stage_key]) &&
+                    is_numeric($measure[$stage_key])
+                ) {
+                    $percentages[] =
+                        ((float) $measure[$stage_key] / 7) * 100;
+                }
+            }
+        }
+
+        if (!$percentages) {
+            return '';
+        }
+
+        $axis_min = max(
+            0,
+            floor((min($percentages) - 5) / 10) * 10
+        );
+
+        $axis_max = min(
+            100,
+            ceil((max($percentages) + 5) / 10) * 10
+        );
+
+        if (($axis_max - $axis_min) < 20) {
+            $axis_min = max(0, $axis_min - 10);
+            $axis_max = min(100, $axis_max + 10);
+        }
+
+        $plot_top = 36;
+        $plot_bottom = 205;
+        $plot_height = $plot_bottom - $plot_top;
+        $axis_range = max(1, $axis_max - $axis_min);
+
+        $chart_y = static function ($percentage) use (
+            $plot_bottom,
+            $plot_height,
+            $axis_min,
+            $axis_range
+        ) {
+            return $plot_bottom -
+                (
+                    (($percentage - $axis_min) / $axis_range) *
+                    $plot_height
+                );
+        };
+
+        $x_positions = [
+            $stage_keys[0] => 100,
+            $stage_keys[1] => 510,
+        ];
+
+        $grid = '';
+
+        for (
+            $grid_percentage = $axis_min;
+            $grid_percentage <= $axis_max;
+            $grid_percentage += 10
+        ) {
+            $grid_y = $chart_y($grid_percentage);
+
+            $grid .= '
+                <line
+                    x1="65"
+                    y1="' . $grid_y . '"
+                    x2="550"
+                    y2="' . $grid_y . '"
+                />
+
+                <text
+                    x="54"
+                    y="' . ($grid_y + 4) . '"
+                    text-anchor="end"
+                >' . esc_html($grid_percentage) . '%</text>
+            ';
+        }
+
+        $lines = '';
+        $legend = '';
+
+        foreach ($measures as $index => $measure) {
+            $colour = $line_colours[
+                $index % count($line_colours)
+            ];
+
+            $points = [];
+            $circles = '';
+
+            foreach ($stage_keys as $stage_key) {
+                if (
+                    !isset($measure[$stage_key]) ||
+                    !is_numeric($measure[$stage_key])
+                ) {
+                    continue;
+                }
+
+                $percentage =
+                    ((float) $measure[$stage_key] / 7) * 100;
+
+                $x = $x_positions[$stage_key];
+                $y = $chart_y($percentage);
+
+                $points[] = $x . ',' . $y;
+
+                $circles .= '
+                    <circle
+                        cx="' . $x . '"
+                        cy="' . $y . '"
+                        r="4"
+                    />
+                ';
+            }
+
+            if (count($points) >= 2) {
+                $lines .= '
+                    <polyline
+                        points="' .
+                            esc_attr(implode(' ', $points)) .
+                        '"
+                        fill="none"
+                        stroke="' . esc_attr($colour) . '"
+                        stroke-width="2.5"
+                    />
+
+                    <g fill="' . esc_attr($colour) . '">
+                        ' . $circles . '
+                    </g>
+                ';
+            }
+
+            $legend_column = $index % 2;
+            $legend_row = floor($index / 2);
+
+            $legend_x = $legend_column === 0
+                ? 72
+                : 320;
+
+            $legend_y = 239 + ($legend_row * 14);
+
+            $legend .= '
+                <line
+                    x1="' . $legend_x . '"
+                    y1="' . ($legend_y - 3) . '"
+                    x2="' . ($legend_x + 18) . '"
+                    y2="' . ($legend_y - 3) . '"
+                    stroke="' . esc_attr($colour) . '"
+                    stroke-width="3"
+                />
+
+                <text
+                    x="' . ($legend_x + 24) . '"
+                    y="' . $legend_y . '"
+                >' . esc_html($measure['measure']) . '</text>
+            ';
+        }
+
+        $stage_label_html = '';
+
+        foreach ($stage_keys as $stage_key) {
+            $stage_label_html .= '
+                <text
+                    x="' . $x_positions[$stage_key] . '"
+                    y="224"
+                    text-anchor="middle"
+                >' .
+                    esc_html($stage_labels[$stage_key]) .
+                '</text>
+            ';
+        }
+
+        $svg = '
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="600"
+            height="300"
+            viewBox="0 0 600 300"
+        >
+            <rect width="600" height="300" fill="#ffffff"/>
+
+            <g
+                stroke="#dedede"
+                stroke-width="1"
+                fill="#555555"
+                font-family="DejaVu Sans"
+                font-size="10"
+            >
+                ' . $grid . '
+            </g>
+
+            <g
+                fill="#555555"
+                font-family="DejaVu Sans"
+                font-size="10"
+            >
+                ' . $stage_label_html . '
+                ' . $legend . '
+            </g>
+
+            ' . $lines . '
+        </svg>
+        ';
+
+        return
+            'data:image/svg+xml;base64,' .
+            base64_encode($svg);
+    };
+
+    $two_stage_line_colours = [
+        $report_colour,
+        '#111111',
+        '#666666',
+        $mix_report_colour(
+            $report_colour,
+            '#111111',
+            0.28
+        ),
+        $mix_report_colour(
+            $report_colour,
+            '#ffffff',
+            0.28
+        ),
+        $mix_report_colour(
+            $report_colour,
+            '#111111',
+            0.52
+        ),
+        $mix_report_colour(
+            $report_colour,
+            '#ffffff',
+            0.48
+        ),
+    ];
+
+    foreach ($overview_sections as $section_name => $measures) {
+        $section_chart_data[$section_name] =
+            $two_stage_section_chart(
+                $measures,
+                $two_stage_keys,
+                $primary_available_stages,
+                $two_stage_line_colours
+            );
+    }
+
+    /*
+     * Key Growth chart: rank by change between the two real stages
+     * and show exactly two bars per capability.
+     */
+    $two_stage_growth_chart = static function (
+        array $measures,
+        array $stage_keys,
+        array $stage_labels,
+        string $first_colour,
+        string $second_colour
+    ) {
+        $items = [];
+
+        foreach ($measures as $measure) {
+            $first_key = $stage_keys[0];
+            $second_key = $stage_keys[1];
+
+            if (
+                !isset($measure[$first_key]) ||
+                !is_numeric($measure[$first_key]) ||
+                !isset($measure[$second_key]) ||
+                !is_numeric($measure[$second_key])
+            ) {
+                continue;
+            }
+
+            $first =
+                ((float) $measure[$first_key] / 7) * 100;
+
+            $second =
+                ((float) $measure[$second_key] / 7) * 100;
+
+            $items[] = [
+                'measure' => $measure['measure'],
+                'first' => $first,
+                'second' => $second,
+                'increase' => $second - $first,
+            ];
+        }
+
+        usort(
+            $items,
+            static function ($first, $second) {
+                return
+                    $second['increase'] <=>
+                    $first['increase'];
+            }
+        );
+
+        $items = array_slice($items, 0, 3);
+
+        $centres = [150, 300, 450];
+        $bars = '';
+
+        foreach ($items as $index => $item) {
+            $centre = $centres[$index];
+
+            $first_height = $item['first'] * 1.35;
+            $second_height = $item['second'] * 1.35;
+
+            $first_y = 170 - $first_height;
+            $second_y = 170 - $second_height;
+
+            $bars .= '
+                <rect
+                    x="' . ($centre - 31) . '"
+                    y="' . $first_y . '"
+                    width="28"
+                    height="' . $first_height . '"
+                    fill="' . esc_attr($first_colour) . '"
+                />
+
+                <rect
+                    x="' . ($centre + 3) . '"
+                    y="' . $second_y . '"
+                    width="28"
+                    height="' . $second_height . '"
+                    fill="' . esc_attr($second_colour) . '"
+                />
+
+                <text
+                    x="' . $centre . '"
+                    y="192"
+                    text-anchor="middle"
+                    font-family="DejaVu Sans"
+                    font-size="7"
+                    font-weight="600"
+                    fill="#111111"
+                >' . esc_html($item['measure']) . '</text>
+            ';
+        }
+
+        $svg = '
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="600"
+            height="205"
+            viewBox="0 0 600 205"
+        >
+            <rect width="600" height="205" fill="#ffffff"/>
+
+            <g
+                font-family="DejaVu Sans"
+                font-size="9"
+                fill="#555555"
+            >
+                <rect
+                    x="360"
+                    y="8"
+                    width="11"
+                    height="11"
+                    fill="' . esc_attr($first_colour) . '"
+                />
+
+                <text x="376" y="17">
+                    ' . esc_html($stage_labels[$stage_keys[0]]) . '
+                </text>
+
+                <rect
+                    x="470"
+                    y="8"
+                    width="11"
+                    height="11"
+                    fill="' . esc_attr($second_colour) . '"
+                />
+
+                <text x="486" y="17">
+                    ' . esc_html($stage_labels[$stage_keys[1]]) . '
+                </text>
+            </g>
+
+            <g stroke="#dedede" stroke-width="1">
+                <line x1="65" y1="35" x2="550" y2="35"/>
+                <line x1="65" y1="62" x2="550" y2="62"/>
+                <line x1="65" y1="89" x2="550" y2="89"/>
+                <line x1="65" y1="116" x2="550" y2="116"/>
+                <line x1="65" y1="143" x2="550" y2="143"/>
+                <line x1="65" y1="170" x2="550" y2="170"/>
+            </g>
+
+            <g
+                fill="#555555"
+                font-family="DejaVu Sans"
+                font-size="9"
+            >
+                <text x="38" y="38">100%</text>
+                <text x="45" y="65">80%</text>
+                <text x="45" y="92">60%</text>
+                <text x="45" y="119">40%</text>
+                <text x="45" y="146">20%</text>
+                <text x="52" y="173">0%</text>
+            </g>
+
+            ' . $bars . '
+        </svg>
+        ';
+
+        return
+            'data:image/svg+xml;base64,' .
+            base64_encode($svg);
+    };
+
+    foreach ($overview_sections as $section_name => $measures) {
+        $section_movers_chart_data[$section_name] =
+            $two_stage_growth_chart(
+                $measures,
+                $two_stage_keys,
+                $primary_available_stages,
+                $report_colour_light,
+                $report_colour
+            );
+    }
+
+    /*
+     * Rebuild these blocks because the original strings were created
+     * before the two-stage chart overrides above.
+     */
+    $section_secondary_html = [
+        'Insight' => '
+            <h3 class="section-movers-title">
+                Key Growth
+            </h3>
+
+            <div class="movers-chart">
+                <img
+                    src="' .
+                        esc_attr(
+                            $section_movers_chart_data['Insight']
+                        ) .
+                    '"
+                    alt=""
+                >
+            </div>
+        ',
+        'Influence' => '
+            <h3 class="section-movers-title">
+                Key Growth
+            </h3>
+
+            <div class="movers-chart">
+                <img
+                    src="' .
+                        esc_attr(
+                            $section_movers_chart_data['Influence']
+                        ) .
+                    '"
+                    alt=""
+                >
+            </div>
+        ',
+        'Impact' => '
+            <h3 class="section-movers-title">
+                Key Growth
+            </h3>
+
+            <div class="movers-chart">
+                <img
+                    src="' .
+                        esc_attr(
+                            $section_movers_chart_data['Impact']
+                        ) .
+                    '"
+                    alt=""
+                >
+            </div>
+        ',
+    ];
+}
+/*
  * Sprint 3: live comparison rendering.
  *
  * Comparison data comes from the full reporting service rather than
