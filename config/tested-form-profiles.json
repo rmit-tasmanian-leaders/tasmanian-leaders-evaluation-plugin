@@ -1,0 +1,426 @@
+{
+    "37": {
+        "catalog_mode": "document",
+        "enabled": true,
+        "evaluation_stage": "pre_program",
+        "fields": {
+            "participant_key": "61",
+            "program_group": "55",
+            "program": "56",
+            "cohort": "59"
+        },
+        "question_overrides": [],
+        "custom_items": [],
+        "scoring_confirmed": false
+    },
+    "40": {
+        "catalog_mode": "document",
+        "enabled": true,
+        "evaluation_stage": "completion",
+        "fields": {
+            "participant_key": "59",
+            "program": "61",
+            "program_group": "60",
+            "cohort": "62",
+            "location": "",
+            "sector": ""
+        },
+        "question_overrides": [],
+        "custom_items": [],
+        "scoring_confirmed": false
+    },
+    "43": {
+        "catalog_mode": "document",
+        "enabled": true,
+        "evaluation_stage": "delay",
+        "fields": {
+            "participant_key": "79",
+            "program": "84",
+            "program_group": "83",
+            "cohort": "81",
+            "location": "",
+            "sector": ""
+        },
+        "question_overrides": [],
+        "custom_items": [],
+        "scoring_confirmed": false
+    },
+    "50": {
+        "catalog_mode": "custom",
+        "enabled": true,
+        "evaluation_stage": "manager",
+        "fields": {
+            "participant_key": "",
+            "program": "45",
+            "program_group": "42",
+            "cohort": "43",
+            "location": "",
+            "sector": ""
+        },
+        "question_overrides": {
+            "14": {
+                "item_id": "custom.manager.field_14",
+                "scoring": {
+                    "raw_min": 1,
+                    "raw_max": 5,
+                    "target_min": 1,
+                    "target_max": 7,
+                    "allowed_scores": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "reverse": false
+                }
+            },
+            "16": {
+                "item_id": "custom.manager.field_16",
+                "scoring": {
+                    "raw_min": 1,
+                    "raw_max": 5,
+                    "target_min": 1,
+                    "target_max": 7,
+                    "allowed_scores": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "reverse": false
+                }
+            },
+            "17": {
+                "item_id": "custom.manager.field_17",
+                "scoring": {
+                    "raw_min": 1,
+                    "raw_max": 5,
+                    "target_min": 1,
+                    "target_max": 7,
+                    "allowed_scores": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "reverse": false
+                }
+            },
+            "18": {
+                "item_id": "custom.manager.field_18",
+                "scoring": {
+                    "raw_min": 1,
+                    "raw_max": 5,
+                    "target_min": 1,
+                    "target_max": 7,
+                    "allowed_scores": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "reverse": false
+                }
+            },
+            "19": {
+                "item_id": "custom.manager.field_19",
+                "scoring": {
+                    "raw_min": 1,
+                    "raw_max": 5,
+                    "target_min": 1,
+                    "target_max": 7,
+                    "allowed_scores": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "reverse": false
+                }
+            },
+            "20": {
+                "item_id": "custom.manager.field_20",
+                "scoring": {
+                    "raw_min": 1,
+                    "raw_max": 5,
+                    "target_min": 1,
+                    "target_max": 7,
+                    "allowed_scores": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "reverse": false
+                }
+            },
+            "21": {
+                "item_id": "custom.manager.field_21",
+                "scoring": {
+                    "raw_min": 1,
+                    "raw_max": 5,
+                    "target_min": 1,
+                    "target_max": 7,
+                    "allowed_scores": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "reverse": false
+                }
+            },
+            "22": {
+                "item_id": "custom.manager.field_22",
+                "scoring": {
+                    "raw_min": 1,
+                    "raw_max": 5,
+                    "target_min": 1,
+                    "target_max": 7,
+                    "allowed_scores": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "reverse": false
+                }
+            },
+            "23": {
+                "item_id": "custom.manager.field_23",
+                "scoring": {
+                    "raw_min": 1,
+                    "raw_max": 5,
+                    "target_min": 1,
+                    "target_max": 7,
+                    "allowed_scores": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "reverse": false
+                }
+            },
+            "24": {
+                "item_id": "custom.manager.field_24",
+                "scoring": {
+                    "raw_min": 1,
+                    "raw_max": 5,
+                    "target_min": 1,
+                    "target_max": 7,
+                    "allowed_scores": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "reverse": false
+                }
+            },
+            "25": {
+                "item_id": "custom.manager.field_25",
+                "scoring": {
+                    "raw_min": 1,
+                    "raw_max": 5,
+                    "target_min": 1,
+                    "target_max": 7,
+                    "allowed_scores": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "reverse": false
+                }
+            },
+            "26": {
+                "item_id": "custom.manager.field_26",
+                "scoring": {
+                    "raw_min": 1,
+                    "raw_max": 5,
+                    "target_min": 1,
+                    "target_max": 7,
+                    "allowed_scores": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "reverse": false
+                }
+            },
+            "27": {
+                "item_id": "custom.manager.field_27",
+                "scoring": {
+                    "raw_min": 1,
+                    "raw_max": 5,
+                    "target_min": 1,
+                    "target_max": 7,
+                    "allowed_scores": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "reverse": false
+                }
+            },
+            "28": {
+                "item_id": "custom.manager.field_28",
+                "scoring": {
+                    "raw_min": 1,
+                    "raw_max": 5,
+                    "target_min": 1,
+                    "target_max": 7,
+                    "allowed_scores": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "reverse": false
+                }
+            },
+            "30": {
+                "item_id": "custom.manager.field_30",
+                "scoring": {
+                    "raw_min": 1,
+                    "raw_max": 5,
+                    "target_min": 1,
+                    "target_max": 7,
+                    "allowed_scores": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "reverse": false
+                }
+            }
+        },
+        "custom_items": [
+            {
+                "id": "custom.manager.field_14",
+                "text": "Shows greater emotional consistency in how they respond to workplace situations.",
+                "section": "insight",
+                "capability": "Self-awareness",
+                "reverse": false
+            },
+            {
+                "id": "custom.manager.field_16",
+                "text": "Has clearer reasoning for their decisions.",
+                "section": "insight",
+                "capability": "Clarity of purpose",
+                "reverse": false
+            },
+            {
+                "id": "custom.manager.field_17",
+                "text": "Appears to be less defensive and self-critical when making mistakes.",
+                "section": "insight",
+                "capability": "Self-compassion",
+                "reverse": false
+            },
+            {
+                "id": "custom.manager.field_18",
+                "text": "Shows increased awareness in meetings and work situations.",
+                "section": "insight",
+                "capability": "Situational awareness",
+                "reverse": false
+            },
+            {
+                "id": "custom.manager.field_19",
+                "text": "Has a greater focus on short-term goals.",
+                "section": "insight",
+                "capability": "Strategic foresight",
+                "reverse": false
+            },
+            {
+                "id": "custom.manager.field_20",
+                "text": "Engages more openly with colleagues who hold different or opposing views.",
+                "section": "insight",
+                "capability": "Balanced processing",
+                "reverse": false
+            },
+            {
+                "id": "custom.manager.field_21",
+                "text": "More often proposes innovative approaches to work.",
+                "section": "influence",
+                "capability": "Creative decision-making",
+                "reverse": false
+            },
+            {
+                "id": "custom.manager.field_22",
+                "text": "Exerts greater positive influence on others beyond their role.",
+                "section": "influence",
+                "capability": "Capacity for informal influence",
+                "reverse": false
+            },
+            {
+                "id": "custom.manager.field_23",
+                "text": "More deeply engages in conversations with colleagues and clients.",
+                "section": "insight",
+                "capability": "Social awareness",
+                "reverse": false
+            },
+            {
+                "id": "custom.manager.field_24",
+                "text": "Appears more comfortable working in situations where outcomes are not fully defined.",
+                "section": "influence",
+                "capability": "Tolerance for ambiguity",
+                "reverse": false
+            },
+            {
+                "id": "custom.manager.field_25",
+                "text": "Is more willing to make decisions with complex information.",
+                "section": "influence",
+                "capability": "Tolerance for complexity",
+                "reverse": false
+            },
+            {
+                "id": "custom.manager.field_26",
+                "text": "More frequently contributes beyond their core role to support their team.",
+                "section": "impact",
+                "capability": "Extra-role behaviours",
+                "reverse": false
+            },
+            {
+                "id": "custom.manager.field_27",
+                "text": "More often helps build connections between colleagues who might not otherwise interact.",
+                "section": "influence",
+                "capability": "Capacity to establish networks",
+                "reverse": false
+            },
+            {
+                "id": "custom.manager.field_28",
+                "text": "Has a clearer personal motivation for work beyond salary or benefits.",
+                "section": "insight",
+                "capability": "Clarity of purpose",
+                "reverse": false
+            },
+            {
+                "id": "custom.manager.field_30",
+                "text": "Has a stronger sense of commitment to the community.",
+                "section": "impact",
+                "capability": "Place-attachment",
+                "reverse": false
+            }
+        ],
+        "scoring_confirmed": false
+    }
+}
