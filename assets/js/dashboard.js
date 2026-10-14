@@ -95,6 +95,79 @@ document.addEventListener('DOMContentLoaded', function () {
         }).filter(Boolean);
     }
 
+    function getUnavailableComparisonPrograms(currentRow) {
+        const unavailable = new Set();
+        const primaryProgram = getPrimaryProgramName();
+
+        if (primaryProgram) {
+            unavailable.add(primaryProgram);
+        }
+
+        comparisonRows
+            .querySelectorAll('[data-tle-comparison-row]')
+            .forEach(function (row) {
+                if (row === currentRow) {
+                    return;
+                }
+
+                const input = row.querySelector(
+                    '[data-tle-comparison-search]'
+                );
+
+                const selectedProgram = input
+                    ? input.dataset.tleProgramSelected || ''
+                    : '';
+
+                if (selectedProgram) {
+                    unavailable.add(selectedProgram);
+                }
+            });
+
+        return unavailable;
+    }
+
+    function syncComparisonProgramSelections() {
+        const primaryProgram = getPrimaryProgramName();
+        const seenPrograms = new Set();
+
+        comparisonRows
+            .querySelectorAll('[data-tle-comparison-row]')
+            .forEach(function (row) {
+                const input = row.querySelector(
+                    '[data-tle-comparison-search]'
+                );
+
+                if (!input) {
+                    return;
+                }
+
+                const selectedProgram =
+                    input.dataset.tleProgramSelected || '';
+
+                if (!selectedProgram) {
+                    return;
+                }
+
+                const conflictsWithPrimary =
+                    primaryProgram &&
+                    selectedProgram === primaryProgram;
+
+                const duplicateComparison =
+                    seenPrograms.has(selectedProgram);
+
+                if (
+                    conflictsWithPrimary ||
+                    duplicateComparison
+                ) {
+                    input.value = '';
+                    input.dataset.tleProgramSelected = '';
+                    return;
+                }
+
+                seenPrograms.add(selectedProgram);
+            });
+    }
+
     function getComparisonEvaluationPoint() {
         const selectedPoint = comparisonPoints.find(function (checkbox) {
             return checkbox.checked;
@@ -495,6 +568,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 primaryProgramSuggestions.hidden = true;
 
                 syncManagerOption();
+                syncComparisonProgramSelections();
                 updateReportOverview();
                 syncReportTextState();
                 loadPrimaryStageAvailability();
@@ -524,18 +598,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
             function updateSuggestions() {
                 const query = searchInput.value.trim().toLowerCase();
+                const unavailablePrograms =
+                    getUnavailableComparisonPrograms(row);
+
                 let visibleCount = 0;
 
                 optionButtons.forEach(function (button) {
                     const value =
                         button.dataset.tleComparisonOption || '';
-                    const matches =
+
+                    const matchesQuery =
                         query === '' ||
                         value.toLowerCase().includes(query);
 
-                    button.hidden = !matches;
+                    const available =
+                        !unavailablePrograms.has(value);
 
-                    if (matches) {
+                    const visible =
+                        matchesQuery && available;
+
+                    button.hidden = !visible;
+
+                    if (visible) {
                         visibleCount++;
                     }
                 });
@@ -557,11 +641,22 @@ document.addEventListener('DOMContentLoaded', function () {
                     const selectedProgram =
                         button.dataset.tleComparisonOption || '';
 
+                    const unavailablePrograms =
+                        getUnavailableComparisonPrograms(row);
+
+                    if (
+                        !selectedProgram ||
+                        unavailablePrograms.has(selectedProgram)
+                    ) {
+                        return;
+                    }
+
                     searchInput.value = selectedProgram;
                     searchInput.dataset.tleProgramSelected =
                         selectedProgram;
                     suggestions.hidden = true;
 
+                    syncComparisonProgramSelections();
                     updateReportOverview();
                 });
             });
