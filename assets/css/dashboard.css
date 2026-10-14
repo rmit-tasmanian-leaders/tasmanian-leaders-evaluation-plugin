@@ -863,18 +863,13 @@
 }
 
 .tle-dashboard__wordmark {
-    display: inline-flex;
-    flex-direction: column;
     margin: 0 0 24px;
-    color: #111111;
-    font-size: 46px;
-    font-weight: 400;
-    line-height: 0.82;
-    letter-spacing: -0.04em;
 }
 
-.tle-dashboard__wordmark span:last-child {
-    margin-left: 76px;
+.tle-dashboard__wordmark img {
+    display: block;
+    width: 205px;
+    height: auto;
 }
 
 .tle-dashboard__header-divider {
@@ -993,12 +988,8 @@
 }
 
 @media (max-width: 640px) {
-    .tle-dashboard__wordmark {
-        font-size: 38px;
-    }
-
-    .tle-dashboard__wordmark span:last-child {
-        margin-left: 62px;
+    .tle-dashboard__wordmark img {
+        width: 170px;
     }
 
     .tle-dashboard__report-tabs {

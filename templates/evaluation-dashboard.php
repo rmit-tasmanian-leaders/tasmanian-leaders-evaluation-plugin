@@ -21,9 +21,18 @@ if (!defined('ABSPATH')) {
 <div class="tle-dashboard">
 
     <header class="tle-dashboard__final-header">
-        <div class="tle-dashboard__wordmark" aria-label="Tasmanian Leaders">
-            <span>Tasmanian</span>
-            <span>Leaders</span>
+        <div class="tle-dashboard__wordmark">
+            <img
+                src="<?php
+                    echo esc_url(
+                        plugins_url(
+                            'assets/images/tasmanian-leaders-logo-black.png',
+                            dirname(__DIR__) . '/tasmanian-leaders-evaluation.php'
+                        )
+                    );
+                ?>"
+                alt="Tasmanian Leaders"
+            >
         </div>
 
         <div class="tle-dashboard__header-divider" aria-hidden="true"></div>
