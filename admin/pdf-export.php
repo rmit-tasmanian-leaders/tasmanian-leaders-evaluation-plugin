@@ -3404,9 +3404,101 @@ if ($is_single_stage_report) {
             $x = $centre - ($bar_width / 2);
 
             $label = (string) $measure['measure'];
+            $label_words =
+                preg_split(
+                    '/\s+/',
+                    trim($label)
+                ) ?: [];
 
-            if (strlen($label) > 22) {
-                $label = substr($label, 0, 20) . '...';
+            $label_lines = [$label];
+
+            if (count($label_words) > 1) {
+                $best_split = 1;
+                $best_difference = PHP_INT_MAX;
+
+                for (
+                    $split = 1;
+                    $split < count($label_words);
+                    $split++
+                ) {
+                    $first_line =
+                        implode(
+                            ' ',
+                            array_slice(
+                                $label_words,
+                                0,
+                                $split
+                            )
+                        );
+
+                    $second_line =
+                        implode(
+                            ' ',
+                            array_slice(
+                                $label_words,
+                                $split
+                            )
+                        );
+
+                    $difference =
+                        abs(
+                            strlen($first_line) -
+                            strlen($second_line)
+                        );
+
+                    if ($difference < $best_difference) {
+                        $best_difference = $difference;
+                        $best_split = $split;
+                    }
+                }
+
+                $label_lines = [
+                    implode(
+                        ' ',
+                        array_slice(
+                            $label_words,
+                            0,
+                            $best_split
+                        )
+                    ),
+                    implode(
+                        ' ',
+                        array_slice(
+                            $label_words,
+                            $best_split
+                        )
+                    ),
+                ];
+            }
+
+            $label_svg = '';
+            $label_start_y =
+                count($label_lines) > 1
+                    ? 211
+                    : 216;
+
+            foreach (
+                $label_lines
+                as $line_index =>
+                    $label_line
+            ) {
+                $label_svg .= '
+                    <text
+                        x="' . $centre . '"
+                        y="' .
+                            (
+                                $label_start_y +
+                                ($line_index * 9)
+                            ) .
+                        '"
+                        text-anchor="middle"
+                        font-family="DejaVu Sans"
+                        font-size="7"
+                        fill="#333333"
+                    >' .
+                        esc_html($label_line) .
+                    '</text>
+                ';
             }
 
             $bars .= '
@@ -3428,14 +3520,7 @@ if ($is_single_stage_report) {
                     fill="#111111"
                 >' . esc_html(round($percentage)) . '%</text>
 
-                <text
-                    x="' . $centre . '"
-                    y="214"
-                    text-anchor="middle"
-                    font-family="DejaVu Sans"
-                    font-size="7"
-                    fill="#333333"
-                >' . esc_html($label) . '</text>
+                ' . $label_svg . '
             ';
         }
 
@@ -4089,26 +4174,110 @@ if (
                 $label =
                     $capability_name;
 
-                if (strlen($label) > 20) {
-                    $label =
-                        substr(
-                            $label,
-                            0,
-                            18
-                        ) . '...';
+                $label_words =
+                    preg_split(
+                        '/\s+/',
+                        trim($label)
+                    ) ?: [];
+
+                $label_lines = [$label];
+
+                if (count($label_words) > 1) {
+                    $best_split = 1;
+                    $best_difference = PHP_INT_MAX;
+
+                    for (
+                        $split = 1;
+                        $split < count($label_words);
+                        $split++
+                    ) {
+                        $first_line =
+                            implode(
+                                ' ',
+                                array_slice(
+                                    $label_words,
+                                    0,
+                                    $split
+                                )
+                            );
+
+                        $second_line =
+                            implode(
+                                ' ',
+                                array_slice(
+                                    $label_words,
+                                    $split
+                                )
+                            );
+
+                        $difference =
+                            abs(
+                                strlen($first_line) -
+                                strlen($second_line)
+                            );
+
+                        if (
+                            $difference <
+                            $best_difference
+                        ) {
+                            $best_difference =
+                                $difference;
+                            $best_split =
+                                $split;
+                        }
+                    }
+
+                    $label_lines = [
+                        implode(
+                            ' ',
+                            array_slice(
+                                $label_words,
+                                0,
+                                $best_split
+                            )
+                        ),
+                        implode(
+                            ' ',
+                            array_slice(
+                                $label_words,
+                                $best_split
+                            )
+                        ),
+                    ];
+                }
+
+                $label_svg = '';
+                $label_start_y =
+                    count($label_lines) > 1
+                        ? 216
+                        : 220;
+
+                foreach (
+                    $label_lines
+                    as $line_index =>
+                        $label_line
+                ) {
+                    $label_svg .= '
+                        <text
+                            x="' . $centre . '"
+                            y="' .
+                                (
+                                    $label_start_y +
+                                    ($line_index * 8)
+                                ) .
+                            '"
+                            text-anchor="middle"
+                            font-family="DejaVu Sans"
+                            font-size="6.5"
+                            fill="#333333"
+                        >' .
+                            esc_html($label_line) .
+                        '</text>
+                    ';
                 }
 
                 $labels .= '
-                    <text
-                        x="' . $centre . '"
-                        y="220"
-                        text-anchor="middle"
-                        font-family="DejaVu Sans"
-                        font-size="6.5"
-                        fill="#333333"
-                    >' .
-                        esc_html($label) .
-                    '</text>
+                    ' . $label_svg . '
                 ';
             }
 
