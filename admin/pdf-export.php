@@ -4584,6 +4584,183 @@ if (
     }
 
     /*
+     * A single-stage primary report cannot show genuine growth.
+     * Use the already-loaded live comparison data to make the
+     * Overview useful rather than leaving the lower page empty.
+     */
+    if ($is_single_stage_report) {
+        $overview_comparison_rows = '';
+
+        $overview_comparison_sections = [
+            'Insight'   => 'insight',
+            'Influence' => 'influence',
+            'Impact'    => 'impact',
+        ];
+
+        $overview_comparison_palette = [
+            $report_colour,
+            '#E66B5B',
+            '#7A5AA6',
+            '#93B83E',
+            '#4F7F9B',
+            '#D89A42',
+        ];
+
+        $overview_program_index = 0;
+
+        foreach (
+            $comparison_program_series
+            as $comparison_program_name => $sections
+        ) {
+            $overview_metric_cells = '';
+            $has_overview_scores = false;
+
+            foreach (
+                $overview_comparison_sections
+                as $section_name => $section_key
+            ) {
+                $section_scores =
+                    isset($sections[$section_key]) &&
+                    is_array($sections[$section_key])
+                        ? $sections[$section_key]
+                        : [];
+
+                $numeric_scores =
+                    array_values(
+                        array_filter(
+                            $section_scores,
+                            static function ($score) {
+                                return is_numeric($score);
+                            }
+                        )
+                    );
+
+                if (empty($numeric_scores)) {
+                    $overview_metric_cells .= '
+                        <td class="overview-comparison-metric">
+                            <strong>—</strong>
+                            <span>Not available</span>
+                        </td>
+                    ';
+
+                    continue;
+                }
+
+                $section_average =
+                    array_sum($numeric_scores) /
+                    count($numeric_scores);
+
+                $section_percentage =
+                    round(
+                        ($section_average / 7) * 100
+                    );
+
+                $overview_metric_cells .= '
+                    <td class="overview-comparison-metric">
+                        <strong>' .
+                            esc_html(
+                                $section_percentage
+                            ) .
+                        '%</strong>
+                        <span>' .
+                            esc_html(
+                                number_format(
+                                    $section_average,
+                                    2
+                                )
+                            ) .
+                        ' / 7</span>
+                    </td>
+                ';
+
+                $has_overview_scores = true;
+            }
+
+            if (!$has_overview_scores) {
+                continue;
+            }
+
+            $series_colour =
+                $overview_comparison_palette[
+                    $overview_program_index %
+                    count(
+                        $overview_comparison_palette
+                    )
+                ];
+
+            $row_class =
+                $comparison_program_name === $program
+                    ? ' overview-comparison-primary'
+                    : '';
+
+            $overview_comparison_rows .= '
+                <tr class="' .
+                    esc_attr(
+                        trim($row_class)
+                    ) .
+                '">
+                    <th>
+                        <span
+                            class="overview-comparison-swatch"
+                            style="background:' .
+                                esc_attr(
+                                    $series_colour
+                                ) .
+                            ';"
+                        ></span>
+
+                        ' .
+                            esc_html(
+                                $comparison_program_name
+                            ) .
+                        '
+                    </th>
+
+                    ' . $overview_metric_cells . '
+                </tr>
+            ';
+
+            $overview_program_index++;
+        }
+
+        if ($overview_comparison_rows !== '') {
+            $overview_highlights_section_html = '
+                <div class="overview-comparison-glance">
+
+                    <h3 class="overview-comparison-heading">
+                        Comparison at a glance
+                    </h3>
+
+                    <div class="overview-comparison-stage">
+                        ' .
+                            esc_html(
+                                $comparison_evaluation_label
+                            ) .
+                        '
+                    </div>
+
+                    <table class="overview-comparison-table">
+
+                        <thead>
+                            <tr>
+                                <th>Program</th>
+                                <th>Insight</th>
+                                <th>Influence</th>
+                                <th>Impact</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            ' . $overview_comparison_rows . '
+                        </tbody>
+
+                    </table>
+
+                </div>
+            ';
+        }
+    }
+    /*
      * Grouped capability comparison chart.
      */
     $build_comparison_chart =
@@ -5148,6 +5325,32 @@ if (
  * Historical Form 50 submissions without matching context are never
  * attributed to the selected report.
  */
+/*
+ * Global PDF brand logo.
+ * Must be available whether or not Manager pages are included.
+ */
+$brand_logo_path =
+    dirname(__DIR__) .
+    '/assets/images/tasmanian-leaders-logo-black.png';
+
+$brand_logo_html =
+    '<div class="brand">Tasmanian Leaders</div>';
+
+if (is_readable($brand_logo_path)) {
+    $brand_logo_data =
+        'data:image/png;base64,' .
+        base64_encode(
+            file_get_contents($brand_logo_path)
+        );
+
+    $brand_logo_html =
+        '<div class="brand">' .
+            '<img src="' .
+                esc_attr($brand_logo_data) .
+                '" alt="Tasmanian Leaders">' .
+        '</div>';
+}
+
 $total_pages = $include_manager ? 7 : 5;
 $manager_pages_html = '';
 
@@ -6391,6 +6594,51 @@ $html = '
         font-size: 9px;
     }
 
+    /*
+     * Single-stage reports have less vertical content than growth reports.
+     * Scale the real charts and summary up so the page feels intentional
+     * without changing multi-stage layouts.
+     */
+    .single-stage-section-page .section-chart {
+        width: 96%;
+        margin: 6px auto 8px;
+    }
+
+    .single-stage-section-page .section-movers-title {
+        margin: 10px 0 5px;
+        font-size: 20px;
+    }
+
+    .single-stage-section-page .movers-chart {
+        width: 96%;
+        margin: 0 auto 8px;
+    }
+
+    .single-stage-section-page .section-summary-table {
+        margin-top: 10px;
+    }
+
+    .single-stage-section-page .growth-summary-box,
+    .single-stage-section-page .participant-quote-box {
+        padding: 14px 16px;
+    }
+
+    .single-stage-section-page .box-heading {
+        margin-bottom: 8px;
+        font-size: 18px;
+    }
+
+    .single-stage-section-page .growth-summary-line {
+        margin-bottom: 5px;
+        font-size: 9px;
+        line-height: 1.25;
+    }
+
+    .single-stage-section-page .growth-summary-line strong {
+        margin-bottom: 1px;
+        font-size: 9.5px;
+    }
+
     /* Sprint 3 Manager pages */
 
     .manager-page {
@@ -6462,6 +6710,102 @@ $html = '
         font-weight: bold;
         text-align: center;
         vertical-align: middle;
+    }
+
+    /* Single-stage Overview comparison summary. */
+
+    .overview-comparison-glance {
+        margin-top: 25px;
+        padding: 17px 19px 18px;
+        border: 1px solid #d9dddb;
+        background: #f7f8f7;
+    }
+
+    .overview-comparison-heading {
+        margin: 0 0 3px;
+        color: #111111;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .overview-comparison-stage {
+        margin-bottom: 11px;
+        color: #6b706d;
+        font-size: 8px;
+        font-weight: bold;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .overview-comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .overview-comparison-table thead th {
+        padding: 0 7px 7px;
+        border-bottom: 1px solid #bfc5c1;
+        color: #555555;
+        font-size: 8px;
+        font-weight: bold;
+        text-align: center;
+    }
+
+    .overview-comparison-table thead th:first-child {
+        width: 43%;
+        padding-left: 0;
+        text-align: left;
+    }
+
+    .overview-comparison-table tbody th,
+    .overview-comparison-table tbody td {
+        padding: 10px 7px;
+        border-bottom: 1px solid #e2e5e3;
+        vertical-align: middle;
+    }
+
+    .overview-comparison-table tbody tr:last-child th,
+    .overview-comparison-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .overview-comparison-table tbody th {
+        padding-left: 0;
+        color: #222222;
+        font-size: 9px;
+        font-weight: normal;
+        text-align: left;
+    }
+
+    .overview-comparison-primary th {
+        font-weight: bold;
+    }
+
+    .overview-comparison-swatch {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        margin-right: 6px;
+        vertical-align: middle;
+    }
+
+    .overview-comparison-metric {
+        text-align: center;
+    }
+
+    .overview-comparison-metric strong {
+        display: block;
+        color: #111111;
+        font-size: 15px;
+        line-height: 1;
+    }
+
+    .overview-comparison-metric span {
+        display: block;
+        margin-top: 3px;
+        color: #777777;
+        font-size: 7px;
     }
 
     /* Sprint 3 client branding refinement */
@@ -6629,7 +6973,7 @@ $html = '
     </div>
 
 </div>
-<div class="page content-page insight-page final-insight-page">
+<div class="page content-page insight-page final-insight-page' . ($is_single_stage_report ? ' single-stage-section-page' : '') . '">
 
     ' . $brand_logo_html . '
 
@@ -6673,7 +7017,7 @@ $html = '
     </div>
 
 </div>
-<div class="page content-page insight-page final-influence-page">
+<div class="page content-page insight-page final-influence-page' . ($is_single_stage_report ? ' single-stage-section-page' : '') . '">
 
     ' . $brand_logo_html . '
 
@@ -6717,7 +7061,7 @@ $html = '
     </div>
 
 </div>
-<div class="page content-page insight-page final-impact-page">
+<div class="page content-page insight-page final-impact-page' . ($is_single_stage_report ? ' single-stage-section-page' : '') . '">
 
     ' . $brand_logo_html . '
 
