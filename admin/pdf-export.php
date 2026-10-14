@@ -1072,6 +1072,52 @@ if ($purpose_text === '') {
     }
 
     /*
+     * Enforce comparison requirements server-side as well as in the
+     * dashboard UI. This prevents direct POST requests from generating
+     * an invalid single-stage report.
+     */
+    $comparison_primary_stage_map = [
+        'pre-program'       => 'pre',
+        'completion'        => 'completion',
+        'three-month-delay' => 'delay',
+    ];
+
+    if (
+        count($primary_available_stages) === 1 &&
+        empty($comparison_programs)
+    ) {
+        wp_die(
+            'This program has one available evaluation point. Select at least one comparison program to provide a basis for growth.'
+        );
+    }
+
+    if (!empty($comparison_programs)) {
+        if (!$has_comparisons) {
+            wp_die(
+                'Select one evaluation point for the comparison before exporting.'
+            );
+        }
+
+        $comparison_primary_stage_key =
+            $comparison_primary_stage_map[
+                $comparison_evaluation_point
+            ] ?? '';
+
+        if (
+            $comparison_primary_stage_key === '' ||
+            !isset(
+                $primary_available_stages[
+                    $comparison_primary_stage_key
+                ]
+            )
+        ) {
+            wp_die(
+                'The selected comparison evaluation point is not available for the primary program.'
+            );
+        }
+    }
+
+    /*
      * Keep automatically generated cover wording truthful when the
      * selected program has only one real evaluation stage.
      * Preserve genuinely customised purpose text.
