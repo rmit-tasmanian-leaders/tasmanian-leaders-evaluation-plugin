@@ -649,6 +649,80 @@ function tle_export_pdf()
     require_once $autoload;
 
     $data = tle_get_test_report_data();
+
+    $evaluation_points = isset($_POST['evaluation_points'])
+        ? array_map(
+            'sanitize_key',
+            (array) wp_unslash($_POST['evaluation_points'])
+        )
+        : [];
+
+    $include_manager = in_array(
+        'manager',
+        $evaluation_points,
+        true
+    );
+
+    $comparison_programs = isset($_POST['comparison_programs'])
+        ? array_values(
+            array_filter(
+                array_map(
+                    'sanitize_text_field',
+                    (array) wp_unslash($_POST['comparison_programs'])
+                )
+            )
+        )
+        : [];
+
+    $comparison_evaluation_point = isset($_POST['comparison_evaluation_point'])
+        ? sanitize_key(
+            wp_unslash($_POST['comparison_evaluation_point'])
+        )
+        : '';
+
+    $allowed_comparison_points = [
+        'pre-program',
+        'completion',
+        'three-month-delay',
+    ];
+
+    if (
+        !in_array(
+            $comparison_evaluation_point,
+            $allowed_comparison_points,
+            true
+        )
+    ) {
+        $comparison_evaluation_point = '';
+    }
+
+    $comparison_evaluation_labels = [
+        'pre-program'       => 'Pre-program',
+        'completion'        => 'Post-program',
+        'three-month-delay' => 'Delayed',
+    ];
+
+    $comparison_evaluation_label =
+        $comparison_evaluation_point &&
+        isset(
+            $comparison_evaluation_labels[
+                $comparison_evaluation_point
+            ]
+        )
+            ? $comparison_evaluation_labels[
+                $comparison_evaluation_point
+            ]
+            : '';
+
+    $has_comparisons =
+        !empty($comparison_programs) &&
+        $comparison_evaluation_point !== '';
+
+    $manager_summary_text = isset($_POST['manager_summary_text'])
+        ? sanitize_textarea_field(
+            wp_unslash($_POST['manager_summary_text'])
+        )
+        : '';
     $report_title_input = isset($_POST['report_title'])
         ? sanitize_text_field(wp_unslash($_POST['report_title']))
         : '';

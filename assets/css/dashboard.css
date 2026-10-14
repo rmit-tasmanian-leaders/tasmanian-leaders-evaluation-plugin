@@ -1020,3 +1020,141 @@
         flex: 1;
     }
 }
+
+/* Sprint 3 comparison UI */
+
+.tle-dashboard__configuration
+.tle-dashboard__program-row[data-tle-primary-program-row] {
+    margin-bottom: 18px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.tle-dashboard__manager-option {
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+.tle-dashboard__comparison {
+    margin-top: 14px;
+}
+
+.tle-dashboard__comparison-title {
+    margin: 0 0 14px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.tle-dashboard__comparison-label {
+    margin: 0 0 8px;
+    font-size: 14px;
+}
+
+.tle-dashboard__comparison-rows {
+    margin-bottom: 8px;
+}
+
+.tle-dashboard__comparison-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.tle-dashboard__comparison-row
+.tle-dashboard__program-search-wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.tle-dashboard__comparison-row input[type="text"] {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 1px solid #aeb4bb;
+    border-radius: 0;
+    background: #ffffff;
+    color: #1f2937;
+    font: inherit;
+}
+
+.tle-dashboard__comparison-row input[type="text"]:focus {
+    outline: 2px solid #9ca3af;
+    outline-offset: 1px;
+}
+
+.tle-dashboard__remove-comparison {
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid #b8b8b8;
+    border-radius: 0;
+    background: #eeeeee;
+    color: #222222;
+    font-size: 16px;
+    line-height: 20px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.tle-dashboard__remove-comparison:hover,
+.tle-dashboard__remove-comparison:focus {
+    background: #dddddd;
+}
+
+.tle-dashboard__comparison-evaluation {
+    margin: 10px 0 18px 32px;
+}
+
+.tle-dashboard__comparison-evaluation-title {
+    display: inline-block;
+    margin-bottom: 6px;
+    padding: 4px 10px;
+    background: #222222;
+    color: #ffffff;
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+.tle-dashboard__comparison-evaluation
+.tle-dashboard__checkbox {
+    margin-bottom: 5px;
+}
+
+.tle-dashboard__comparison-evaluation
+input:disabled + span {
+    color: #a0a0a0;
+}
+
+.tle-dashboard__add-comparison {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 0;
+    background: #000000;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.tle-dashboard__add-comparison:hover,
+.tle-dashboard__add-comparison:focus {
+    border: 0;
+    background: #222222;
+    color: #ffffff;
+}
+
+@media (max-width: 700px) {
+    .tle-dashboard__comparison-row {
+        align-items: flex-start;
+    }
+
+    .tle-dashboard__comparison-evaluation {
+        margin-left: 0;
+    }
+}

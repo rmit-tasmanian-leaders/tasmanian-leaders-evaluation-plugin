@@ -76,7 +76,11 @@ if (!defined('ABSPATH')) {
 
                 <div class="tle-dashboard__programs" data-tle-programs>
 
-                    <div class="tle-dashboard__program-row" data-tle-program-row>
+                    <div
+                        class="tle-dashboard__program-row"
+                        data-tle-program-row
+                        data-tle-primary-program-row
+                    >
                         <div class="tle-dashboard__field tle-dashboard__program-search">
                             <label for="tle-program-0">Program</label>
 
@@ -85,7 +89,7 @@ if (!defined('ABSPATH')) {
                                     id="tle-program-0"
                                     type="text"
                                     name="program"
-                                    placeholder="Search for a program"
+                                    placeholder="Enter a program name here"
                                     autocomplete="off"
                                     data-tle-program-search
                                 >
@@ -112,188 +116,160 @@ if (!defined('ABSPATH')) {
                             </div>
                         </div>
 
-                        <button
-                            type="button"
-                            class="tle-dashboard__evaluation-toggle"
-                            data-tle-evaluation-toggle
-                            aria-expanded="false"
+                        <input
+                            type="hidden"
+                            name="evaluation_points[]"
+                            value="pre-program"
+                        >
+                        <input
+                            type="hidden"
+                            name="evaluation_points[]"
+                            value="completion"
+                        >
+                        <input
+                            type="hidden"
+                            name="evaluation_points[]"
+                            value="three-month-delay"
+                        >
+
+                        <label
+                            class="tle-dashboard__checkbox tle-dashboard__manager-option"
+                            data-tle-manager-option
                             hidden
                         >
-                            Evaluation Points
-                        </button>
-
-                        <div
-                            class="tle-dashboard__evaluation-menu"
-                            data-tle-evaluation-menu
-                            hidden
-                        >
-                            <label class="tle-dashboard__checkbox">
-                                <input
-                                    type="checkbox"
-                                    name="evaluation_points[]"
-                                    value="pre-program"
-                                    checked
-                                >
-                                <span>Pre-program</span>
-                            </label>
-
-                            <label class="tle-dashboard__checkbox">
-                                <input
-                                    type="checkbox"
-                                    name="evaluation_points[]"
-                                    value="completion"
-                                    checked
-                                >
-                                <span>Completion</span>
-                            </label>
-
-                            <label class="tle-dashboard__checkbox">
-                                <input
-                                    type="checkbox"
-                                    name="evaluation_points[]"
-                                    value="three-month-delay"
-                                >
-                                <span>3-Month Delayed</span>
-                            </label>
-
-                            <label class="tle-dashboard__checkbox">
-                                <input
-                                    type="checkbox"
-                                    name="evaluation_points[]"
-                                    value="manager"
-                                >
-                                <span>Manager Evaluation</span>
-                            </label>
-                        </div>
-
-                        <button
-                            type="button"
-                            class="tle-dashboard__remove-program"
-                            data-tle-remove-program
-                            hidden
-                        >
-                            Remove program
-                        </button>
+                            <input
+                                type="checkbox"
+                                name="evaluation_points[]"
+                                value="manager"
+                            >
+                            <span>Manager (optional)</span>
+                        </label>
                     </div>
 
                 </div>
 
-                <button
-                    type="button"
-                    class="tle-dashboard__add-program"
-                    data-tle-add-program
+                <input
+                    id="tle-cohort"
+                    type="hidden"
+                    name="cohort"
+                    value="2026"
+                    data-tle-cohort
                 >
-                    + Add program
-                </button>
 
-                <template id="tle-program-row-template">
-                    <div class="tle-dashboard__program-row" data-tle-program-row>
-                        <div class="tle-dashboard__field tle-dashboard__program-search">
-                            <label for="tle-program-__INDEX__">Program</label>
+                <div
+                    class="tle-dashboard__comparison"
+                    data-tle-comparison
+                >
+                    <h3 class="tle-dashboard__comparison-title">
+                        Comparison (optional)
+                    </h3>
+
+                    <p
+                        class="tle-dashboard__comparison-label"
+                        data-tle-comparison-label
+                        hidden
+                    >
+                        Compare to:
+                    </p>
+
+                    <div
+                        class="tle-dashboard__comparison-rows"
+                        data-tle-comparison-rows
+                    ></div>
+
+                    <div
+                        class="tle-dashboard__comparison-evaluation"
+                        data-tle-comparison-evaluation
+                        hidden
+                    >
+                        <span class="tle-dashboard__comparison-evaluation-title">
+                            Evaluation Point
+                        </span>
+
+                        <label class="tle-dashboard__checkbox">
+                            <input
+                                type="checkbox"
+                                name="comparison_evaluation_point"
+                                value="pre-program"
+                                data-tle-comparison-point
+                            >
+                            <span>Pre-program</span>
+                        </label>
+
+                        <label class="tle-dashboard__checkbox">
+                            <input
+                                type="checkbox"
+                                name="comparison_evaluation_point"
+                                value="completion"
+                                data-tle-comparison-point
+                            >
+                            <span>Post-program</span>
+                        </label>
+
+                        <label class="tle-dashboard__checkbox">
+                            <input
+                                type="checkbox"
+                                name="comparison_evaluation_point"
+                                value="three-month-delay"
+                                data-tle-comparison-point
+                            >
+                            <span>Delayed</span>
+                        </label>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="tle-dashboard__add-program tle-dashboard__add-comparison"
+                        data-tle-add-comparison
+                    >
+                        + Add comparison
+                    </button>
+
+                    <template id="tle-comparison-row-template">
+                        <div
+                            class="tle-dashboard__comparison-row"
+                            data-tle-comparison-row
+                        >
+                            <button
+                                type="button"
+                                class="tle-dashboard__remove-comparison"
+                                data-tle-remove-comparison
+                                aria-label="Remove comparison"
+                            >
+                                ×
+                            </button>
 
                             <div class="tle-dashboard__program-search-wrap">
                                 <input
-                                    id="tle-program-__INDEX__"
                                     type="text"
-                                    name="additional_programs[__INDEX__][program]"
-                                    placeholder="Search for a program"
+                                    name="comparison_programs[]"
+                                    placeholder="Enter a program name here"
                                     autocomplete="off"
-                                    data-tle-program-search
+                                    data-tle-comparison-search
                                 >
 
                                 <div
                                     class="tle-dashboard__program-suggestions"
-                                    data-tle-program-suggestions
+                                    data-tle-comparison-suggestions
                                     hidden
                                 >
                                     <button
                                         type="button"
-                                        data-tle-program-option="I-LEAD Young Professionals"
+                                        data-tle-comparison-option="I-LEAD Young Professionals"
                                     >
                                         I-LEAD Young Professionals
                                     </button>
 
                                     <button
                                         type="button"
-                                        data-tle-program-option="Emerging Leaders Program"
+                                        data-tle-comparison-option="Emerging Leaders Program"
                                     >
                                         Emerging Leaders Program
                                     </button>
                                 </div>
                             </div>
                         </div>
-
-                        <button
-                            type="button"
-                            class="tle-dashboard__evaluation-toggle"
-                            data-tle-evaluation-toggle
-                            aria-expanded="false"
-                            hidden
-                        >
-                            Evaluation Points
-                        </button>
-
-                        <div
-                            class="tle-dashboard__evaluation-menu"
-                            data-tle-evaluation-menu
-                            hidden
-                        >
-                            <label class="tle-dashboard__checkbox">
-                                <input
-                                    type="checkbox"
-                                    name="additional_programs[__INDEX__][evaluation_points][]"
-                                    value="pre-program"
-                                    checked
-                                >
-                                <span>Pre-program</span>
-                            </label>
-
-                            <label class="tle-dashboard__checkbox">
-                                <input
-                                    type="checkbox"
-                                    name="additional_programs[__INDEX__][evaluation_points][]"
-                                    value="completion"
-                                    checked
-                                >
-                                <span>Completion</span>
-                            </label>
-
-                            <label class="tle-dashboard__checkbox">
-                                <input
-                                    type="checkbox"
-                                    name="additional_programs[__INDEX__][evaluation_points][]"
-                                    value="three-month-delay"
-                                >
-                                <span>3-Month Delayed</span>
-                            </label>
-
-                            <label class="tle-dashboard__checkbox">
-                                <input
-                                    type="checkbox"
-                                    name="additional_programs[__INDEX__][evaluation_points][]"
-                                    value="manager"
-                                >
-                                <span>Manager Evaluation</span>
-                            </label>
-                        </div>
-
-                        <button
-                            type="button"
-                            class="tle-dashboard__remove-program"
-                            data-tle-remove-program
-                        >
-                            Remove program
-                        </button>
-                    </div>
-                </template>
-
-                <div class="tle-dashboard__field">
-                    <label for="tle-cohort">Cohort</label>
-
-                    <select id="tle-cohort" name="cohort">
-                        <option>2026</option>
-                        <option>2025</option>
-                    </select>
+                    </template>
                 </div>
             </section>
 
@@ -771,6 +747,26 @@ if (!defined('ABSPATH')) {
                             name="impact_quote"
                             rows="2"
                             placeholder="Enter a participant's quote here"
+                        ></textarea>
+                    </div>
+                </div>
+
+
+                <div
+                    class="tle-dashboard__text-section"
+                    data-tle-manager-text-section
+                    hidden
+                >
+                    <h3 class="tle-dashboard__text-section-title">Managers</h3>
+
+                    <div class="tle-dashboard__field">
+                        <label for="tle-manager-summary">Summary</label>
+
+                        <textarea
+                            id="tle-manager-summary"
+                            name="manager_summary_text"
+                            rows="4"
+                            placeholder="Summarise the manager evaluation findings"
                         ></textarea>
                     </div>
                 </div>

@@ -6,8 +6,39 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const programsContainer = dashboard.querySelector('[data-tle-programs]');
-    const addProgramButton = dashboard.querySelector('[data-tle-add-program]');
-    const programTemplate = dashboard.querySelector('#tle-program-row-template');
+    const primaryProgramRow = dashboard.querySelector(
+        '[data-tle-primary-program-row]'
+    );
+    const primaryProgramInput = primaryProgramRow
+        ? primaryProgramRow.querySelector('[data-tle-program-search]')
+        : null;
+    const primaryProgramSuggestions = primaryProgramRow
+        ? primaryProgramRow.querySelector('[data-tle-program-suggestions]')
+        : null;
+    const managerOption = primaryProgramRow
+        ? primaryProgramRow.querySelector('[data-tle-manager-option]')
+        : null;
+    const managerCheckbox = managerOption
+        ? managerOption.querySelector('input[value="manager"]')
+        : null;
+
+    const comparisonRows = dashboard.querySelector('[data-tle-comparison-rows]');
+    const addComparisonButton = dashboard.querySelector(
+        '[data-tle-add-comparison]'
+    );
+    const comparisonTemplate = dashboard.querySelector(
+        '#tle-comparison-row-template'
+    );
+    const comparisonLabel = dashboard.querySelector(
+        '[data-tle-comparison-label]'
+    );
+    const comparisonEvaluation = dashboard.querySelector(
+        '[data-tle-comparison-evaluation]'
+    );
+    const comparisonPoints = Array.from(
+        dashboard.querySelectorAll('[data-tle-comparison-point]')
+    );
+
     const cohortSelect = dashboard.querySelector('#tle-cohort');
 
     const summaryPrograms = dashboard.querySelector('[data-tle-summary-programs]');
@@ -16,96 +47,76 @@ document.addEventListener('DOMContentLoaded', function () {
         '[data-tle-summary-evaluation-points]'
     );
 
-    if (!programsContainer || !addProgramButton || !programTemplate) {
+    if (
+        !programsContainer ||
+        !primaryProgramRow ||
+        !primaryProgramInput ||
+        !comparisonRows ||
+        !addComparisonButton ||
+        !comparisonTemplate
+    ) {
         return;
     }
 
-    let nextProgramIndex =
-        programsContainer.querySelectorAll('[data-tle-program-row]').length;
-
-    function normaliseProgramFieldNames() {
-        const rows = Array.from(
-            programsContainer.querySelectorAll('[data-tle-program-row]')
-        );
-
-        rows.forEach(function (row, index) {
-            const searchInput = row.querySelector('[data-tle-program-search]');
-
-            if (searchInput) {
-                searchInput.name = index === 0
-                    ? 'program'
-                    : 'additional_programs[' + index + '][program]';
-            }
-
-            row.querySelectorAll(
-                '[data-tle-evaluation-menu] input[type="checkbox"]'
-            ).forEach(function (checkbox) {
-                checkbox.name = index === 0
-                    ? 'evaluation_points[]'
-                    : 'additional_programs[' + index + '][evaluation_points][]';
-            });
-        });
+    function getPrimaryProgramName() {
+        return primaryProgramInput.dataset.tleProgramSelected || '';
     }
 
-    function updateProgramRemovalControls() {
-        const rows = Array.from(
-            programsContainer.querySelectorAll('[data-tle-program-row]')
-        );
-
-        rows.forEach(function (row) {
-            const removeButton = row.querySelector('[data-tle-remove-program]');
-
-            if (removeButton) {
-                removeButton.hidden = rows.length <= 1;
-            }
-        });
-    }
-
-    function syncProgramRows() {
-        normaliseProgramFieldNames();
-        updateProgramRemovalControls();
-        updateReportOverview();
-        syncReportTextState();
-    }
-
-    function getSelectedEvaluationPoints(row) {
+    function getComparisonProgramNames() {
         return Array.from(
-            row.querySelectorAll(
-                '[data-tle-evaluation-menu] input[type="checkbox"]:checked'
-            )
-        ).map(function (checkbox) {
-            const label = checkbox.closest('label');
-            const text = label ? label.querySelector('span') : null;
+            comparisonRows.querySelectorAll('[data-tle-comparison-row]')
+        ).map(function (row) {
+            const input = row.querySelector('[data-tle-comparison-search]');
 
-            return text ? text.textContent.trim() : checkbox.value;
+            return input
+                ? input.dataset.tleProgramSelected || ''
+                : '';
+        }).filter(Boolean);
+    }
+
+    function getComparisonEvaluationPoint() {
+        const selectedPoint = comparisonPoints.find(function (checkbox) {
+            return checkbox.checked;
         });
+
+        if (!selectedPoint) {
+            return '';
+        }
+
+        const label = selectedPoint.closest('label');
+        const text = label ? label.querySelector('span') : null;
+
+        return text ? text.textContent.trim() : selectedPoint.value;
+    }
+
+    function getPrimaryEvaluationPoints() {
+        const points = [
+            'Pre-program',
+            'Post-program',
+            'Delayed'
+        ];
+
+        if (managerCheckbox && managerCheckbox.checked) {
+            points.push('Manager');
+        }
+
+        return points;
     }
 
     function updateReportOverview() {
-        const selectedPrograms = Array.from(
-            programsContainer.querySelectorAll('[data-tle-program-row]')
-        ).map(function (row) {
-            const searchInput = row.querySelector('[data-tle-program-search]');
-            const programName = searchInput
-                ? searchInput.dataset.tleProgramSelected || ''
-                : '';
-
-            if (!programName) {
-                return null;
-            }
-
-            return {
-                name: programName,
-                evaluationPoints: getSelectedEvaluationPoints(row)
-            };
-        }).filter(Boolean);
+        const primaryProgram = getPrimaryProgramName();
+        const comparisons = getComparisonProgramNames();
+        const comparisonPoint = getComparisonEvaluationPoint();
 
         if (summaryPrograms) {
-            summaryPrograms.textContent = selectedPrograms.length
-                ? selectedPrograms.map(function (program) {
-                    return program.name;
-                }).join(', ')
-                : 'No program selected';
+            if (!primaryProgram) {
+                summaryPrograms.textContent = 'No program selected';
+            } else if (comparisons.length) {
+                summaryPrograms.textContent =
+                    primaryProgram + ' | Compare to: ' + comparisons.join(', ');
+            } else {
+                summaryPrograms.textContent = primaryProgram;
+            }
         }
 
         if (summaryCohort) {
@@ -115,35 +126,153 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (summaryEvaluationPoints) {
-            summaryEvaluationPoints.textContent = selectedPrograms.length
-                ? selectedPrograms.map(function (program) {
-                    const points = program.evaluationPoints.length
-                        ? program.evaluationPoints.join(', ')
-                        : 'None selected';
+            if (!primaryProgram) {
+                summaryEvaluationPoints.textContent =
+                    'Select a program to view evaluation points';
+            } else {
+                let text =
+                    primaryProgram + ': ' +
+                    getPrimaryEvaluationPoints().join(', ');
 
-                    return program.name + ': ' + points;
-                }).join(' | ')
-                : 'Select a program to view evaluation points';
+                if (comparisons.length) {
+                    text += ' | Comparison: ' +
+                        (comparisonPoint || 'Select an evaluation point');
+                }
+
+                summaryEvaluationPoints.textContent = text;
+            }
         }
     }
 
-    function initialiseProgramRow(row) {
-        const searchInput = row.querySelector('[data-tle-program-search]');
-        const suggestions = row.querySelector('[data-tle-program-suggestions]');
-        const evaluationButton = row.querySelector('[data-tle-evaluation-toggle]');
-        const evaluationMenu = row.querySelector('[data-tle-evaluation-menu]');
-        const removeButton = row.querySelector('[data-tle-remove-program]');
+    function syncManagerOption() {
+        const hasPrimaryProgram = Boolean(getPrimaryProgramName());
+
+        if (managerOption) {
+            managerOption.hidden = !hasPrimaryProgram;
+        }
+
+        if (!hasPrimaryProgram && managerCheckbox) {
+            managerCheckbox.checked = false;
+        }
+    }
+
+    function syncComparisonPointState() {
+        const selectedPoint = comparisonPoints.find(function (checkbox) {
+            return checkbox.checked;
+        });
+
+        comparisonPoints.forEach(function (checkbox) {
+            checkbox.disabled =
+                Boolean(selectedPoint) && checkbox !== selectedPoint;
+        });
+    }
+
+    function syncComparisonState() {
+        const hasComparisons =
+            comparisonRows.querySelectorAll('[data-tle-comparison-row]').length > 0;
+
+        if (comparisonLabel) {
+            comparisonLabel.hidden = !hasComparisons;
+        }
+
+        if (comparisonEvaluation) {
+            comparisonEvaluation.hidden = !hasComparisons;
+        }
+
+        if (!hasComparisons) {
+            comparisonPoints.forEach(function (checkbox) {
+                checkbox.checked = false;
+                checkbox.disabled = false;
+            });
+        } else {
+            syncComparisonPointState();
+        }
+    }
+
+    function initialisePrimaryProgramSearch() {
+        if (!primaryProgramSuggestions) {
+            return;
+        }
+
+        const optionButtons = primaryProgramSuggestions.querySelectorAll(
+            '[data-tle-program-option]'
+        );
+
+        function updateSuggestions() {
+            const query = primaryProgramInput.value.trim().toLowerCase();
+            let visibleCount = 0;
+
+            optionButtons.forEach(function (button) {
+                const value = button.dataset.tleProgramOption || '';
+                const matches =
+                    query === '' ||
+                    value.toLowerCase().includes(query);
+
+                button.hidden = !matches;
+
+                if (matches) {
+                    visibleCount++;
+                }
+            });
+
+            primaryProgramSuggestions.hidden = visibleCount === 0;
+        }
+
+        primaryProgramInput.addEventListener('focus', updateSuggestions);
+
+        primaryProgramInput.addEventListener('input', function () {
+            primaryProgramInput.dataset.tleProgramSelected = '';
+
+            updateSuggestions();
+            syncManagerOption();
+            updateReportOverview();
+            syncReportTextState();
+        });
+
+        optionButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                const selectedProgram =
+                    button.dataset.tleProgramOption || '';
+
+                primaryProgramInput.value = selectedProgram;
+                primaryProgramInput.dataset.tleProgramSelected =
+                    selectedProgram;
+                primaryProgramSuggestions.hidden = true;
+
+                syncManagerOption();
+                updateReportOverview();
+                syncReportTextState();
+            });
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!primaryProgramRow.contains(event.target)) {
+                primaryProgramSuggestions.hidden = true;
+            }
+        });
+    }
+
+    function initialiseComparisonRow(row) {
+        const searchInput = row.querySelector('[data-tle-comparison-search]');
+        const suggestions = row.querySelector(
+            '[data-tle-comparison-suggestions]'
+        );
+        const removeButton = row.querySelector(
+            '[data-tle-remove-comparison]'
+        );
 
         if (searchInput && suggestions) {
-            const suggestionButtons =
-                suggestions.querySelectorAll('[data-tle-program-option]');
+            const optionButtons = suggestions.querySelectorAll(
+                '[data-tle-comparison-option]'
+            );
 
             function updateSuggestions() {
                 const query = searchInput.value.trim().toLowerCase();
                 let visibleCount = 0;
 
-                suggestionButtons.forEach(function (button) {
-                    const value = button.dataset.tleProgramOption || '';
+                optionButtons.forEach(function (button) {
+                    const value =
+                        button.dataset.tleComparisonOption || '';
                     const matches =
                         query === '' ||
                         value.toLowerCase().includes(query);
@@ -163,35 +292,21 @@ document.addEventListener('DOMContentLoaded', function () {
             searchInput.addEventListener('input', function () {
                 searchInput.dataset.tleProgramSelected = '';
 
-                if (evaluationButton) {
-                    evaluationButton.hidden = true;
-                }
-
-                if (evaluationMenu) {
-                    evaluationMenu.hidden = true;
-                    evaluationButton.setAttribute('aria-expanded', 'false');
-                }
-
                 updateSuggestions();
                 updateReportOverview();
-                syncReportTextState();
             });
 
-            suggestionButtons.forEach(function (button) {
+            optionButtons.forEach(function (button) {
                 button.addEventListener('click', function () {
                     const selectedProgram =
-                        button.dataset.tleProgramOption || '';
+                        button.dataset.tleComparisonOption || '';
 
                     searchInput.value = selectedProgram;
-                    searchInput.dataset.tleProgramSelected = selectedProgram;
+                    searchInput.dataset.tleProgramSelected =
+                        selectedProgram;
                     suggestions.hidden = true;
 
-                    if (evaluationButton) {
-                        evaluationButton.hidden = false;
-                    }
-
                     updateReportOverview();
-                    syncReportTextState();
                 });
             });
 
@@ -202,70 +317,58 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        if (evaluationButton && evaluationMenu) {
-            evaluationButton.addEventListener('click', function () {
-                const isOpen = !evaluationMenu.hidden;
-
-                evaluationMenu.hidden = isOpen;
-                evaluationButton.setAttribute(
-                    'aria-expanded',
-                    String(!isOpen)
-                );
-            });
-        }
-
-        row.querySelectorAll(
-            '[data-tle-evaluation-menu] input[type="checkbox"]'
-        ).forEach(function (checkbox) {
-            checkbox.addEventListener('change', updateReportOverview);
-        });
-
         if (removeButton) {
             removeButton.addEventListener('click', function () {
-                const rowCount =
-                    programsContainer.querySelectorAll('[data-tle-program-row]').length;
-
-                if (rowCount <= 1) {
-                    return;
-                }
-
                 row.remove();
-                syncProgramRows();
+
+                syncComparisonState();
+                updateReportOverview();
             });
         }
     }
 
-    programsContainer
-        .querySelectorAll('[data-tle-program-row]')
-        .forEach(initialiseProgramRow);
+    initialisePrimaryProgramSearch();
 
-    if (cohortSelect) {
-        cohortSelect.addEventListener('change', updateReportOverview);
+    if (managerCheckbox) {
+        managerCheckbox.addEventListener('change', function () {
+            updateReportOverview();
+            syncReportTextState();
+        });
     }
 
-    addProgramButton.addEventListener('click', function () {
-        const fragment = programTemplate.content.cloneNode(true);
-        const row = fragment.querySelector('[data-tle-program-row]');
+    comparisonPoints.forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            syncComparisonPointState();
+            updateReportOverview();
+        });
+    });
 
-        row.innerHTML = row.innerHTML.replaceAll(
-            '__INDEX__',
-            String(nextProgramIndex)
+    addComparisonButton.addEventListener('click', function () {
+        const fragment = comparisonTemplate.content.cloneNode(true);
+        const row = fragment.querySelector('[data-tle-comparison-row]');
+
+        if (!row) {
+            return;
+        }
+
+        comparisonRows.appendChild(row);
+        initialiseComparisonRow(row);
+
+        syncComparisonState();
+        updateReportOverview();
+
+        const searchInput = row.querySelector(
+            '[data-tle-comparison-search]'
         );
-
-        nextProgramIndex++;
-
-        programsContainer.appendChild(row);
-        initialiseProgramRow(row);
-
-        const searchInput = row.querySelector('[data-tle-program-search]');
 
         if (searchInput) {
             searchInput.focus();
         }
-
-        syncProgramRows();
     });
 
+    syncManagerOption();
+    syncComparisonState();
+    updateReportOverview();
     const coverInput = dashboard.querySelector('[data-tle-cover-input]');
     const coverPreview = dashboard.querySelector('[data-tle-cover-preview]');
     const coverPlaceholder = dashboard.querySelector('[data-tle-cover-placeholder]');
@@ -540,6 +643,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const reportTitleField = dashboard.querySelector('[data-tle-auto-title]');
     const purposeField = dashboard.querySelector('[data-tle-auto-purpose]');
+    const managerTextSection = dashboard.querySelector(
+        '[data-tle-manager-text-section]'
+    );
 
     reportAutoTextFields.forEach(function (field) {
         field.dataset.tleUserEdited = 'false';
@@ -573,9 +679,26 @@ document.addEventListener('DOMContentLoaded', function () {
             : program + ' Program Evaluation';
     }
 
+    function hasManagerEvaluationSelected() {
+        return Boolean(managerCheckbox && managerCheckbox.checked);
+    }
+
     function syncReportTextState() {
         const programs = getSelectedProgramNames();
         const hasProgram = programs.length > 0;
+
+        if (managerTextSection) {
+            const showManagerSection = hasManagerEvaluationSelected();
+            const managerSummary = managerTextSection.querySelector(
+                '[name="manager_summary_text"]'
+            );
+
+            managerTextSection.hidden = !showManagerSection;
+
+            if (managerSummary) {
+                managerSummary.disabled = !showManagerSection;
+            }
+        }
 
         reportAutoTextFields.forEach(function (field) {
             if (field.dataset.tleUserEdited === 'true') {
@@ -605,6 +728,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     resetImageColours();
-    syncProgramRows();
+    syncManagerOption();
+    syncComparisonState();
+    updateReportOverview();
     syncReportTextState();
 });
