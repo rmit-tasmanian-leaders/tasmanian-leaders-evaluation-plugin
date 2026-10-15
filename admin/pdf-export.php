@@ -1855,12 +1855,12 @@ foreach ($insight_measures as $measure) {
 
 $insight_axis_min = max(
     0,
-    floor((min($insight_percentages) - 5) / 10) * 10
+    floor((min($insight_percentages) - 10) / 10) * 10
 );
 
 $insight_axis_max = min(
     100,
-    ceil((max($insight_percentages) + 5) / 10) * 10
+    ceil((max($insight_percentages) + 10) / 10) * 10
 );
 
 if (($insight_axis_max - $insight_axis_min) < 20) {
@@ -2346,12 +2346,12 @@ foreach ($influence_measures as $measure) {
 
 $influence_axis_min = max(
     0,
-    floor((min($influence_percentages) - 5) / 10) * 10
+    floor((min($influence_percentages) - 10) / 10) * 10
 );
 
 $influence_axis_max = min(
     100,
-    ceil((max($influence_percentages) + 5) / 10) * 10
+    ceil((max($influence_percentages) + 10) / 10) * 10
 );
 
 if (($influence_axis_max - $influence_axis_min) < 20) {
@@ -2800,12 +2800,12 @@ foreach ($impact_measures as $measure) {
 
 $impact_axis_min = max(
     0,
-    floor((min($impact_percentages) - 5) / 10) * 10
+    floor((min($impact_percentages) - 10) / 10) * 10
 );
 
 $impact_axis_max = min(
     100,
-    ceil((max($impact_percentages) + 5) / 10) * 10
+    ceil((max($impact_percentages) + 10) / 10) * 10
 );
 
 if (($impact_axis_max - $impact_axis_min) < 20) {
@@ -3805,6 +3805,137 @@ if (count($primary_available_stages) === 2) {
         ],
     ];
 
+    /*
+     * Scale the Overview to the real data range with approximately
+     * 10 percentage points of context above and below.
+     */
+    $two_stage_overview_percentages = [];
+
+    foreach ($overview_sections as $overview_measures) {
+        foreach ($two_stage_keys as $stage_key) {
+            $average = $two_stage_average(
+                $overview_measures,
+                $stage_key
+            );
+
+            if ($average !== null) {
+                $two_stage_overview_percentages[] =
+                    ($average / 7) * 100;
+            }
+        }
+    }
+
+    $two_stage_overview_axis_min = max(
+        0,
+        floor(
+            (
+                min($two_stage_overview_percentages) -
+                10
+            ) / 10
+        ) * 10
+    );
+
+    $two_stage_overview_axis_max = min(
+        100,
+        ceil(
+            (
+                max($two_stage_overview_percentages) +
+                10
+            ) / 10
+        ) * 10
+    );
+
+    if (
+        (
+            $two_stage_overview_axis_max -
+            $two_stage_overview_axis_min
+        ) < 20
+    ) {
+        $two_stage_overview_axis_min =
+            max(
+                0,
+                $two_stage_overview_axis_min - 10
+            );
+
+        $two_stage_overview_axis_max =
+            min(
+                100,
+                $two_stage_overview_axis_max + 10
+            );
+    }
+
+    $two_stage_overview_plot_top = 50;
+    $two_stage_overview_plot_bottom = 220;
+
+    $two_stage_overview_plot_height =
+        $two_stage_overview_plot_bottom -
+        $two_stage_overview_plot_top;
+
+    $two_stage_overview_axis_range =
+        max(
+            1,
+            $two_stage_overview_axis_max -
+            $two_stage_overview_axis_min
+        );
+
+    $two_stage_overview_y =
+        static function ($percentage) use (
+            $two_stage_overview_plot_bottom,
+            $two_stage_overview_plot_height,
+            $two_stage_overview_axis_min,
+            $two_stage_overview_axis_range
+        ) {
+            return
+                $two_stage_overview_plot_bottom -
+                (
+                    (
+                        (
+                            $percentage -
+                            $two_stage_overview_axis_min
+                        ) /
+                        $two_stage_overview_axis_range
+                    ) *
+                    $two_stage_overview_plot_height
+                );
+        };
+
+    $two_stage_overview_grid = '';
+    $two_stage_overview_axis_labels = '';
+
+    for (
+        $grid_percentage =
+            $two_stage_overview_axis_min;
+        $grid_percentage <=
+            $two_stage_overview_axis_max;
+        $grid_percentage += 10
+    ) {
+        $grid_y =
+            $two_stage_overview_y(
+                $grid_percentage
+            );
+
+        $two_stage_overview_grid .= '
+            <line
+                x1="70"
+                y1="' . $grid_y . '"
+                x2="550"
+                y2="' . $grid_y . '"
+            />
+        ';
+
+        $two_stage_overview_axis_labels .= '
+            <text
+                x="54"
+                y="' . ($grid_y + 4) . '"
+                text-anchor="end"
+            >' .
+                esc_html(
+                    $grid_percentage
+                ) .
+            '%</text>
+        ';
+    }
+
     $two_stage_overview_series = '';
 
     foreach ($overview_sections as $section_name => $measures) {
@@ -3824,7 +3955,7 @@ if (count($primary_available_stages) === 2) {
 
             $percentage = ($average / 7) * 100;
             $x = $two_stage_overview_x[$stage_key];
-            $y = $chart_y($percentage);
+            $y = $two_stage_overview_y($percentage);
 
             $points[] = $x . ',' . $y;
 
@@ -3885,12 +4016,7 @@ if (count($primary_available_stages) === 2) {
         <rect width="600" height="260" fill="#ffffff"/>
 
         <g stroke="#dddddd" stroke-width="1">
-            <line x1="70" y1="50" x2="550" y2="50"/>
-            <line x1="70" y1="84" x2="550" y2="84"/>
-            <line x1="70" y1="118" x2="550" y2="118"/>
-            <line x1="70" y1="152" x2="550" y2="152"/>
-            <line x1="70" y1="186" x2="550" y2="186"/>
-            <line x1="70" y1="220" x2="550" y2="220"/>
+            ' . $two_stage_overview_grid . '
         </g>
 
         <g
@@ -3898,12 +4024,7 @@ if (count($primary_available_stages) === 2) {
             font-family="DejaVu Sans"
             font-size="12"
         >
-            <text x="35" y="53">100%</text>
-            <text x="42" y="87">80%</text>
-            <text x="42" y="121">60%</text>
-            <text x="42" y="155">40%</text>
-            <text x="42" y="189">20%</text>
-            <text x="49" y="223">0%</text>
+            ' . $two_stage_overview_axis_labels . '
 
             ' . $two_stage_overview_labels . '
         </g>
@@ -3945,12 +4066,12 @@ if (count($primary_available_stages) === 2) {
 
         $axis_min = max(
             0,
-            floor((min($percentages) - 5) / 10) * 10
+            floor((min($percentages) - 10) / 10) * 10
         );
 
         $axis_max = min(
             100,
-            ceil((max($percentages) + 5) / 10) * 10
+            ceil((max($percentages) + 10) / 10) * 10
         );
 
         if (($axis_max - $axis_min) < 20) {
