@@ -23,6 +23,51 @@ document.addEventListener('DOMContentLoaded', function () {
     let nextProgramIndex =
         programsContainer.querySelectorAll('[data-tle-program-row]').length;
 
+    function normaliseProgramFieldNames() {
+        const rows = Array.from(
+            programsContainer.querySelectorAll('[data-tle-program-row]')
+        );
+
+        rows.forEach(function (row, index) {
+            const searchInput = row.querySelector('[data-tle-program-search]');
+
+            if (searchInput) {
+                searchInput.name = index === 0
+                    ? 'program'
+                    : 'additional_programs[' + index + '][program]';
+            }
+
+            row.querySelectorAll(
+                '[data-tle-evaluation-menu] input[type="checkbox"]'
+            ).forEach(function (checkbox) {
+                checkbox.name = index === 0
+                    ? 'evaluation_points[]'
+                    : 'additional_programs[' + index + '][evaluation_points][]';
+            });
+        });
+    }
+
+    function updateProgramRemovalControls() {
+        const rows = Array.from(
+            programsContainer.querySelectorAll('[data-tle-program-row]')
+        );
+
+        rows.forEach(function (row) {
+            const removeButton = row.querySelector('[data-tle-remove-program]');
+
+            if (removeButton) {
+                removeButton.hidden = rows.length <= 1;
+            }
+        });
+    }
+
+    function syncProgramRows() {
+        normaliseProgramFieldNames();
+        updateProgramRemovalControls();
+        updateReportOverview();
+        syncReportTextState();
+    }
+
     function getSelectedEvaluationPoints(row) {
         return Array.from(
             row.querySelectorAll(
@@ -129,6 +174,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 updateSuggestions();
                 updateReportOverview();
+                syncReportTextState();
             });
 
             suggestionButtons.forEach(function (button) {
@@ -145,6 +191,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
 
                     updateReportOverview();
+                    syncReportTextState();
                 });
             });
 
@@ -175,8 +222,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (removeButton) {
             removeButton.addEventListener('click', function () {
+                const rowCount =
+                    programsContainer.querySelectorAll('[data-tle-program-row]').length;
+
+                if (rowCount <= 1) {
+                    return;
+                }
+
                 row.remove();
-                updateReportOverview();
+                syncProgramRows();
             });
         }
     }
@@ -209,8 +263,348 @@ document.addEventListener('DOMContentLoaded', function () {
             searchInput.focus();
         }
 
-        updateReportOverview();
+        syncProgramRows();
     });
 
-    updateReportOverview();
+    const coverInput = dashboard.querySelector('[data-tle-cover-input]');
+    const coverPreview = dashboard.querySelector('[data-tle-cover-preview]');
+    const coverPlaceholder = dashboard.querySelector('[data-tle-cover-placeholder]');
+    const imageColourRadios = Array.from(
+        dashboard.querySelectorAll('[data-tle-image-colour-radio]')
+    );
+    const imageColourSwatches = Array.from(
+        dashboard.querySelectorAll('[data-tle-image-colour-swatch]')
+    );
+    const customColourInput = dashboard.querySelector(
+        '[data-tle-report-colour-custom]'
+    );
+    const brandColourRadios = Array.from(
+        dashboard.querySelectorAll(
+            'input[name="report_colour"]:not([data-tle-image-colour-radio])'
+        )
+    );
+
+    function resetImageColours() {
+        imageColourRadios.forEach(function (radio, index) {
+            radio.checked = false;
+            radio.disabled = true;
+            radio.dataset.tleColour = '';
+
+            const swatch = imageColourSwatches[index];
+
+            if (swatch) {
+                swatch.style.removeProperty('--tle-swatch');
+                swatch.classList.add(
+                    'tle-dashboard__palette-swatch--unavailable'
+                );
+            }
+        });
+
+        if (customColourInput) {
+            customColourInput.value = '';
+        }
+    }
+
+    function rgbToHex(red, green, blue) {
+        return '#' + [red, green, blue].map(function (value) {
+            return value.toString(16).padStart(2, '0');
+        }).join('');
+    }
+
+    function colourDistance(first, second) {
+        const red = first[0] - second[0];
+        const green = first[1] - second[1];
+        const blue = first[2] - second[2];
+
+        return Math.sqrt(
+            (red * red) +
+            (green * green) +
+            (blue * blue)
+        );
+    }
+
+    function extractImageColours(image) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d', {
+            willReadFrequently: true
+        });
+
+        if (!context) {
+            return [];
+        }
+
+        const maxDimension = 90;
+        const scale = Math.min(
+            maxDimension / image.naturalWidth,
+            maxDimension / image.naturalHeight,
+            1
+        );
+
+        canvas.width = Math.max(
+            1,
+            Math.round(image.naturalWidth * scale)
+        );
+        canvas.height = Math.max(
+            1,
+            Math.round(image.naturalHeight * scale)
+        );
+
+        context.drawImage(
+            image,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+        const pixels = context.getImageData(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        ).data;
+
+        const buckets = new Map();
+
+        for (let index = 0; index < pixels.length; index += 4) {
+            const alpha = pixels[index + 3];
+
+            if (alpha < 180) {
+                continue;
+            }
+
+            const red = pixels[index];
+            const green = pixels[index + 1];
+            const blue = pixels[index + 2];
+
+            const brightness = red + green + blue;
+
+            if (brightness > 735 || brightness < 35) {
+                continue;
+            }
+
+            const quantised = [
+                Math.min(255, Math.round(red / 32) * 32),
+                Math.min(255, Math.round(green / 32) * 32),
+                Math.min(255, Math.round(blue / 32) * 32)
+            ];
+
+            const key = quantised.join(',');
+
+            buckets.set(
+                key,
+                (buckets.get(key) || 0) + 1
+            );
+        }
+
+        const candidates = Array.from(buckets.entries())
+            .sort(function (first, second) {
+                return second[1] - first[1];
+            })
+            .map(function (entry) {
+                return entry[0].split(',').map(Number);
+            });
+
+        const selected = [];
+
+        candidates.forEach(function (colour) {
+            if (selected.length >= 5) {
+                return;
+            }
+
+            const sufficientlyDifferent = selected.every(function (existing) {
+                return colourDistance(existing, colour) >= 65;
+            });
+
+            if (sufficientlyDifferent) {
+                selected.push(colour);
+            }
+        });
+
+        if (selected.length < 5) {
+            candidates.forEach(function (colour) {
+                if (selected.length >= 5) {
+                    return;
+                }
+
+                const alreadySelected = selected.some(function (existing) {
+                    return colourDistance(existing, colour) < 20;
+                });
+
+                if (!alreadySelected) {
+                    selected.push(colour);
+                }
+            });
+        }
+
+        return selected.slice(0, 5).map(function (colour) {
+            return rgbToHex(
+                colour[0],
+                colour[1],
+                colour[2]
+            );
+        });
+    }
+
+    function applyImageColours(colours) {
+        imageColourRadios.forEach(function (radio, index) {
+            const swatch = imageColourSwatches[index];
+            const colour = colours[index] || '';
+
+            radio.checked = false;
+            radio.disabled = colour === '';
+            radio.dataset.tleColour = colour;
+
+            if (!swatch) {
+                return;
+            }
+
+            if (colour) {
+                swatch.style.setProperty('--tle-swatch', colour);
+                swatch.classList.remove(
+                    'tle-dashboard__palette-swatch--unavailable'
+                );
+            } else {
+                swatch.style.removeProperty('--tle-swatch');
+                swatch.classList.add(
+                    'tle-dashboard__palette-swatch--unavailable'
+                );
+            }
+        });
+
+        if (customColourInput) {
+            customColourInput.value = '';
+        }
+    }
+
+    brandColourRadios.forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            if (radio.checked && customColourInput) {
+                customColourInput.value = '';
+            }
+        });
+    });
+
+    imageColourRadios.forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            if (
+                radio.checked &&
+                customColourInput
+            ) {
+                customColourInput.value =
+                    radio.dataset.tleColour || '';
+            }
+        });
+    });
+
+    if (coverInput && coverPreview && coverPlaceholder) {
+        coverInput.addEventListener('change', function () {
+            const file = coverInput.files && coverInput.files[0]
+                ? coverInput.files[0]
+                : null;
+
+            resetImageColours();
+
+            if (!file) {
+                coverPreview.hidden = true;
+                coverPreview.removeAttribute('src');
+                coverPlaceholder.hidden = false;
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.addEventListener('load', function () {
+                const image = new Image();
+
+                image.addEventListener('load', function () {
+                    coverPreview.src = reader.result;
+                    coverPreview.hidden = false;
+                    coverPlaceholder.hidden = true;
+
+                    applyImageColours(
+                        extractImageColours(image)
+                    );
+                });
+
+                image.src = reader.result;
+            });
+
+            reader.readAsDataURL(file);
+        });
+    }
+
+    const reportAutoTextFields = Array.from(
+        dashboard.querySelectorAll('[data-tle-auto-text]')
+    );
+
+    const reportTitleField = dashboard.querySelector('[data-tle-auto-title]');
+    const purposeField = dashboard.querySelector('[data-tle-auto-purpose]');
+
+    reportAutoTextFields.forEach(function (field) {
+        field.dataset.tleUserEdited = 'false';
+
+        field.addEventListener('input', function () {
+            field.dataset.tleUserEdited = 'true';
+        });
+    });
+
+    function getSelectedProgramNames() {
+        return Array.from(
+            programsContainer.querySelectorAll('[data-tle-program-row]')
+        ).map(function (row) {
+            const input = row.querySelector('[data-tle-program-search]');
+
+            return input
+                ? input.dataset.tleProgramSelected || ''
+                : '';
+        }).filter(Boolean);
+    }
+
+    function buildAutomaticReportTitle(programs) {
+        if (programs.length !== 1) {
+            return 'Program Evaluation';
+        }
+
+        const program = programs[0];
+
+        return program.toLowerCase().endsWith('program')
+            ? program + ' Evaluation'
+            : program + ' Program Evaluation';
+    }
+
+    function syncReportTextState() {
+        const programs = getSelectedProgramNames();
+        const hasProgram = programs.length > 0;
+
+        reportAutoTextFields.forEach(function (field) {
+            if (field.dataset.tleUserEdited === 'true') {
+                return;
+            }
+
+            if (!hasProgram) {
+                field.value = '';
+                return;
+            }
+
+            if (field === reportTitleField) {
+                field.value = buildAutomaticReportTitle(programs);
+                return;
+            }
+
+            if (field === purposeField) {
+                field.value = programs.length === 1
+                    ? 'An evaluation of ' + programs[0] +
+                        '. Showcasing progress before and after the program.'
+                    : 'An evaluation of the selected programs. Showcasing progress before and after the programs.';
+                return;
+            }
+
+            field.value = field.dataset.tleDefault || '';
+        });
+    }
+
+    resetImageColours();
+    syncProgramRows();
+    syncReportTextState();
 });
