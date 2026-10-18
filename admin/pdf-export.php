@@ -54,29 +54,43 @@ function tle_get_test_report_data()
                 'benchmark' => 5.2,
             ],
             [
+                'measure' => 'Situational awareness',
+                'pre' => 4.9,
+                'completion' => 5.3,
+                'delay' => 5.6,
+                'benchmark' => 5.1,
+            ],
+            [
                 'measure' => 'Clarity of purpose',
                 'pre' => 4.7,
                 'completion' => 5.4,
                 'delay' => 5.6,
                 'benchmark' => 5.0,
             ],
-        ],
-
-        'influence' => [
             [
-                'measure' => 'Collaboration',
-                'pre' => 5.1,
-                'completion' => 5.6,
-                'delay' => 5.8,
+                'measure' => 'Strategic foresight',
+                'pre' => 4.6,
+                'completion' => 5.0,
+                'delay' => 5.4,
+                'benchmark' => 4.9,
+            ],
+            [
+                'measure' => 'Balanced processing',
+                'pre' => 5.2,
+                'completion' => 5.5,
+                'delay' => 5.7,
                 'benchmark' => 5.2,
             ],
             [
-                'measure' => 'Networking',
-                'pre' => 4.6,
-                'completion' => 5.2,
+                'measure' => 'Self-compassion',
+                'pre' => 4.5,
+                'completion' => 5.1,
                 'delay' => 5.5,
                 'benchmark' => 4.9,
             ],
+        ],
+
+        'influence' => [
             [
                 'measure' => 'Tolerance for ambiguity',
                 'pre' => 4.4,
@@ -84,22 +98,64 @@ function tle_get_test_report_data()
                 'delay' => 5.1,
                 'benchmark' => 4.8,
             ],
+            [
+                'measure' => 'Capacity for informal influence',
+                'pre' => 4.8,
+                'completion' => 5.3,
+                'delay' => 5.5,
+                'benchmark' => 5.0,
+            ],
+            [
+                'measure' => 'Tolerance for complexity',
+                'pre' => 4.7,
+                'completion' => 5.2,
+                'delay' => 5.5,
+                'benchmark' => 4.9,
+            ],
+            [
+                'measure' => 'Capacity for collaboration',
+                'pre' => 5.1,
+                'completion' => 5.6,
+                'delay' => 5.8,
+                'benchmark' => 5.2,
+            ],
+            [
+                'measure' => 'Capacity to establish networks',
+                'pre' => 4.6,
+                'completion' => 5.2,
+                'delay' => 5.5,
+                'benchmark' => 4.9,
+            ],
+            [
+                'measure' => 'Creative decision-making',
+                'pre' => 4.5,
+                'completion' => 5.1,
+                'delay' => 5.4,
+                'benchmark' => 4.8,
+            ],
         ],
 
         'impact' => [
-            [
-                'measure' => 'Place-attachment',
-                'pre' => 5.0,
-                'completion' => 5.4,
-                'delay' => 5.3,
-                'benchmark' => 5.1,
-            ],
             [
                 'measure' => 'Capacity to foster belonging',
                 'pre' => 4.7,
                 'completion' => 5.5,
                 'delay' => 5.6,
                 'benchmark' => 5.0,
+            ],
+            [
+                'measure' => 'Capacity to foster intrinsic motivation',
+                'pre' => 4.8,
+                'completion' => 5.3,
+                'delay' => 5.5,
+                'benchmark' => 5.0,
+            ],
+            [
+                'measure' => 'Place-attachment',
+                'pre' => 5.0,
+                'completion' => 5.4,
+                'delay' => 5.3,
+                'benchmark' => 5.1,
             ],
             [
                 'measure' => 'Extra-role behaviours',
@@ -593,6 +649,80 @@ function tle_export_pdf()
     require_once $autoload;
 
     $data = tle_get_test_report_data();
+
+    $evaluation_points = isset($_POST['evaluation_points'])
+        ? array_map(
+            'sanitize_key',
+            (array) wp_unslash($_POST['evaluation_points'])
+        )
+        : [];
+
+    $include_manager = in_array(
+        'manager',
+        $evaluation_points,
+        true
+    );
+
+    $comparison_programs = isset($_POST['comparison_programs'])
+        ? array_values(
+            array_filter(
+                array_map(
+                    'sanitize_text_field',
+                    (array) wp_unslash($_POST['comparison_programs'])
+                )
+            )
+        )
+        : [];
+
+    $comparison_evaluation_point = isset($_POST['comparison_evaluation_point'])
+        ? sanitize_key(
+            wp_unslash($_POST['comparison_evaluation_point'])
+        )
+        : '';
+
+    $allowed_comparison_points = [
+        'pre-program',
+        'completion',
+        'three-month-delay',
+    ];
+
+    if (
+        !in_array(
+            $comparison_evaluation_point,
+            $allowed_comparison_points,
+            true
+        )
+    ) {
+        $comparison_evaluation_point = '';
+    }
+
+    $comparison_evaluation_labels = [
+        'pre-program'       => 'Pre-program',
+        'completion'        => 'Post-program',
+        'three-month-delay' => 'Delayed',
+    ];
+
+    $comparison_evaluation_label =
+        $comparison_evaluation_point &&
+        isset(
+            $comparison_evaluation_labels[
+                $comparison_evaluation_point
+            ]
+        )
+            ? $comparison_evaluation_labels[
+                $comparison_evaluation_point
+            ]
+            : '';
+
+    $has_comparisons =
+        !empty($comparison_programs) &&
+        $comparison_evaluation_point !== '';
+
+    $manager_summary_text = isset($_POST['manager_summary_text'])
+        ? sanitize_textarea_field(
+            wp_unslash($_POST['manager_summary_text'])
+        )
+        : '';
     $report_title_input = isset($_POST['report_title'])
         ? sanitize_text_field(wp_unslash($_POST['report_title']))
         : '';
@@ -601,65 +731,196 @@ function tle_export_pdf()
         ? sanitize_textarea_field(wp_unslash($_POST['purpose_text']))
         : '';
 
-    $impact_text_1 = isset($_POST['impact_text_1'])
-        ? sanitize_textarea_field(wp_unslash($_POST['impact_text_1']))
+    $highlight_text_1 = isset($_POST['highlight_text_1'])
+        ? sanitize_text_field(wp_unslash($_POST['highlight_text_1']))
         : '';
 
-    $impact_text_2 = isset($_POST['impact_text_2'])
-        ? sanitize_textarea_field(wp_unslash($_POST['impact_text_2']))
+    $highlight_text_2 = isset($_POST['highlight_text_2'])
+        ? sanitize_text_field(wp_unslash($_POST['highlight_text_2']))
         : '';
 
-    $impact_text_3 = isset($_POST['impact_text_3'])
-        ? sanitize_textarea_field(wp_unslash($_POST['impact_text_3']))
+    $highlight_text_3 = isset($_POST['highlight_text_3'])
+        ? sanitize_text_field(wp_unslash($_POST['highlight_text_3']))
+        : '';
+
+    $highlight_text_4 = isset($_POST['highlight_text_4'])
+        ? sanitize_text_field(wp_unslash($_POST['highlight_text_4']))
+        : '';
+
+    $insight_self_awareness_text = isset($_POST['insight_self_awareness_text'])
+        ? sanitize_text_field(wp_unslash($_POST['insight_self_awareness_text']))
+        : '';
+
+    $insight_social_awareness_text = isset($_POST['insight_social_awareness_text'])
+        ? sanitize_text_field(wp_unslash($_POST['insight_social_awareness_text']))
+        : '';
+
+    $insight_situational_awareness_text = isset($_POST['insight_situational_awareness_text'])
+        ? sanitize_text_field(wp_unslash($_POST['insight_situational_awareness_text']))
+        : '';
+
+    $insight_clarity_purpose_text = isset($_POST['insight_clarity_purpose_text'])
+        ? sanitize_text_field(wp_unslash($_POST['insight_clarity_purpose_text']))
+        : '';
+
+    $insight_strategic_foresight_text = isset($_POST['insight_strategic_foresight_text'])
+        ? sanitize_text_field(wp_unslash($_POST['insight_strategic_foresight_text']))
+        : '';
+
+    $insight_balanced_processing_text = isset($_POST['insight_balanced_processing_text'])
+        ? sanitize_text_field(wp_unslash($_POST['insight_balanced_processing_text']))
+        : '';
+
+    $insight_self_compassion_text = isset($_POST['insight_self_compassion_text'])
+        ? sanitize_text_field(wp_unslash($_POST['insight_self_compassion_text']))
+        : '';
+
+    $insight_quote = isset($_POST['insight_quote'])
+        ? sanitize_textarea_field(wp_unslash($_POST['insight_quote']))
+        : '';
+
+    $influence_tolerance_ambiguity_text = isset($_POST['influence_tolerance_ambiguity_text'])
+        ? sanitize_text_field(wp_unslash($_POST['influence_tolerance_ambiguity_text']))
+        : '';
+
+    $influence_informal_influence_text = isset($_POST['influence_informal_influence_text'])
+        ? sanitize_text_field(wp_unslash($_POST['influence_informal_influence_text']))
+        : '';
+
+    $influence_tolerance_complexity_text = isset($_POST['influence_tolerance_complexity_text'])
+        ? sanitize_text_field(wp_unslash($_POST['influence_tolerance_complexity_text']))
+        : '';
+
+    $influence_collaboration_text = isset($_POST['influence_collaboration_text'])
+        ? sanitize_text_field(wp_unslash($_POST['influence_collaboration_text']))
+        : '';
+
+    $influence_networks_text = isset($_POST['influence_networks_text'])
+        ? sanitize_text_field(wp_unslash($_POST['influence_networks_text']))
+        : '';
+
+    $influence_creative_decision_text = isset($_POST['influence_creative_decision_text'])
+        ? sanitize_text_field(wp_unslash($_POST['influence_creative_decision_text']))
+        : '';
+
+    $influence_quote = isset($_POST['influence_quote'])
+        ? sanitize_textarea_field(wp_unslash($_POST['influence_quote']))
+        : '';
+
+    $impact_belonging_text = isset($_POST['impact_belonging_text'])
+        ? sanitize_text_field(wp_unslash($_POST['impact_belonging_text']))
+        : '';
+
+    $impact_intrinsic_motivation_text = isset($_POST['impact_intrinsic_motivation_text'])
+        ? sanitize_text_field(wp_unslash($_POST['impact_intrinsic_motivation_text']))
+        : '';
+
+    $impact_place_attachment_text = isset($_POST['impact_place_attachment_text'])
+        ? sanitize_text_field(wp_unslash($_POST['impact_place_attachment_text']))
+        : '';
+
+    $impact_extra_role_text = isset($_POST['impact_extra_role_text'])
+        ? sanitize_text_field(wp_unslash($_POST['impact_extra_role_text']))
+        : '';
+
+    $impact_quote = isset($_POST['impact_quote'])
+        ? sanitize_textarea_field(wp_unslash($_POST['impact_quote']))
         : '';
 
     $report_colour_key = isset($_POST['report_colour'])
         ? sanitize_key(wp_unslash($_POST['report_colour']))
-        : 'teal';
+        : 'aqua';
+
+    $report_colour_custom = isset($_POST['report_colour_custom'])
+        ? sanitize_hex_color(wp_unslash($_POST['report_colour_custom']))
+        : '';
 
     $report_colours = [
-        'teal' => '#4f7f84',
-        'coral' => '#ff756b',
-        'lime' => '#b8f06a',
+        'aqua'   => '#a2f8ff',
+        'green'  => '#5af474',
+        'yellow' => '#fff25c',
+        'orange' => '#ff643c',
+        'pink'   => '#ffb6ff',
+
+        // Retained for backwards compatibility with earlier dashboard exports.
+        'teal'   => '#4f7f84',
+        'coral'  => '#ff756b',
+        'lime'   => '#b8f06a',
         'purple' => '#c249df',
     ];
 
-    $report_colour = isset($report_colours[$report_colour_key])
-        ? $report_colours[$report_colour_key]
-        : $report_colours['teal'];
+    if (
+        $report_colour_key === 'custom' &&
+        !empty($report_colour_custom)
+    ) {
+        $report_colour = $report_colour_custom;
+    } else {
+        $report_colour = isset($report_colours[$report_colour_key])
+            ? $report_colours[$report_colour_key]
+            : $report_colours['aqua'];
+    }
 
-    $report_colour_tints = [
-        'teal'   => '#cbdcde',
-        'coral'  => '#ffd8d4',
-        'lime'   => '#e8f8cf',
-        'purple' => '#efd8f5',
-    ];
+    $mix_report_colour = static function (
+        $hex,
+        $target = '#ffffff',
+        $amount = 0.5
+    ) {
+        $hex = ltrim($hex, '#');
+        $target = ltrim($target, '#');
 
-    $report_colour_light = isset($report_colour_tints[$report_colour_key])
-        ? $report_colour_tints[$report_colour_key]
-        : $report_colour_tints['teal'];
+        $source_red = hexdec(substr($hex, 0, 2));
+        $source_green = hexdec(substr($hex, 2, 2));
+        $source_blue = hexdec(substr($hex, 4, 2));
 
-    $report_colour_secondary = [
-        'teal'   => '#9fc4c7',
-        'coral'  => '#ffaaa3',
-        'lime'   => '#d3ef9a',
-        'purple' => '#daa4e7',
-    ];
+        $target_red = hexdec(substr($target, 0, 2));
+        $target_green = hexdec(substr($target, 2, 2));
+        $target_blue = hexdec(substr($target, 4, 2));
 
-    $before_bar_colour = isset($report_colour_secondary[$report_colour_key])
-        ? $report_colour_secondary[$report_colour_key]
-        : $report_colour_secondary['teal'];
+        $red = (int) round(
+            $source_red + (($target_red - $source_red) * $amount)
+        );
+        $green = (int) round(
+            $source_green + (($target_green - $source_green) * $amount)
+        );
+        $blue = (int) round(
+            $source_blue + (($target_blue - $source_blue) * $amount)
+        );
 
-    $report_colour_text = [
-        'teal'   => '#ffffff',
-        'coral'  => '#111111',
-        'lime'   => '#111111',
-        'purple' => '#ffffff',
-    ];
+        return sprintf(
+            '#%02x%02x%02x',
+            $red,
+            $green,
+            $blue
+        );
+    };
 
-    $recommendation_text_colour = isset($report_colour_text[$report_colour_key])
-        ? $report_colour_text[$report_colour_key]
-        : '#ffffff';
+    $report_colour_light = $mix_report_colour(
+        $report_colour,
+        '#ffffff',
+        0.68
+    );
+
+    $before_bar_colour = $mix_report_colour(
+        $report_colour,
+        '#ffffff',
+        0.42
+    );
+
+    $report_colour_rgb = sscanf(
+        ltrim($report_colour, '#'),
+        '%02x%02x%02x'
+    );
+
+    $report_colour_brightness = (
+        ($report_colour_rgb[0] * 299) +
+        ($report_colour_rgb[1] * 587) +
+        ($report_colour_rgb[2] * 114)
+    ) / 1000;
+
+    $recommendation_text_colour =
+        $report_colour_brightness >= 155
+            ? '#111111'
+            : '#ffffff';
 
     $cover_image_data = '';
 
@@ -697,60 +958,43 @@ function tle_export_pdf()
         }
     }
 
-    $allowed_programs = [
-    'I-LEAD Young Professionals',
-    'I-LEAD Women in Industry',
-    'I-LEAD Tassie Wine',
-];
+    /*
+     * Program and cohort now come from the dashboard selection.
+     * Available programs are determined by the reporting backend rather
+     * than a hard-coded frontend allow-list.
+     */
+    $allowed_report_types = [
+        'Initial Leadership Capability Survey',
+        'Final ELF Evaluation Report',
+    ];
 
-$allowed_cohorts = [
-    '2025',
-    '2026',
-];
+    $program = isset($_POST['program'])
+        ? sanitize_text_field(wp_unslash($_POST['program']))
+        : $data['program'];
 
-$allowed_report_types = [
-    'Initial Leadership Capability Survey',
-    'Final ELF Evaluation Report',
-];
+    $cohort = isset($_POST['cohort'])
+        ? sanitize_text_field(wp_unslash($_POST['cohort']))
+        : $data['cohort'];
 
-$allowed_comparisons = [
-    'Pre-program / Completion / 3-Month Delay',
-    'Pre-program / Completion',
-    'Pre-program / Tasmanian Benchmark',
-];
+    if ($program === '') {
+        $program = $data['program'];
+    }
 
-$program = isset($_POST['program'])
-    ? sanitize_text_field(wp_unslash($_POST['program']))
-    : $data['program'];
+    if ($cohort === '') {
+        $cohort = $data['cohort'];
+    }
 
-$cohort = isset($_POST['cohort'])
-    ? sanitize_text_field(wp_unslash($_POST['cohort']))
-    : $data['cohort'];
+    $report_type = isset($_POST['report_type'])
+        ? sanitize_text_field(wp_unslash($_POST['report_type']))
+        : $data['report_type'];
 
-$report_type = isset($_POST['report_type'])
-    ? sanitize_text_field(wp_unslash($_POST['report_type']))
-    : $data['report_type'];
+    if (!in_array($report_type, $allowed_report_types, true)) {
+        $report_type = $data['report_type'];
+    }
 
-$comparison = isset($_POST['comparison'])
-    ? sanitize_text_field(wp_unslash($_POST['comparison']))
-    : $data['comparison'];
-
-if (!in_array($program, $allowed_programs, true)) {
-    $program = $data['program'];
-}
-
-if (!in_array($cohort, $allowed_cohorts, true)) {
-    $cohort = $data['cohort'];
-}
-
-if (!in_array($report_type, $allowed_report_types, true)) {
-    $report_type = $data['report_type'];
-}
-
-if (!in_array($comparison, $allowed_comparisons, true)) {
-    $comparison = $data['comparison'];
-}
-
+    $comparison = isset($_POST['comparison'])
+        ? sanitize_text_field(wp_unslash($_POST['comparison']))
+        : $data['comparison'];
 $evaluation_point = (
     $report_type === 'Initial Leadership Capability Survey'
 )
@@ -770,6 +1014,135 @@ if ($report_title_input !== '') {
 if ($purpose_text === '') {
     $purpose_text = 'A comparison between the selected evaluation points for this program.';
 }
+
+    /*
+     * Load the primary program from the central reporting backend.
+     *
+     * Do not treat an absent stage as zero. The available stage list below
+     * is derived from actual non-null capability scores returned for this
+     * program and cohort.
+     */
+    $live_report_data = tle_get_report_data(
+        $program,
+        $cohort
+    );
+
+    if (is_wp_error($live_report_data)) {
+        wp_die(
+            'Unable to load evaluation report data: ' .
+            esc_html($live_report_data->get_error_message())
+        );
+    }
+
+    $data = $live_report_data;
+
+    $primary_stage_labels = [
+        'pre'        => 'Pre-program',
+        'completion' => 'Post-program',
+        'delay'      => 'Delayed',
+    ];
+
+    $primary_available_stages = [];
+
+    foreach ($primary_stage_labels as $stage_key => $stage_label) {
+        $stage_has_scores = false;
+
+        foreach (['insight', 'influence', 'impact'] as $section_key) {
+            foreach ($data[$section_key] ?? [] as $measure) {
+                if (
+                    array_key_exists($stage_key, $measure) &&
+                    $measure[$stage_key] !== null &&
+                    is_numeric($measure[$stage_key])
+                ) {
+                    $stage_has_scores = true;
+                    break 2;
+                }
+            }
+        }
+
+        if ($stage_has_scores) {
+            $primary_available_stages[$stage_key] = $stage_label;
+        }
+    }
+
+    if (empty($primary_available_stages)) {
+        wp_die(
+            'No capability scores are available for the selected program and cohort.'
+        );
+    }
+
+    /*
+     * Enforce comparison requirements server-side as well as in the
+     * dashboard UI. This prevents direct POST requests from generating
+     * an invalid single-stage report.
+     */
+    $comparison_primary_stage_map = [
+        'pre-program'       => 'pre',
+        'completion'        => 'completion',
+        'three-month-delay' => 'delay',
+    ];
+
+    if (
+        count($primary_available_stages) === 1 &&
+        empty($comparison_programs)
+    ) {
+        wp_die(
+            'This program has one available evaluation point. Select at least one comparison program to provide a basis for growth.'
+        );
+    }
+
+    if (!empty($comparison_programs)) {
+        if (!$has_comparisons) {
+            wp_die(
+                'Select one evaluation point for the comparison before exporting.'
+            );
+        }
+
+        $comparison_primary_stage_key =
+            $comparison_primary_stage_map[
+                $comparison_evaluation_point
+            ] ?? '';
+
+        if (
+            $comparison_primary_stage_key === '' ||
+            !isset(
+                $primary_available_stages[
+                    $comparison_primary_stage_key
+                ]
+            )
+        ) {
+            wp_die(
+                'The selected comparison evaluation point is not available for the primary program.'
+            );
+        }
+    }
+
+    /*
+     * Keep automatically generated cover wording truthful when the
+     * selected program has only one real evaluation stage.
+     * Preserve genuinely customised purpose text.
+     */
+    if (count($primary_available_stages) === 1) {
+        $automatic_purpose_text =
+            'An evaluation of ' .
+            $program .
+            '. Showcasing progress before and after the program.';
+
+        if (
+            trim($purpose_text) === '' ||
+            trim($purpose_text) === $automatic_purpose_text
+        ) {
+            $single_stage_cover_label =
+                reset($primary_available_stages);
+
+            $purpose_text =
+                'An evaluation of ' .
+                $program .
+                '. Showing results from the ' .
+                $single_stage_cover_label .
+                ' evaluation.';
+        }
+    }
 
     $is_initial_report = (
     $report_type === 'Initial Leadership Capability Survey'
@@ -1195,78 +1568,66 @@ usort(
     }
 );
 
-$top_impacts = array_slice($growth_items, 0, 3);
-$key_growth = array_slice($growth_items, 0, 5);
+$top_highlights = array_slice($growth_items, 0, 4);
 
-$impact_descriptions = [
-    $impact_text_1,
-    $impact_text_2,
-    $impact_text_3,
+$highlight_descriptions = [
+    'Self-awareness' => $highlight_text_1,
+    'Tolerance for ambiguity' => $highlight_text_2,
+    'Creative decision-making' => $highlight_text_3,
+    'Capacity to foster belonging' => $highlight_text_4,
 ];
 
-$strongest_impact_html = '';
+$highlight_cards = [];
 
-foreach ($top_impacts as $index => $item) {
-    $description = $impact_descriptions[$index] ?? '';
+foreach ($top_highlights as $item) {
+    $description = (
+        isset($highlight_descriptions[$item['measure']]) &&
+        trim($highlight_descriptions[$item['measure']]) !== ''
+    )
+        ? $highlight_descriptions[$item['measure']]
+        : sprintf(
+            '%s increased by %s%%.',
+            $item['measure'],
+            round($item['growth'])
+        );
 
-    $strongest_impact_html .= '
-        <td class="overview-impact-card">
-            <div class="overview-impact-percent">
+    $highlight_cards[] = '
+        <td class="overview-highlight-card">
+            <div class="overview-highlight-percent">
                 +' . esc_html(round($item['growth'])) . '%
             </div>
 
-            <div class="overview-impact-name">
+            <div class="overview-highlight-name">
                 ' . esc_html($item['measure']) . '
             </div>
 
-            <div class="overview-impact-description">
+            <div class="overview-highlight-description">
                 ' . esc_html($description) . '
             </div>
         </td>
     ';
 }
 
-$key_growth_html = '';
+$highlights_html = '';
 
-foreach ($key_growth as $item) {
-    $key_growth_html .= '
-        <td class="key-growth-cell">
-            <div
-                class="key-growth-circle"
-                style="background: ' . esc_attr($report_colour) . ';"
-            >
-                <strong>
-                    +' . esc_html(round($item['growth'])) . '%
-                </strong>
-
-                <span>
-                    ' . esc_html($item['measure']) . '
-                </span>
-            </div>
-        </td>
+if (!empty($highlight_cards)) {
+    $highlights_html .= '
+        <table class="overview-highlights-table">
+            <tr>
+                ' . ($highlight_cards[0] ?? '') . '
+                ' . ($highlight_cards[1] ?? '') . '
+            </tr>
+            <tr>
+                ' . ($highlight_cards[2] ?? '') . '
+                ' . ($highlight_cards[3] ?? '') . '
+            </tr>
+        </table>
     ';
 }
 $section_chart_data = [];
 $section_movers_chart_data = [];
 $section_growth_html = [];
 
-$section_recommendations = [
-    'Insight' => [
-        'Add a reflective check-in between post-program and delayed evaluation.',
-        'Introduce goal-setting earlier in the program to reinforce clarity of purpose.',
-        'Review social-awareness content and build on existing participant strengths.',
-    ],
-    'Influence' => [
-        'Extend structured peer contact beyond the formal program end date.',
-        'Introduce networking opportunities earlier so participants have longer to apply them.',
-        'Continue providing stretch opportunities that strengthen collaboration.',
-    ],
-    'Impact' => [
-        'Document what contributed to the strongest belonging result.',
-        'Review how place-attachment is measured and interpreted across evaluation points.',
-        'Include manager evaluation where available to support behavioural evidence.',
-    ],
-];
 
 $section_chart_y = static function ($percentage) {
     return 205 - ($percentage * 1.55);
@@ -1457,6 +1818,3929 @@ foreach ($overview_sections as $section_name => $measures) {
 
     $section_growth_html[$section_name] = $growth_lines;
 }
+
+/*
+ * Final Sprint 2 Insight report visualisation.
+ *
+ * This overrides the earlier prototype Insight chart/output only.
+ * Influence and Impact continue using the previous rendering until
+ * their final UX pass is applied.
+ */
+
+$insight_measures = $overview_sections['Insight'];
+
+$insight_text_map = [
+    'Self-awareness' => $insight_self_awareness_text,
+    'Social awareness' => $insight_social_awareness_text,
+    'Situational awareness' => $insight_situational_awareness_text,
+    'Clarity of purpose' => $insight_clarity_purpose_text,
+    'Strategic foresight' => $insight_strategic_foresight_text,
+    'Balanced processing' => $insight_balanced_processing_text,
+    'Self-compassion' => $insight_self_compassion_text,
+];
+
+/*
+ * Build the all-capability Insight line chart.
+ * The y-axis adapts to the range of the available prototype data
+ * instead of always forcing 0–100%.
+ */
+
+$insight_percentages = [];
+
+foreach ($insight_measures as $measure) {
+    foreach (['pre', 'completion', 'delay'] as $point) {
+        $insight_percentages[] = ($measure[$point] / 7) * 100;
+    }
+}
+
+$insight_axis_min = max(
+    0,
+    floor((min($insight_percentages) - 10) / 10) * 10
+);
+
+$insight_axis_max = min(
+    100,
+    ceil((max($insight_percentages) + 10) / 10) * 10
+);
+
+if (($insight_axis_max - $insight_axis_min) < 20) {
+    $insight_axis_min = max(0, $insight_axis_min - 10);
+    $insight_axis_max = min(100, $insight_axis_max + 10);
+}
+
+$insight_plot_top = 36;
+$insight_plot_bottom = 205;
+$insight_plot_height = $insight_plot_bottom - $insight_plot_top;
+$insight_axis_range = max(
+    1,
+    $insight_axis_max - $insight_axis_min
+);
+
+$insight_chart_y = static function ($percentage) use (
+    $insight_plot_bottom,
+    $insight_plot_height,
+    $insight_axis_min,
+    $insight_axis_range
+) {
+    return $insight_plot_bottom -
+        (
+            (($percentage - $insight_axis_min) / $insight_axis_range) *
+            $insight_plot_height
+        );
+};
+
+$insight_x_positions = [
+    'pre' => 100,
+    'completion' => 305,
+    'delay' => 510,
+];
+
+$insight_line_colours = [
+    $report_colour,
+    '#111111',
+    '#666666',
+    $mix_report_colour($report_colour, '#111111', 0.28),
+    $mix_report_colour($report_colour, '#ffffff', 0.28),
+    $mix_report_colour($report_colour, '#111111', 0.52),
+    $mix_report_colour($report_colour, '#ffffff', 0.48),
+];
+
+$insight_grid = '';
+
+for (
+    $grid_percentage = $insight_axis_min;
+    $grid_percentage <= $insight_axis_max;
+    $grid_percentage += 10
+) {
+    $grid_y = $insight_chart_y($grid_percentage);
+
+    $insight_grid .= '
+        <line
+            x1="65"
+            y1="' . $grid_y . '"
+            x2="550"
+            y2="' . $grid_y . '"
+        />
+
+        <text
+            x="54"
+            y="' . ($grid_y + 4) . '"
+            text-anchor="end"
+        >' . esc_html($grid_percentage) . '%</text>
+    ';
+}
+
+$insight_lines = '';
+$insight_legend = '';
+
+foreach ($insight_measures as $index => $measure) {
+    $colour = $insight_line_colours[
+        $index % count($insight_line_colours)
+    ];
+
+    $pre_percentage = ($measure['pre'] / 7) * 100;
+    $completion_percentage = ($measure['completion'] / 7) * 100;
+    $delay_percentage = ($measure['delay'] / 7) * 100;
+
+    $points =
+        $insight_x_positions['pre'] . ',' .
+        $insight_chart_y($pre_percentage) . ' ' .
+        $insight_x_positions['completion'] . ',' .
+        $insight_chart_y($completion_percentage) . ' ' .
+        $insight_x_positions['delay'] . ',' .
+        $insight_chart_y($delay_percentage);
+
+    $insight_lines .= '
+        <polyline
+            points="' . $points . '"
+            fill="none"
+            stroke="' . esc_attr($colour) . '"
+            stroke-width="2.5"
+        />
+
+        <g fill="' . esc_attr($colour) . '">
+            <circle
+                cx="' . $insight_x_positions['pre'] . '"
+                cy="' . $insight_chart_y($pre_percentage) . '"
+                r="4"
+            />
+            <circle
+                cx="' . $insight_x_positions['completion'] . '"
+                cy="' . $insight_chart_y($completion_percentage) . '"
+                r="4"
+            />
+            <circle
+                cx="' . $insight_x_positions['delay'] . '"
+                cy="' . $insight_chart_y($delay_percentage) . '"
+                r="4"
+            />
+        </g>
+    ';
+
+    $legend_column = $index % 2;
+    $legend_row = floor($index / 2);
+
+    $legend_x = $legend_column === 0
+        ? 72
+        : 320;
+
+    $legend_y = 239 + ($legend_row * 14);
+
+    $insight_legend .= '
+        <line
+            x1="' . $legend_x . '"
+            y1="' . ($legend_y - 3) . '"
+            x2="' . ($legend_x + 18) . '"
+            y2="' . ($legend_y - 3) . '"
+            stroke="' . esc_attr($colour) . '"
+            stroke-width="3"
+        />
+
+        <text
+            x="' . ($legend_x + 24) . '"
+            y="' . $legend_y . '"
+        >' . esc_html($measure['measure']) . '</text>
+    ';
+}
+
+$insight_svg = '
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="600"
+    height="300"
+    viewBox="0 0 600 300"
+>
+    <rect width="600" height="300" fill="#ffffff"/>
+
+    <g
+        stroke="#dedede"
+        stroke-width="1"
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="10"
+    >
+        ' . $insight_grid . '
+    </g>
+
+    <g
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="10"
+    >
+        <text x="75" y="224">Pre-program</text>
+        <text x="270" y="224">Post-program</text>
+        <text x="490" y="224">Delayed</text>
+
+        ' . $insight_legend . '
+    </g>
+
+    ' . $insight_lines . '
+</svg>
+';
+
+$section_chart_data['Insight'] =
+    'data:image/svg+xml;base64,' .
+    base64_encode($insight_svg);
+
+/*
+ * Key Growth: rank all Insight capabilities by pre-to-delayed
+ * percentage-point increase, then show the top three with
+ * Pre-program, Post-program and Delayed bars.
+ */
+
+$insight_growth_items = [];
+
+foreach ($insight_measures as $measure) {
+    $pre_percentage = ($measure['pre'] / 7) * 100;
+    $completion_percentage = ($measure['completion'] / 7) * 100;
+    $delay_percentage = ($measure['delay'] / 7) * 100;
+
+    $insight_growth_items[] = [
+        'measure' => $measure['measure'],
+        'pre' => $pre_percentage,
+        'completion' => $completion_percentage,
+        'delay' => $delay_percentage,
+        'increase' => $delay_percentage - $pre_percentage,
+    ];
+}
+
+usort(
+    $insight_growth_items,
+    static function ($first, $second) {
+        return $second['increase'] <=> $first['increase'];
+    }
+);
+
+$insight_key_growth = array_slice(
+    $insight_growth_items,
+    0,
+    3
+);
+
+$insight_bar_pre = $report_colour_light;
+$insight_bar_post = $before_bar_colour;
+$insight_bar_delayed = $report_colour;
+
+$insight_key_growth_content = '';
+$insight_group_x = [105, 275, 445];
+
+foreach ($insight_key_growth as $index => $item) {
+    $group_x = $insight_group_x[$index];
+
+    $pre_height = $item['pre'] * 1.35;
+    $post_height = $item['completion'] * 1.35;
+    $delay_height = $item['delay'] * 1.35;
+
+    $pre_y = 170 - $pre_height;
+    $post_y = 170 - $post_height;
+    $delay_y = 170 - $delay_height;
+
+    $insight_key_growth_content .= '
+        <rect
+            x="' . $group_x . '"
+            y="' . $pre_y . '"
+            width="25"
+            height="' . $pre_height . '"
+            fill="' . esc_attr($insight_bar_pre) . '"
+        />
+
+        <rect
+            x="' . ($group_x + 28) . '"
+            y="' . $post_y . '"
+            width="25"
+            height="' . $post_height . '"
+            fill="' . esc_attr($insight_bar_post) . '"
+        />
+
+        <rect
+            x="' . ($group_x + 56) . '"
+            y="' . $delay_y . '"
+            width="25"
+            height="' . $delay_height . '"
+            fill="' . esc_attr($insight_bar_delayed) . '"
+        />
+
+        <text
+            x="' . ($group_x + 40) . '"
+            y="192"
+            text-anchor="middle"
+            font-family="DejaVu Sans"
+            font-size="9"
+            font-weight="600"
+            fill="#111111"
+        >' . esc_html($item['measure']) . '</text>
+    ';
+}
+
+$insight_key_growth_svg = '
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="600"
+    height="205"
+    viewBox="0 0 600 205"
+>
+    <rect width="600" height="205" fill="#ffffff"/>
+
+    <g
+        font-family="DejaVu Sans"
+        font-size="9"
+        fill="#555555"
+    >
+        <rect
+            x="325"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($insight_bar_pre) . '"
+        />
+        <text x="341" y="17">Pre-program</text>
+
+        <rect
+            x="410"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($insight_bar_post) . '"
+        />
+        <text x="426" y="17">Post-program</text>
+
+        <rect
+            x="503"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($insight_bar_delayed) . '"
+        />
+        <text x="519" y="17">Delayed</text>
+    </g>
+
+    <g stroke="#dedede" stroke-width="1">
+        <line x1="65" y1="35" x2="550" y2="35"/>
+        <line x1="65" y1="62" x2="550" y2="62"/>
+        <line x1="65" y1="89" x2="550" y2="89"/>
+        <line x1="65" y1="116" x2="550" y2="116"/>
+        <line x1="65" y1="143" x2="550" y2="143"/>
+        <line x1="65" y1="170" x2="550" y2="170"/>
+    </g>
+
+    <g
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="10"
+    >
+        <text x="54" y="39" text-anchor="end">100%</text>
+        <text x="54" y="66" text-anchor="end">80%</text>
+        <text x="54" y="93" text-anchor="end">60%</text>
+        <text x="54" y="120" text-anchor="end">40%</text>
+        <text x="54" y="147" text-anchor="end">20%</text>
+        <text x="54" y="174" text-anchor="end">0%</text>
+    </g>
+
+    ' . $insight_key_growth_content . '
+</svg>
+';
+
+$section_movers_chart_data['Insight'] =
+    'data:image/svg+xml;base64,' .
+    base64_encode($insight_key_growth_svg);
+
+/* Sprint 3 direction-aware growth summary */
+
+/*
+ * Generate automatic summary wording from the real score movement.
+ * Manually entered dashboard text still takes precedence.
+ */
+$build_change_summary_text = static function (float $change) {
+    $rounded_change = round($change);
+    $absolute_change = abs($rounded_change);
+    $point_label = ($absolute_change == 1)
+        ? 'percentage point'
+        : 'percentage points';
+
+    if ($change > 0.05) {
+        return sprintf(
+            'Participants demonstrated positive growth, increasing by %s %s.',
+            $absolute_change,
+            $point_label
+        );
+    }
+
+    if ($change < -0.05) {
+        return sprintf(
+            "Participants' average score decreased by %s %s.",
+            $absolute_change,
+            $point_label
+        );
+    }
+
+    return "Participants' average score was unchanged between the first and final available evaluation points.";
+};
+
+/*
+ * Growth Summary contains every Insight capability, ordered by
+ * pre-to-delayed change, and displays its editable dashboard text.
+ */
+
+$insight_growth_summary_html = '';
+
+foreach ($insight_growth_items as $item) {
+    $custom_text = isset($insight_text_map[$item['measure']])
+        ? trim($insight_text_map[$item['measure']])
+        : '';
+
+    if ($custom_text === '') {
+        $custom_text = $build_change_summary_text(
+            (float) $item['increase']
+        );
+    }
+
+    $insight_growth_summary_html .= '
+        <div class="growth-summary-line">
+            <strong>
+                ' . esc_html($item['measure']) . '
+            </strong>
+
+            <div>
+                ' . esc_html($custom_text) . '
+            </div>
+        </div>
+    ';
+}
+
+/*
+ * Participant quote is optional and anonymous.
+ * Scale the text according to its length.
+ */
+
+$insight_quote_html = '';
+
+if (trim($insight_quote) !== '') {
+    $quote_length = strlen($insight_quote);
+
+    if ($quote_length > 220) {
+        $insight_quote_size = '9px';
+    } elseif ($quote_length > 140) {
+        $insight_quote_size = '10px';
+    } elseif ($quote_length > 80) {
+        $insight_quote_size = '11px';
+    } else {
+        $insight_quote_size = '13px';
+    }
+
+    $insight_quote_html = '
+        <td
+            class="participant-quote-box"
+            style="
+                background: ' . esc_attr($report_colour) . ';
+                color: ' . esc_attr($recommendation_text_colour) . ';
+            "
+        >
+            <div class="box-heading">
+                Participant Quote
+            </div>
+
+            <div
+                class="participant-quote-text"
+                style="font-size: ' . esc_attr($insight_quote_size) . ';"
+            >
+                &ldquo;' .
+                nl2br(esc_html($insight_quote)) .
+                '&rdquo;
+            </div>
+        </td>
+    ';
+
+    $insight_growth_summary_class =
+        'growth-summary-box growth-summary-box--with-quote';
+} else {
+    $insight_growth_summary_class =
+        'growth-summary-box growth-summary-box--full';
+}
+
+/*
+ * Final Sprint 2 Influence report visualisation.
+ */
+
+$influence_measures = $overview_sections['Influence'];
+
+$influence_text_map = [
+    'Tolerance for ambiguity' => $influence_tolerance_ambiguity_text,
+    'Capacity for informal influence' => $influence_informal_influence_text,
+    'Tolerance for complexity' => $influence_tolerance_complexity_text,
+    'Capacity for collaboration' => $influence_collaboration_text,
+    'Capacity to establish networks' => $influence_networks_text,
+    'Creative decision-making' => $influence_creative_decision_text,
+];
+
+/*
+ * All-capability Influence line chart with dynamic vertical scale.
+ */
+
+$influence_percentages = [];
+
+foreach ($influence_measures as $measure) {
+    foreach (['pre', 'completion', 'delay'] as $point) {
+        $influence_percentages[] = ($measure[$point] / 7) * 100;
+    }
+}
+
+$influence_axis_min = max(
+    0,
+    floor((min($influence_percentages) - 10) / 10) * 10
+);
+
+$influence_axis_max = min(
+    100,
+    ceil((max($influence_percentages) + 10) / 10) * 10
+);
+
+if (($influence_axis_max - $influence_axis_min) < 20) {
+    $influence_axis_min = max(0, $influence_axis_min - 10);
+    $influence_axis_max = min(100, $influence_axis_max + 10);
+}
+
+$influence_plot_top = 36;
+$influence_plot_bottom = 205;
+$influence_plot_height =
+    $influence_plot_bottom - $influence_plot_top;
+
+$influence_axis_range = max(
+    1,
+    $influence_axis_max - $influence_axis_min
+);
+
+$influence_chart_y = static function ($percentage) use (
+    $influence_plot_bottom,
+    $influence_plot_height,
+    $influence_axis_min,
+    $influence_axis_range
+) {
+    return $influence_plot_bottom -
+        (
+            (($percentage - $influence_axis_min) / $influence_axis_range) *
+            $influence_plot_height
+        );
+};
+
+$influence_x_positions = [
+    'pre' => 100,
+    'completion' => 305,
+    'delay' => 510,
+];
+
+$influence_line_colours = [
+    $report_colour,
+    '#111111',
+    '#666666',
+    $mix_report_colour($report_colour, '#111111', 0.28),
+    $mix_report_colour($report_colour, '#ffffff', 0.28),
+    $mix_report_colour($report_colour, '#111111', 0.52),
+];
+
+$influence_grid = '';
+
+for (
+    $grid_percentage = $influence_axis_min;
+    $grid_percentage <= $influence_axis_max;
+    $grid_percentage += 10
+) {
+    $grid_y = $influence_chart_y($grid_percentage);
+
+    $influence_grid .= '
+        <line
+            x1="65"
+            y1="' . $grid_y . '"
+            x2="550"
+            y2="' . $grid_y . '"
+        />
+
+        <text
+            x="54"
+            y="' . ($grid_y + 4) . '"
+            text-anchor="end"
+        >' . esc_html($grid_percentage) . '%</text>
+    ';
+}
+
+$influence_lines = '';
+$influence_legend = '';
+
+foreach ($influence_measures as $index => $measure) {
+    $colour = $influence_line_colours[
+        $index % count($influence_line_colours)
+    ];
+
+    $pre_percentage = ($measure['pre'] / 7) * 100;
+    $completion_percentage = ($measure['completion'] / 7) * 100;
+    $delay_percentage = ($measure['delay'] / 7) * 100;
+
+    $points =
+        $influence_x_positions['pre'] . ',' .
+        $influence_chart_y($pre_percentage) . ' ' .
+        $influence_x_positions['completion'] . ',' .
+        $influence_chart_y($completion_percentage) . ' ' .
+        $influence_x_positions['delay'] . ',' .
+        $influence_chart_y($delay_percentage);
+
+    $influence_lines .= '
+        <polyline
+            points="' . $points . '"
+            fill="none"
+            stroke="' . esc_attr($colour) . '"
+            stroke-width="2.5"
+        />
+
+        <g fill="' . esc_attr($colour) . '">
+            <circle
+                cx="' . $influence_x_positions['pre'] . '"
+                cy="' . $influence_chart_y($pre_percentage) . '"
+                r="4"
+            />
+            <circle
+                cx="' . $influence_x_positions['completion'] . '"
+                cy="' . $influence_chart_y($completion_percentage) . '"
+                r="4"
+            />
+            <circle
+                cx="' . $influence_x_positions['delay'] . '"
+                cy="' . $influence_chart_y($delay_percentage) . '"
+                r="4"
+            />
+        </g>
+    ';
+
+    $legend_column = $index % 2;
+    $legend_row = floor($index / 2);
+
+    $legend_x = $legend_column === 0
+        ? 72
+        : 320;
+
+    $legend_y = 239 + ($legend_row * 14);
+
+    $influence_legend .= '
+        <line
+            x1="' . $legend_x . '"
+            y1="' . ($legend_y - 3) . '"
+            x2="' . ($legend_x + 18) . '"
+            y2="' . ($legend_y - 3) . '"
+            stroke="' . esc_attr($colour) . '"
+            stroke-width="3"
+        />
+
+        <text
+            x="' . ($legend_x + 24) . '"
+            y="' . $legend_y . '"
+        >' . esc_html($measure['measure']) . '</text>
+    ';
+}
+
+$influence_svg = '
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="600"
+    height="290"
+    viewBox="0 0 600 290"
+>
+    <rect width="600" height="290" fill="#ffffff"/>
+
+    <g
+        stroke="#dedede"
+        stroke-width="1"
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="10"
+    >
+        ' . $influence_grid . '
+    </g>
+
+    <g
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="9"
+    >
+        <text x="75" y="224">Pre-program</text>
+        <text x="270" y="224">Post-program</text>
+        <text x="490" y="224">Delayed</text>
+
+        ' . $influence_legend . '
+    </g>
+
+    ' . $influence_lines . '
+</svg>
+';
+
+$section_chart_data['Influence'] =
+    'data:image/svg+xml;base64,' .
+    base64_encode($influence_svg);
+
+/*
+ * Key Growth — highest three pre-to-delayed improvements.
+ */
+
+$influence_growth_items = [];
+
+foreach ($influence_measures as $measure) {
+    $pre_percentage = ($measure['pre'] / 7) * 100;
+    $completion_percentage = ($measure['completion'] / 7) * 100;
+    $delay_percentage = ($measure['delay'] / 7) * 100;
+
+    $influence_growth_items[] = [
+        'measure' => $measure['measure'],
+        'pre' => $pre_percentage,
+        'completion' => $completion_percentage,
+        'delay' => $delay_percentage,
+        'increase' => $delay_percentage - $pre_percentage,
+    ];
+}
+
+usort(
+    $influence_growth_items,
+    static function ($first, $second) {
+        return $second['increase'] <=> $first['increase'];
+    }
+);
+
+$influence_key_growth = array_slice(
+    $influence_growth_items,
+    0,
+    3
+);
+
+$influence_bar_pre = $report_colour_light;
+$influence_bar_post = $before_bar_colour;
+$influence_bar_delayed = $report_colour;
+
+$influence_key_growth_content = '';
+$influence_group_x = [105, 275, 445];
+
+foreach ($influence_key_growth as $index => $item) {
+    $group_x = $influence_group_x[$index];
+
+    $pre_height = $item['pre'] * 1.35;
+    $post_height = $item['completion'] * 1.35;
+    $delay_height = $item['delay'] * 1.35;
+
+    $pre_y = 170 - $pre_height;
+    $post_y = 170 - $post_height;
+    $delay_y = 170 - $delay_height;
+
+    $influence_key_growth_content .= '
+        <rect
+            x="' . $group_x . '"
+            y="' . $pre_y . '"
+            width="25"
+            height="' . $pre_height . '"
+            fill="' . esc_attr($influence_bar_pre) . '"
+        />
+
+        <rect
+            x="' . ($group_x + 28) . '"
+            y="' . $post_y . '"
+            width="25"
+            height="' . $post_height . '"
+            fill="' . esc_attr($influence_bar_post) . '"
+        />
+
+        <rect
+            x="' . ($group_x + 56) . '"
+            y="' . $delay_y . '"
+            width="25"
+            height="' . $delay_height . '"
+            fill="' . esc_attr($influence_bar_delayed) . '"
+        />
+
+        <text
+            x="' . ($group_x + 40) . '"
+            y="192"
+            text-anchor="middle"
+            font-family="DejaVu Sans"
+            font-size="7.5"
+            font-weight="600"
+            fill="#111111"
+        >' . esc_html($item['measure']) . '</text>
+    ';
+}
+
+$influence_key_growth_svg = '
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="600"
+    height="205"
+    viewBox="0 0 600 205"
+>
+    <rect width="600" height="205" fill="#ffffff"/>
+
+    <g
+        font-family="DejaVu Sans"
+        font-size="9"
+        fill="#555555"
+    >
+        <rect
+            x="325"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($influence_bar_pre) . '"
+        />
+        <text x="341" y="17">Pre-program</text>
+
+        <rect
+            x="410"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($influence_bar_post) . '"
+        />
+        <text x="426" y="17">Post-program</text>
+
+        <rect
+            x="503"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($influence_bar_delayed) . '"
+        />
+        <text x="519" y="17">Delayed</text>
+    </g>
+
+    <g stroke="#dedede" stroke-width="1">
+        <line x1="65" y1="35" x2="550" y2="35"/>
+        <line x1="65" y1="62" x2="550" y2="62"/>
+        <line x1="65" y1="89" x2="550" y2="89"/>
+        <line x1="65" y1="116" x2="550" y2="116"/>
+        <line x1="65" y1="143" x2="550" y2="143"/>
+        <line x1="65" y1="170" x2="550" y2="170"/>
+    </g>
+
+    <g
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="10"
+    >
+        <text x="54" y="39" text-anchor="end">100%</text>
+        <text x="54" y="66" text-anchor="end">80%</text>
+        <text x="54" y="93" text-anchor="end">60%</text>
+        <text x="54" y="120" text-anchor="end">40%</text>
+        <text x="54" y="147" text-anchor="end">20%</text>
+        <text x="54" y="174" text-anchor="end">0%</text>
+    </g>
+
+    ' . $influence_key_growth_content . '
+</svg>
+';
+
+$section_movers_chart_data['Influence'] =
+    'data:image/svg+xml;base64,' .
+    base64_encode($influence_key_growth_svg);
+
+/*
+ * Growth Summary — all six capabilities, ordered by growth.
+ */
+
+$influence_growth_summary_html = '';
+
+foreach ($influence_growth_items as $item) {
+    $custom_text = isset($influence_text_map[$item['measure']])
+        ? trim($influence_text_map[$item['measure']])
+        : '';
+
+    if ($custom_text === '') {
+        $custom_text = $build_change_summary_text(
+            (float) $item['increase']
+        );
+    }
+
+    $influence_growth_summary_html .= '
+        <div class="growth-summary-line">
+            <strong>
+                ' . esc_html($item['measure']) . '
+            </strong>
+
+            <div>
+                ' . esc_html($custom_text) . '
+            </div>
+        </div>
+    ';
+}
+
+/*
+ * Optional anonymous participant quote.
+ */
+
+$influence_quote_html = '';
+
+if (trim($influence_quote) !== '') {
+    $quote_length = strlen($influence_quote);
+
+    if ($quote_length > 220) {
+        $influence_quote_size = '9px';
+    } elseif ($quote_length > 140) {
+        $influence_quote_size = '10px';
+    } elseif ($quote_length > 80) {
+        $influence_quote_size = '11px';
+    } else {
+        $influence_quote_size = '13px';
+    }
+
+    $influence_quote_html = '
+        <td
+            class="participant-quote-box"
+            style="
+                background: ' . esc_attr($report_colour) . ';
+                color: ' . esc_attr($recommendation_text_colour) . ';
+            "
+        >
+            <div class="box-heading">
+                Participant Quote
+            </div>
+
+            <div
+                class="participant-quote-text"
+                style="font-size: ' . esc_attr($influence_quote_size) . ';"
+            >
+                &ldquo;' .
+                nl2br(esc_html($influence_quote)) .
+                '&rdquo;
+            </div>
+        </td>
+    ';
+
+    $influence_growth_summary_class =
+        'growth-summary-box growth-summary-box--with-quote';
+} else {
+    $influence_growth_summary_class =
+        'growth-summary-box growth-summary-box--full';
+}
+
+/*
+ * Final Sprint 2 Impact report visualisation.
+ */
+
+$impact_measures = $overview_sections['Impact'];
+
+$impact_text_map = [
+    'Capacity to foster belonging' => $impact_belonging_text,
+    'Capacity to foster intrinsic motivation' => $impact_intrinsic_motivation_text,
+    'Place-attachment' => $impact_place_attachment_text,
+    'Extra-role behaviours' => $impact_extra_role_text,
+];
+
+/*
+ * All-capability Impact line chart with dynamic vertical scale.
+ */
+
+$impact_percentages = [];
+
+foreach ($impact_measures as $measure) {
+    foreach (['pre', 'completion', 'delay'] as $point) {
+        $impact_percentages[] = ($measure[$point] / 7) * 100;
+    }
+}
+
+$impact_axis_min = max(
+    0,
+    floor((min($impact_percentages) - 10) / 10) * 10
+);
+
+$impact_axis_max = min(
+    100,
+    ceil((max($impact_percentages) + 10) / 10) * 10
+);
+
+if (($impact_axis_max - $impact_axis_min) < 20) {
+    $impact_axis_min = max(0, $impact_axis_min - 10);
+    $impact_axis_max = min(100, $impact_axis_max + 10);
+}
+
+$impact_plot_top = 36;
+$impact_plot_bottom = 205;
+$impact_plot_height =
+    $impact_plot_bottom - $impact_plot_top;
+
+$impact_axis_range = max(
+    1,
+    $impact_axis_max - $impact_axis_min
+);
+
+$impact_chart_y = static function ($percentage) use (
+    $impact_plot_bottom,
+    $impact_plot_height,
+    $impact_axis_min,
+    $impact_axis_range
+) {
+    return $impact_plot_bottom -
+        (
+            (($percentage - $impact_axis_min) / $impact_axis_range) *
+            $impact_plot_height
+        );
+};
+
+$impact_x_positions = [
+    'pre' => 100,
+    'completion' => 305,
+    'delay' => 510,
+];
+
+$impact_line_colours = [
+    $report_colour,
+    '#111111',
+    '#666666',
+    $mix_report_colour($report_colour, '#111111', 0.35),
+];
+
+$impact_grid = '';
+
+for (
+    $grid_percentage = $impact_axis_min;
+    $grid_percentage <= $impact_axis_max;
+    $grid_percentage += 10
+) {
+    $grid_y = $impact_chart_y($grid_percentage);
+
+    $impact_grid .= '
+        <line
+            x1="65"
+            y1="' . $grid_y . '"
+            x2="550"
+            y2="' . $grid_y . '"
+        />
+
+        <text
+            x="54"
+            y="' . ($grid_y + 4) . '"
+            text-anchor="end"
+        >' . esc_html($grid_percentage) . '%</text>
+    ';
+}
+
+$impact_lines = '';
+$impact_legend = '';
+
+foreach ($impact_measures as $index => $measure) {
+    $colour = $impact_line_colours[
+        $index % count($impact_line_colours)
+    ];
+
+    $pre_percentage = ($measure['pre'] / 7) * 100;
+    $completion_percentage = ($measure['completion'] / 7) * 100;
+    $delay_percentage = ($measure['delay'] / 7) * 100;
+
+    $points =
+        $impact_x_positions['pre'] . ',' .
+        $impact_chart_y($pre_percentage) . ' ' .
+        $impact_x_positions['completion'] . ',' .
+        $impact_chart_y($completion_percentage) . ' ' .
+        $impact_x_positions['delay'] . ',' .
+        $impact_chart_y($delay_percentage);
+
+    $impact_lines .= '
+        <polyline
+            points="' . $points . '"
+            fill="none"
+            stroke="' . esc_attr($colour) . '"
+            stroke-width="2.5"
+        />
+
+        <g fill="' . esc_attr($colour) . '">
+            <circle
+                cx="' . $impact_x_positions['pre'] . '"
+                cy="' . $impact_chart_y($pre_percentage) . '"
+                r="4"
+            />
+            <circle
+                cx="' . $impact_x_positions['completion'] . '"
+                cy="' . $impact_chart_y($completion_percentage) . '"
+                r="4"
+            />
+            <circle
+                cx="' . $impact_x_positions['delay'] . '"
+                cy="' . $impact_chart_y($delay_percentage) . '"
+                r="4"
+            />
+        </g>
+    ';
+
+    $legend_column = $index % 2;
+    $legend_row = floor($index / 2);
+
+    $legend_x = $legend_column === 0
+        ? 72
+        : 320;
+
+    $legend_y = 239 + ($legend_row * 14);
+
+    $impact_legend .= '
+        <line
+            x1="' . $legend_x . '"
+            y1="' . ($legend_y - 3) . '"
+            x2="' . ($legend_x + 18) . '"
+            y2="' . ($legend_y - 3) . '"
+            stroke="' . esc_attr($colour) . '"
+            stroke-width="3"
+        />
+
+        <text
+            x="' . ($legend_x + 24) . '"
+            y="' . $legend_y . '"
+        >' . esc_html($measure['measure']) . '</text>
+    ';
+}
+
+$impact_svg = '
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="600"
+    height="275"
+    viewBox="0 0 600 275"
+>
+    <rect width="600" height="275" fill="#ffffff"/>
+
+    <g
+        stroke="#dedede"
+        stroke-width="1"
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="10"
+    >
+        ' . $impact_grid . '
+    </g>
+
+    <g
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="9"
+    >
+        <text x="75" y="224">Pre-program</text>
+        <text x="270" y="224">Post-program</text>
+        <text x="490" y="224">Delayed</text>
+
+        ' . $impact_legend . '
+    </g>
+
+    ' . $impact_lines . '
+</svg>
+';
+
+$section_chart_data['Impact'] =
+    'data:image/svg+xml;base64,' .
+    base64_encode($impact_svg);
+
+/*
+ * Key Growth — top three Impact capabilities.
+ */
+
+$impact_growth_items = [];
+
+foreach ($impact_measures as $measure) {
+    $pre_percentage = ($measure['pre'] / 7) * 100;
+    $completion_percentage = ($measure['completion'] / 7) * 100;
+    $delay_percentage = ($measure['delay'] / 7) * 100;
+
+    $impact_growth_items[] = [
+        'measure' => $measure['measure'],
+        'pre' => $pre_percentage,
+        'completion' => $completion_percentage,
+        'delay' => $delay_percentage,
+        'increase' => $delay_percentage - $pre_percentage,
+    ];
+}
+
+usort(
+    $impact_growth_items,
+    static function ($first, $second) {
+        return $second['increase'] <=> $first['increase'];
+    }
+);
+
+$impact_key_growth = array_slice(
+    $impact_growth_items,
+    0,
+    3
+);
+
+$impact_bar_pre = $report_colour_light;
+$impact_bar_post = $before_bar_colour;
+$impact_bar_delayed = $report_colour;
+
+$impact_key_growth_content = '';
+$impact_group_x = [105, 275, 445];
+
+foreach ($impact_key_growth as $index => $item) {
+    $group_x = $impact_group_x[$index];
+
+    $pre_height = $item['pre'] * 1.35;
+    $post_height = $item['completion'] * 1.35;
+    $delay_height = $item['delay'] * 1.35;
+
+    $pre_y = 170 - $pre_height;
+    $post_y = 170 - $post_height;
+    $delay_y = 170 - $delay_height;
+
+    $impact_key_growth_content .= '
+        <rect
+            x="' . $group_x . '"
+            y="' . $pre_y . '"
+            width="25"
+            height="' . $pre_height . '"
+            fill="' . esc_attr($impact_bar_pre) . '"
+        />
+
+        <rect
+            x="' . ($group_x + 28) . '"
+            y="' . $post_y . '"
+            width="25"
+            height="' . $post_height . '"
+            fill="' . esc_attr($impact_bar_post) . '"
+        />
+
+        <rect
+            x="' . ($group_x + 56) . '"
+            y="' . $delay_y . '"
+            width="25"
+            height="' . $delay_height . '"
+            fill="' . esc_attr($impact_bar_delayed) . '"
+        />
+
+        <text
+            x="' . ($group_x + 40) . '"
+            y="192"
+            text-anchor="middle"
+            font-family="DejaVu Sans"
+            font-size="7.5"
+            font-weight="600"
+            fill="#111111"
+        >' . esc_html($item['measure']) . '</text>
+    ';
+}
+
+$impact_key_growth_svg = '
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="600"
+    height="205"
+    viewBox="0 0 600 205"
+>
+    <rect width="600" height="205" fill="#ffffff"/>
+
+    <g
+        font-family="DejaVu Sans"
+        font-size="9"
+        fill="#555555"
+    >
+        <rect
+            x="325"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($impact_bar_pre) . '"
+        />
+        <text x="341" y="17">Pre-program</text>
+
+        <rect
+            x="410"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($impact_bar_post) . '"
+        />
+        <text x="426" y="17">Post-program</text>
+
+        <rect
+            x="503"
+            y="8"
+            width="11"
+            height="11"
+            fill="' . esc_attr($impact_bar_delayed) . '"
+        />
+        <text x="519" y="17">Delayed</text>
+    </g>
+
+    <g stroke="#dedede" stroke-width="1">
+        <line x1="65" y1="35" x2="550" y2="35"/>
+        <line x1="65" y1="62" x2="550" y2="62"/>
+        <line x1="65" y1="89" x2="550" y2="89"/>
+        <line x1="65" y1="116" x2="550" y2="116"/>
+        <line x1="65" y1="143" x2="550" y2="143"/>
+        <line x1="65" y1="170" x2="550" y2="170"/>
+    </g>
+
+    <g
+        fill="#555555"
+        font-family="DejaVu Sans"
+        font-size="10"
+    >
+        <text x="54" y="39" text-anchor="end">100%</text>
+        <text x="54" y="66" text-anchor="end">80%</text>
+        <text x="54" y="93" text-anchor="end">60%</text>
+        <text x="54" y="120" text-anchor="end">40%</text>
+        <text x="54" y="147" text-anchor="end">20%</text>
+        <text x="54" y="174" text-anchor="end">0%</text>
+    </g>
+
+    ' . $impact_key_growth_content . '
+</svg>
+';
+
+$section_movers_chart_data['Impact'] =
+    'data:image/svg+xml;base64,' .
+    base64_encode($impact_key_growth_svg);
+
+/*
+ * Growth Summary — every Impact capability.
+ */
+
+$impact_growth_summary_html = '';
+
+foreach ($impact_growth_items as $item) {
+    $custom_text = isset($impact_text_map[$item['measure']])
+        ? trim($impact_text_map[$item['measure']])
+        : '';
+
+    if ($custom_text === '') {
+        $custom_text = $build_change_summary_text(
+            (float) $item['increase']
+        );
+    }
+
+    $impact_growth_summary_html .= '
+        <div class="growth-summary-line">
+            <strong>
+                ' . esc_html($item['measure']) . '
+            </strong>
+
+            <div>
+                ' . esc_html($custom_text) . '
+            </div>
+        </div>
+    ';
+}
+
+/*
+ * Optional anonymous participant quote.
+ */
+
+$impact_quote_html = '';
+
+if (trim($impact_quote) !== '') {
+    $quote_length = strlen($impact_quote);
+
+    if ($quote_length > 220) {
+        $impact_quote_size = '9px';
+    } elseif ($quote_length > 140) {
+        $impact_quote_size = '10px';
+    } elseif ($quote_length > 80) {
+        $impact_quote_size = '11px';
+    } else {
+        $impact_quote_size = '13px';
+    }
+
+    $impact_quote_html = '
+        <td
+            class="participant-quote-box"
+            style="
+                background: ' . esc_attr($report_colour) . ';
+                color: ' . esc_attr($recommendation_text_colour) . ';
+            "
+        >
+            <div class="box-heading">
+                Participant Quote
+            </div>
+
+            <div
+                class="participant-quote-text"
+                style="font-size: ' . esc_attr($impact_quote_size) . ';"
+            >
+                &ldquo;' .
+                nl2br(esc_html($impact_quote)) .
+                '&rdquo;
+            </div>
+        </td>
+    ';
+
+    $impact_growth_summary_class =
+        'growth-summary-box growth-summary-box--with-quote';
+} else {
+    $impact_growth_summary_class =
+        'growth-summary-box growth-summary-box--full';
+}
+/*
+ * Sprint 3: stage-aware final rendering.
+ *
+ * Missing stages are unavailable, not zero. When only one real
+ * evaluation stage exists, render bar charts and remove growth-only
+ * content.
+ */
+
+$is_single_stage_report = (
+    count($primary_available_stages) === 1
+);
+
+$section_summary_heading = 'Growth Summary';
+
+$overview_highlights_section_html = '
+    <h3 class="overview-subheading">
+        Highlights
+    </h3>
+
+    ' . $highlights_html . '
+';
+
+$section_secondary_html = [
+    'Insight' => '
+        <h3 class="section-movers-title">
+            Key Growth
+        </h3>
+
+        <div class="movers-chart">
+            <img
+                src="' . esc_attr($section_movers_chart_data['Insight']) . '"
+                alt=""
+            >
+        </div>
+    ',
+    'Influence' => '
+        <h3 class="section-movers-title">
+            Key Growth
+        </h3>
+
+        <div class="movers-chart">
+            <img
+                src="' . esc_attr($section_movers_chart_data['Influence']) . '"
+                alt=""
+            >
+        </div>
+    ',
+    'Impact' => '
+        <h3 class="section-movers-title">
+            Key Growth
+        </h3>
+
+        <div class="movers-chart">
+            <img
+                src="' . esc_attr($section_movers_chart_data['Impact']) . '"
+                alt=""
+            >
+        </div>
+    ',
+];
+
+if ($is_single_stage_report) {
+    $single_stage_key = array_key_first(
+        $primary_available_stages
+    );
+
+    $single_stage_label =
+        $primary_available_stages[$single_stage_key];
+
+    $section_summary_heading = 'Summary';
+    $overview_highlights_section_html = '';
+
+    foreach (array_keys($section_secondary_html) as $section_name) {
+        $section_secondary_html[$section_name] = '';
+    }
+
+    $single_stage_average = static function (
+        array $measures,
+        string $stage_key
+    ) {
+        $scores = [];
+
+        foreach ($measures as $measure) {
+            if (
+                array_key_exists($stage_key, $measure) &&
+                $measure[$stage_key] !== null &&
+                is_numeric($measure[$stage_key])
+            ) {
+                $scores[] = (float) $measure[$stage_key];
+            }
+        }
+
+        return $scores
+            ? array_sum($scores) / count($scores)
+            : null;
+    };
+
+    /*
+     * Overview bar chart.
+     */
+    $overview_values = [];
+
+    foreach ($overview_sections as $section_name => $measures) {
+        $average = $single_stage_average(
+            $measures,
+            $single_stage_key
+        );
+
+        if ($average !== null) {
+            $overview_values[$section_name] =
+                ($average / 7) * 100;
+        }
+    }
+
+    $overview_x = [
+        'Insight' => 125,
+        'Influence' => 275,
+        'Impact' => 425,
+    ];
+
+    $overview_bars = '';
+
+    foreach ($overview_values as $section_name => $percentage) {
+        $x = $overview_x[$section_name];
+        $height = $percentage * 1.45;
+        $y = 190 - $height;
+
+        $overview_bars .= '
+            <rect
+                x="' . $x . '"
+                y="' . $y . '"
+                width="70"
+                height="' . $height . '"
+                fill="' . esc_attr($report_colour) . '"
+            />
+
+            <text
+                x="' . ($x + 35) . '"
+                y="' . ($y - 7) . '"
+                text-anchor="middle"
+                font-family="DejaVu Sans"
+                font-size="10"
+                font-weight="600"
+                fill="#111111"
+            >' . esc_html(round($percentage)) . '%</text>
+
+            <text
+                x="' . ($x + 35) . '"
+                y="216"
+                text-anchor="middle"
+                font-family="DejaVu Sans"
+                font-size="11"
+                font-weight="600"
+                fill="#111111"
+            >' . esc_html($section_name) . '</text>
+        ';
+    }
+
+    $overview_svg = '
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="600"
+        height="245"
+        viewBox="0 0 600 245"
+    >
+        <rect width="600" height="245" fill="#ffffff"/>
+
+        <g stroke="#dddddd" stroke-width="1">
+            <line x1="70" y1="45" x2="550" y2="45"/>
+            <line x1="70" y1="74" x2="550" y2="74"/>
+            <line x1="70" y1="103" x2="550" y2="103"/>
+            <line x1="70" y1="132" x2="550" y2="132"/>
+            <line x1="70" y1="161" x2="550" y2="161"/>
+            <line x1="70" y1="190" x2="550" y2="190"/>
+        </g>
+
+        <g
+            fill="#555555"
+            font-family="DejaVu Sans"
+            font-size="10"
+        >
+            <text x="35" y="48">100%</text>
+            <text x="42" y="77">80%</text>
+            <text x="42" y="106">60%</text>
+            <text x="42" y="135">40%</text>
+            <text x="42" y="164">20%</text>
+            <text x="49" y="193">0%</text>
+
+            <rect
+                x="448"
+                y="14"
+                width="12"
+                height="12"
+                fill="' . esc_attr($report_colour) . '"
+            />
+
+            <text x="466" y="24">
+                ' . esc_html($single_stage_label) . '
+            </text>
+        </g>
+
+        ' . $overview_bars . '
+    </svg>
+    ';
+
+    $overview_chart_data =
+        'data:image/svg+xml;base64,' .
+        base64_encode($overview_svg);
+
+    /*
+     * Single-stage capability bar chart.
+     */
+    $single_stage_section_chart = static function (
+        array $measures,
+        string $stage_key,
+        string $stage_label,
+        string $colour
+    ) {
+        $measures = array_values(
+            array_filter(
+                $measures,
+                static function ($measure) use ($stage_key) {
+                    return
+                        array_key_exists($stage_key, $measure) &&
+                        $measure[$stage_key] !== null &&
+                        is_numeric($measure[$stage_key]);
+                }
+            )
+        );
+
+        $count = max(1, count($measures));
+        $plot_left = 70;
+        $plot_width = 480;
+        $slot_width = $plot_width / $count;
+        $bar_width = min(42, $slot_width * 0.55);
+        $bars = '';
+
+        foreach ($measures as $index => $measure) {
+            $percentage =
+                ((float) $measure[$stage_key] / 7) * 100;
+
+            $height = $percentage * 1.45;
+            $y = 190 - $height;
+
+            $centre =
+                $plot_left +
+                ($slot_width * $index) +
+                ($slot_width / 2);
+
+            $x = $centre - ($bar_width / 2);
+
+            $label = (string) $measure['measure'];
+            $label_words =
+                preg_split(
+                    '/\s+/',
+                    trim($label)
+                ) ?: [];
+
+            $label_lines = [$label];
+
+            if (count($label_words) > 1) {
+                $best_split = 1;
+                $best_difference = PHP_INT_MAX;
+
+                for (
+                    $split = 1;
+                    $split < count($label_words);
+                    $split++
+                ) {
+                    $first_line =
+                        implode(
+                            ' ',
+                            array_slice(
+                                $label_words,
+                                0,
+                                $split
+                            )
+                        );
+
+                    $second_line =
+                        implode(
+                            ' ',
+                            array_slice(
+                                $label_words,
+                                $split
+                            )
+                        );
+
+                    $difference =
+                        abs(
+                            strlen($first_line) -
+                            strlen($second_line)
+                        );
+
+                    if ($difference < $best_difference) {
+                        $best_difference = $difference;
+                        $best_split = $split;
+                    }
+                }
+
+                $label_lines = [
+                    implode(
+                        ' ',
+                        array_slice(
+                            $label_words,
+                            0,
+                            $best_split
+                        )
+                    ),
+                    implode(
+                        ' ',
+                        array_slice(
+                            $label_words,
+                            $best_split
+                        )
+                    ),
+                ];
+            }
+
+            $label_svg = '';
+            $label_start_y =
+                count($label_lines) > 1
+                    ? 211
+                    : 216;
+
+            foreach (
+                $label_lines
+                as $line_index =>
+                    $label_line
+            ) {
+                $label_svg .= '
+                    <text
+                        x="' . $centre . '"
+                        y="' .
+                            (
+                                $label_start_y +
+                                ($line_index * 9)
+                            ) .
+                        '"
+                        text-anchor="middle"
+                        font-family="DejaVu Sans"
+                        font-size="7"
+                        fill="#333333"
+                    >' .
+                        esc_html($label_line) .
+                    '</text>
+                ';
+            }
+
+            $bars .= '
+                <rect
+                    x="' . $x . '"
+                    y="' . $y . '"
+                    width="' . $bar_width . '"
+                    height="' . $height . '"
+                    fill="' . esc_attr($colour) . '"
+                />
+
+                <text
+                    x="' . $centre . '"
+                    y="' . ($y - 5) . '"
+                    text-anchor="middle"
+                    font-family="DejaVu Sans"
+                    font-size="8"
+                    font-weight="600"
+                    fill="#111111"
+                >' . esc_html(round($percentage)) . '%</text>
+
+                ' . $label_svg . '
+            ';
+        }
+
+        $svg = '
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="600"
+            height="240"
+            viewBox="0 0 600 240"
+        >
+            <rect width="600" height="240" fill="#ffffff"/>
+
+            <g stroke="#dddddd" stroke-width="1">
+                <line x1="70" y1="45" x2="550" y2="45"/>
+                <line x1="70" y1="74" x2="550" y2="74"/>
+                <line x1="70" y1="103" x2="550" y2="103"/>
+                <line x1="70" y1="132" x2="550" y2="132"/>
+                <line x1="70" y1="161" x2="550" y2="161"/>
+                <line x1="70" y1="190" x2="550" y2="190"/>
+            </g>
+
+            <g
+                fill="#555555"
+                font-family="DejaVu Sans"
+                font-size="10"
+            >
+                <text x="35" y="48">100%</text>
+                <text x="42" y="77">80%</text>
+                <text x="42" y="106">60%</text>
+                <text x="42" y="135">40%</text>
+                <text x="42" y="164">20%</text>
+                <text x="49" y="193">0%</text>
+
+                <rect
+                    x="448"
+                    y="14"
+                    width="12"
+                    height="12"
+                    fill="' . esc_attr($colour) . '"
+                />
+
+                <text x="466" y="24">
+                    ' . esc_html($stage_label) . '
+                </text>
+            </g>
+
+            ' . $bars . '
+        </svg>
+        ';
+
+        return
+            'data:image/svg+xml;base64,' .
+            base64_encode($svg);
+    };
+
+    foreach ($overview_sections as $section_name => $measures) {
+        $section_chart_data[$section_name] =
+            $single_stage_section_chart(
+                $measures,
+                $single_stage_key,
+                $single_stage_label,
+                $report_colour
+            );
+    }
+
+    /*
+     * Single-stage report text.
+     */
+    $single_stage_summary = static function (
+        array $measures,
+        array $text_map,
+        string $stage_key,
+        string $stage_label
+    ) {
+
+$html = '';
+
+        foreach ($measures as $measure) {
+            if (
+                !array_key_exists($stage_key, $measure) ||
+                $measure[$stage_key] === null ||
+                !is_numeric($measure[$stage_key])
+            ) {
+                continue;
+            }
+
+            $custom_text = isset($text_map[$measure['measure']])
+                ? trim($text_map[$measure['measure']])
+                : '';
+            if (
+                stripos(
+                    $custom_text,
+                    'Participants demonstrated positive growth in '
+                ) === 0
+            ) {
+                $custom_text = '';
+            }
+
+
+            if ($custom_text === '') {
+                $custom_text = sprintf(
+                    '%s average score: %s out of 7.',
+                    $stage_label,
+                    number_format(
+                        (float) $measure[$stage_key],
+                        2
+                    )
+                );
+            }
+
+            $html .= '
+                <div class="growth-summary-line">
+                    <strong>
+                        ' . esc_html($measure['measure']) . '
+                    </strong>
+
+                    <div>
+                        ' . esc_html($custom_text) . '
+                    </div>
+                </div>
+            ';
+        }
+
+        return $html;
+    };
+
+    $insight_growth_summary_html =
+        $single_stage_summary(
+            $insight_measures,
+            $insight_text_map,
+            $single_stage_key,
+            $single_stage_label
+        );
+
+    $influence_growth_summary_html =
+        $single_stage_summary(
+            $influence_measures,
+            $influence_text_map,
+            $single_stage_key,
+            $single_stage_label
+        );
+
+    $impact_growth_summary_html =
+        $single_stage_summary(
+            $impact_measures,
+            $impact_text_map,
+            $single_stage_key,
+            $single_stage_label
+        );
+}
+/*
+ * Sprint 3: two-stage report rendering.
+ *
+ * The legacy multi-stage charts assume all three evaluation stages are
+ * present. When exactly two real stages exist, rebuild the primary and
+ * Key Growth charts using only those stages so missing data is never
+ * rendered as zero.
+ */
+if (count($primary_available_stages) === 2) {
+    $two_stage_keys = array_keys($primary_available_stages);
+    $two_stage_labels = array_values($primary_available_stages);
+
+    $two_stage_average = static function (
+        array $measures,
+        string $stage_key
+    ) {
+        $scores = [];
+
+        foreach ($measures as $measure) {
+            if (
+                array_key_exists($stage_key, $measure) &&
+                $measure[$stage_key] !== null &&
+                is_numeric($measure[$stage_key])
+            ) {
+                $scores[] = (float) $measure[$stage_key];
+            }
+        }
+
+        return $scores
+            ? array_sum($scores) / count($scores)
+            : null;
+    };
+
+    /*
+     * Overview: show only the two real evaluation points.
+     */
+    $two_stage_overview_x = [
+        $two_stage_keys[0] => 100,
+        $two_stage_keys[1] => 510,
+    ];
+
+    $two_stage_overview_styles = [
+        'Insight' => [
+            'colour' => $report_colour,
+            'width' => 4,
+            'dash' => '',
+            'radius' => 6,
+        ],
+        'Influence' => [
+            'colour' => '#111111',
+            'width' => 2,
+            'dash' => '7,5',
+            'radius' => 4,
+        ],
+        'Impact' => [
+            'colour' => '#777777',
+            'width' => 2,
+            'dash' => '2,4',
+            'radius' => 4,
+        ],
+    ];
+
+    /*
+     * Scale the Overview to the real data range with approximately
+     * 10 percentage points of context above and below.
+     */
+    $two_stage_overview_percentages = [];
+
+    foreach ($overview_sections as $overview_measures) {
+        foreach ($two_stage_keys as $stage_key) {
+            $average = $two_stage_average(
+                $overview_measures,
+                $stage_key
+            );
+
+            if ($average !== null) {
+                $two_stage_overview_percentages[] =
+                    ($average / 7) * 100;
+            }
+        }
+    }
+
+    $two_stage_overview_axis_min = max(
+        0,
+        floor(
+            (
+                min($two_stage_overview_percentages) -
+                10
+            ) / 10
+        ) * 10
+    );
+
+    $two_stage_overview_axis_max = min(
+        100,
+        ceil(
+            (
+                max($two_stage_overview_percentages) +
+                10
+            ) / 10
+        ) * 10
+    );
+
+    if (
+        (
+            $two_stage_overview_axis_max -
+            $two_stage_overview_axis_min
+        ) < 20
+    ) {
+        $two_stage_overview_axis_min =
+            max(
+                0,
+                $two_stage_overview_axis_min - 10
+            );
+
+        $two_stage_overview_axis_max =
+            min(
+                100,
+                $two_stage_overview_axis_max + 10
+            );
+    }
+
+    $two_stage_overview_plot_top = 50;
+    $two_stage_overview_plot_bottom = 220;
+
+    $two_stage_overview_plot_height =
+        $two_stage_overview_plot_bottom -
+        $two_stage_overview_plot_top;
+
+    $two_stage_overview_axis_range =
+        max(
+            1,
+            $two_stage_overview_axis_max -
+            $two_stage_overview_axis_min
+        );
+
+    $two_stage_overview_y =
+        static function ($percentage) use (
+            $two_stage_overview_plot_bottom,
+            $two_stage_overview_plot_height,
+            $two_stage_overview_axis_min,
+            $two_stage_overview_axis_range
+        ) {
+            return
+                $two_stage_overview_plot_bottom -
+                (
+                    (
+                        (
+                            $percentage -
+                            $two_stage_overview_axis_min
+                        ) /
+                        $two_stage_overview_axis_range
+                    ) *
+                    $two_stage_overview_plot_height
+                );
+        };
+
+    $two_stage_overview_grid = '';
+    $two_stage_overview_axis_labels = '';
+
+    for (
+        $grid_percentage =
+            $two_stage_overview_axis_min;
+        $grid_percentage <=
+            $two_stage_overview_axis_max;
+        $grid_percentage += 10
+    ) {
+        $grid_y =
+            $two_stage_overview_y(
+                $grid_percentage
+            );
+
+        $two_stage_overview_grid .= '
+            <line
+                x1="70"
+                y1="' . $grid_y . '"
+                x2="550"
+                y2="' . $grid_y . '"
+            />
+        ';
+
+        $two_stage_overview_axis_labels .= '
+            <text
+                x="54"
+                y="' . ($grid_y + 4) . '"
+                text-anchor="end"
+            >' .
+                esc_html(
+                    $grid_percentage
+                ) .
+            '%</text>
+        ';
+    }
+
+    $two_stage_overview_series = '';
+
+    foreach ($overview_sections as $section_name => $measures) {
+        $style = $two_stage_overview_styles[$section_name];
+        $points = [];
+        $circles = '';
+
+        foreach ($two_stage_keys as $stage_key) {
+            $average = $two_stage_average(
+                $measures,
+                $stage_key
+            );
+
+            if ($average === null) {
+                continue;
+            }
+
+            $percentage = ($average / 7) * 100;
+            $x = $two_stage_overview_x[$stage_key];
+            $y = $two_stage_overview_y($percentage);
+
+            $points[] = $x . ',' . $y;
+
+            $circles .= '
+                <circle
+                    cx="' . $x . '"
+                    cy="' . $y . '"
+                    r="' . $style['radius'] . '"
+                    fill="' . esc_attr($style['colour']) . '"
+                />
+            ';
+        }
+
+        if (count($points) >= 2) {
+            $dash_attribute = $style['dash'] !== ''
+                ? ' stroke-dasharray="' .
+                    esc_attr($style['dash']) .
+                    '"'
+                : '';
+
+            $two_stage_overview_series .= '
+                <polyline
+                    points="' . esc_attr(implode(' ', $points)) . '"
+                    fill="none"
+                    stroke="' . esc_attr($style['colour']) . '"
+                    stroke-width="' . esc_attr($style['width']) . '"
+                    ' . $dash_attribute . '
+                />
+
+                ' . $circles . '
+            ';
+        }
+    }
+
+    $two_stage_overview_labels = '';
+
+    foreach ($two_stage_keys as $stage_key) {
+        $two_stage_overview_labels .= '
+            <text
+                x="' . $two_stage_overview_x[$stage_key] . '"
+                y="244"
+                text-anchor="middle"
+            >' .
+                esc_html(
+                    $primary_available_stages[$stage_key]
+                ) .
+            '</text>
+        ';
+    }
+
+    $overview_svg = '
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="600"
+        height="260"
+        viewBox="0 0 600 260"
+    >
+        <rect width="600" height="260" fill="#ffffff"/>
+
+        <g stroke="#dddddd" stroke-width="1">
+            ' . $two_stage_overview_grid . '
+        </g>
+
+        <g
+            fill="#555555"
+            font-family="DejaVu Sans"
+            font-size="12"
+        >
+            ' . $two_stage_overview_axis_labels . '
+
+            ' . $two_stage_overview_labels . '
+        </g>
+
+        ' . $two_stage_overview_series . '
+    </svg>
+    ';
+
+    $overview_chart_data =
+        'data:image/svg+xml;base64,' .
+        base64_encode($overview_svg);
+
+    /*
+     * Capability line chart using only the two real stages.
+     */
+    $two_stage_section_chart = static function (
+        array $measures,
+        array $stage_keys,
+        array $stage_labels,
+        array $line_colours
+    ) {
+        $percentages = [];
+
+        foreach ($measures as $measure) {
+            foreach ($stage_keys as $stage_key) {
+                if (
+                    isset($measure[$stage_key]) &&
+                    is_numeric($measure[$stage_key])
+                ) {
+                    $percentages[] =
+                        ((float) $measure[$stage_key] / 7) * 100;
+                }
+            }
+        }
+
+        if (!$percentages) {
+            return '';
+        }
+
+        $axis_min = max(
+            0,
+            floor((min($percentages) - 10) / 10) * 10
+        );
+
+        $axis_max = min(
+            100,
+            ceil((max($percentages) + 10) / 10) * 10
+        );
+
+        if (($axis_max - $axis_min) < 20) {
+            $axis_min = max(0, $axis_min - 10);
+            $axis_max = min(100, $axis_max + 10);
+        }
+
+        $plot_top = 36;
+        $plot_bottom = 205;
+        $plot_height = $plot_bottom - $plot_top;
+        $axis_range = max(1, $axis_max - $axis_min);
+
+        $chart_y = static function ($percentage) use (
+            $plot_bottom,
+            $plot_height,
+            $axis_min,
+            $axis_range
+        ) {
+            return $plot_bottom -
+                (
+                    (($percentage - $axis_min) / $axis_range) *
+                    $plot_height
+                );
+        };
+
+        $x_positions = [
+            $stage_keys[0] => 100,
+            $stage_keys[1] => 510,
+        ];
+
+        $grid = '';
+
+        for (
+            $grid_percentage = $axis_min;
+            $grid_percentage <= $axis_max;
+            $grid_percentage += 10
+        ) {
+            $grid_y = $chart_y($grid_percentage);
+
+            $grid .= '
+                <line
+                    x1="65"
+                    y1="' . $grid_y . '"
+                    x2="550"
+                    y2="' . $grid_y . '"
+                />
+
+                <text
+                    x="54"
+                    y="' . ($grid_y + 4) . '"
+                    text-anchor="end"
+                >' . esc_html($grid_percentage) . '%</text>
+            ';
+        }
+
+        $lines = '';
+        $legend = '';
+
+        foreach ($measures as $index => $measure) {
+            $colour = $line_colours[
+                $index % count($line_colours)
+            ];
+
+            $points = [];
+            $circles = '';
+
+            foreach ($stage_keys as $stage_key) {
+                if (
+                    !isset($measure[$stage_key]) ||
+                    !is_numeric($measure[$stage_key])
+                ) {
+                    continue;
+                }
+
+                $percentage =
+                    ((float) $measure[$stage_key] / 7) * 100;
+
+                $x = $x_positions[$stage_key];
+                $y = $chart_y($percentage);
+
+                $points[] = $x . ',' . $y;
+
+                $circles .= '
+                    <circle
+                        cx="' . $x . '"
+                        cy="' . $y . '"
+                        r="4"
+                    />
+                ';
+            }
+
+            if (count($points) >= 2) {
+                $lines .= '
+                    <polyline
+                        points="' .
+                            esc_attr(implode(' ', $points)) .
+                        '"
+                        fill="none"
+                        stroke="' . esc_attr($colour) . '"
+                        stroke-width="2.5"
+                    />
+
+                    <g fill="' . esc_attr($colour) . '">
+                        ' . $circles . '
+                    </g>
+                ';
+            }
+
+            $legend_column = $index % 2;
+            $legend_row = floor($index / 2);
+
+            $legend_x = $legend_column === 0
+                ? 72
+                : 320;
+
+            $legend_y = 239 + ($legend_row * 14);
+
+            $legend .= '
+                <line
+                    x1="' . $legend_x . '"
+                    y1="' . ($legend_y - 3) . '"
+                    x2="' . ($legend_x + 18) . '"
+                    y2="' . ($legend_y - 3) . '"
+                    stroke="' . esc_attr($colour) . '"
+                    stroke-width="3"
+                />
+
+                <text
+                    x="' . ($legend_x + 24) . '"
+                    y="' . $legend_y . '"
+                >' . esc_html($measure['measure']) . '</text>
+            ';
+        }
+
+        $stage_label_html = '';
+
+        foreach ($stage_keys as $stage_key) {
+            $stage_label_html .= '
+                <text
+                    x="' . $x_positions[$stage_key] . '"
+                    y="224"
+                    text-anchor="middle"
+                >' .
+                    esc_html($stage_labels[$stage_key]) .
+                '</text>
+            ';
+        }
+
+        $svg = '
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="600"
+            height="300"
+            viewBox="0 0 600 300"
+        >
+            <rect width="600" height="300" fill="#ffffff"/>
+
+            <g
+                stroke="#dedede"
+                stroke-width="1"
+                fill="#555555"
+                font-family="DejaVu Sans"
+                font-size="10"
+            >
+                ' . $grid . '
+            </g>
+
+            <g
+                fill="#555555"
+                font-family="DejaVu Sans"
+                font-size="10"
+            >
+                ' . $stage_label_html . '
+                ' . $legend . '
+            </g>
+
+            ' . $lines . '
+        </svg>
+        ';
+
+        return
+            'data:image/svg+xml;base64,' .
+            base64_encode($svg);
+    };
+
+    $two_stage_line_colours = [
+        $report_colour,
+        '#111111',
+        '#666666',
+        $mix_report_colour(
+            $report_colour,
+            '#111111',
+            0.28
+        ),
+        $mix_report_colour(
+            $report_colour,
+            '#ffffff',
+            0.28
+        ),
+        $mix_report_colour(
+            $report_colour,
+            '#111111',
+            0.52
+        ),
+        $mix_report_colour(
+            $report_colour,
+            '#ffffff',
+            0.48
+        ),
+    ];
+
+    foreach ($overview_sections as $section_name => $measures) {
+        $section_chart_data[$section_name] =
+            $two_stage_section_chart(
+                $measures,
+                $two_stage_keys,
+                $primary_available_stages,
+                $two_stage_line_colours
+            );
+    }
+
+    /*
+     * Key Growth chart: rank by change between the two real stages
+     * and show exactly two bars per capability.
+     */
+    $two_stage_growth_chart = static function (
+        array $measures,
+        array $stage_keys,
+        array $stage_labels,
+        string $first_colour,
+        string $second_colour
+    ) {
+        $items = [];
+
+        foreach ($measures as $measure) {
+            $first_key = $stage_keys[0];
+            $second_key = $stage_keys[1];
+
+            if (
+                !isset($measure[$first_key]) ||
+                !is_numeric($measure[$first_key]) ||
+                !isset($measure[$second_key]) ||
+                !is_numeric($measure[$second_key])
+            ) {
+                continue;
+            }
+
+            $first =
+                ((float) $measure[$first_key] / 7) * 100;
+
+            $second =
+                ((float) $measure[$second_key] / 7) * 100;
+
+            $items[] = [
+                'measure' => $measure['measure'],
+                'first' => $first,
+                'second' => $second,
+                'increase' => $second - $first,
+            ];
+        }
+
+        usort(
+            $items,
+            static function ($first, $second) {
+                return
+                    $second['increase'] <=>
+                    $first['increase'];
+            }
+        );
+
+        $items = array_slice($items, 0, 3);
+
+        $centres = [150, 300, 450];
+        $bars = '';
+
+        foreach ($items as $index => $item) {
+            $centre = $centres[$index];
+
+            $first_height = $item['first'] * 1.35;
+            $second_height = $item['second'] * 1.35;
+
+            $first_y = 170 - $first_height;
+            $second_y = 170 - $second_height;
+
+            $bars .= '
+                <rect
+                    x="' . ($centre - 31) . '"
+                    y="' . $first_y . '"
+                    width="28"
+                    height="' . $first_height . '"
+                    fill="' . esc_attr($first_colour) . '"
+                />
+
+                <rect
+                    x="' . ($centre + 3) . '"
+                    y="' . $second_y . '"
+                    width="28"
+                    height="' . $second_height . '"
+                    fill="' . esc_attr($second_colour) . '"
+                />
+
+                <text
+                    x="' . $centre . '"
+                    y="192"
+                    text-anchor="middle"
+                    font-family="DejaVu Sans"
+                    font-size="7"
+                    font-weight="600"
+                    fill="#111111"
+                >' . esc_html($item['measure']) . '</text>
+            ';
+        }
+
+        $svg = '
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="600"
+            height="205"
+            viewBox="0 0 600 205"
+        >
+            <rect width="600" height="205" fill="#ffffff"/>
+
+            <g
+                font-family="DejaVu Sans"
+                font-size="9"
+                fill="#555555"
+            >
+                <rect
+                    x="360"
+                    y="8"
+                    width="11"
+                    height="11"
+                    fill="' . esc_attr($first_colour) . '"
+                />
+
+                <text x="376" y="17">
+                    ' . esc_html($stage_labels[$stage_keys[0]]) . '
+                </text>
+
+                <rect
+                    x="470"
+                    y="8"
+                    width="11"
+                    height="11"
+                    fill="' . esc_attr($second_colour) . '"
+                />
+
+                <text x="486" y="17">
+                    ' . esc_html($stage_labels[$stage_keys[1]]) . '
+                </text>
+            </g>
+
+            <g stroke="#dedede" stroke-width="1">
+                <line x1="65" y1="35" x2="550" y2="35"/>
+                <line x1="65" y1="62" x2="550" y2="62"/>
+                <line x1="65" y1="89" x2="550" y2="89"/>
+                <line x1="65" y1="116" x2="550" y2="116"/>
+                <line x1="65" y1="143" x2="550" y2="143"/>
+                <line x1="65" y1="170" x2="550" y2="170"/>
+            </g>
+
+            <g
+                fill="#555555"
+                font-family="DejaVu Sans"
+                font-size="9"
+            >
+                <text x="38" y="38">100%</text>
+                <text x="45" y="65">80%</text>
+                <text x="45" y="92">60%</text>
+                <text x="45" y="119">40%</text>
+                <text x="45" y="146">20%</text>
+                <text x="52" y="173">0%</text>
+            </g>
+
+            ' . $bars . '
+        </svg>
+        ';
+
+        return
+            'data:image/svg+xml;base64,' .
+            base64_encode($svg);
+    };
+
+    foreach ($overview_sections as $section_name => $measures) {
+        $section_movers_chart_data[$section_name] =
+            $two_stage_growth_chart(
+                $measures,
+                $two_stage_keys,
+                $primary_available_stages,
+                $report_colour_light,
+                $report_colour
+            );
+    }
+
+    /*
+     * Rebuild these blocks because the original strings were created
+     * before the two-stage chart overrides above.
+     */
+    $section_secondary_html = [
+        'Insight' => '
+            <h3 class="section-movers-title">
+                Key Growth
+            </h3>
+
+            <div class="movers-chart">
+                <img
+                    src="' .
+                        esc_attr(
+                            $section_movers_chart_data['Insight']
+                        ) .
+                    '"
+                    alt=""
+                >
+            </div>
+        ',
+        'Influence' => '
+            <h3 class="section-movers-title">
+                Key Growth
+            </h3>
+
+            <div class="movers-chart">
+                <img
+                    src="' .
+                        esc_attr(
+                            $section_movers_chart_data['Influence']
+                        ) .
+                    '"
+                    alt=""
+                >
+            </div>
+        ',
+        'Impact' => '
+            <h3 class="section-movers-title">
+                Key Growth
+            </h3>
+
+            <div class="movers-chart">
+                <img
+                    src="' .
+                        esc_attr(
+                            $section_movers_chart_data['Impact']
+                        ) .
+                    '"
+                    alt=""
+                >
+            </div>
+        ',
+    ];
+}
+/*
+ * Sprint 3: live comparison rendering.
+ *
+ * Comparison data comes from the full reporting service rather than
+ * the legacy PDF adapter because multiple program contexts must remain
+ * separate report series.
+ */
+$comparison_stage_map = [
+    'pre-program'       => 'pre_program',
+    'completion'        => 'completion',
+    'three-month-delay' => 'delay',
+];
+
+$comparison_backend_stage =
+    isset($comparison_stage_map[$comparison_evaluation_point])
+        ? $comparison_stage_map[$comparison_evaluation_point]
+        : '';
+
+$comparison_program_series = [];
+
+if (
+    $has_comparisons &&
+    $comparison_backend_stage !== '' &&
+    class_exists('TLE_Report_Service')
+) {
+    /*
+     * Always include the primary program as the first comparison series.
+     */
+    $requested_comparison_programs = array_values(
+        array_unique(
+            array_merge(
+                [$program],
+                $comparison_programs
+            )
+        )
+    );
+
+    foreach (
+        $requested_comparison_programs
+        as $comparison_program_name
+    ) {
+        if (trim($comparison_program_name) === '') {
+            continue;
+        }
+
+        $comparison_report =
+            TLE_Report_Service::get_report(
+                [
+                    'program' =>
+                        $comparison_program_name,
+                    'cohort' =>
+                        $cohort,
+                    'evaluation_stage' =>
+                        $comparison_backend_stage,
+                ]
+            );
+
+        if (
+            is_wp_error($comparison_report) ||
+            empty($comparison_report['groups']) ||
+            !is_array($comparison_report['groups'])
+        ) {
+            continue;
+        }
+
+        /*
+         * A program/cohort/stage comparison must resolve to one
+         * unambiguous reporting context. Do not combine unrelated
+         * groups by averaging averages.
+         */
+        if (count($comparison_report['groups']) !== 1) {
+            continue;
+        }
+
+        $comparison_group =
+            $comparison_report['groups'][0];
+
+        if (
+            empty($comparison_group['capability_averages']) ||
+            !is_array(
+                $comparison_group['capability_averages']
+            )
+        ) {
+            continue;
+        }
+
+        $program_capabilities = [];
+
+        foreach (
+            $comparison_group['capability_averages']
+            as $section_key => $capabilities
+        ) {
+            if (!is_array($capabilities)) {
+                continue;
+            }
+
+            foreach (
+                $capabilities
+                as $capability_name => $stage_values
+            ) {
+                if (
+                    !is_array($stage_values) ||
+                    !array_key_exists(
+                        $comparison_backend_stage,
+                        $stage_values
+                    ) ||
+                    $stage_values[
+                        $comparison_backend_stage
+                    ] === null ||
+                    !is_numeric(
+                        $stage_values[
+                            $comparison_backend_stage
+                        ]
+                    )
+                ) {
+                    continue;
+                }
+
+                $program_capabilities[
+                    $section_key
+                ][
+                    $capability_name
+                ] = (float) $stage_values[
+                    $comparison_backend_stage
+                ];
+            }
+        }
+
+        if (!empty($program_capabilities)) {
+            $comparison_program_series[
+                $comparison_program_name
+            ] = $program_capabilities;
+        }
+    }
+
+    /*
+     * The primary program must have real data for the selected
+     * comparison stage. Otherwise the comparison has no valid basis.
+     */
+    if (
+        !isset(
+            $comparison_program_series[$program]
+        )
+    ) {
+        wp_die(
+            esc_html(
+                sprintf(
+                    '%s data is not available for %s.',
+                    $comparison_evaluation_label,
+                    $program
+                )
+            )
+        );
+    }
+
+    /*
+     * At least one different program must also have real data.
+     */
+    $valid_comparison_programs =
+        array_values(
+            array_filter(
+                array_keys(
+                    $comparison_program_series
+                ),
+                static function (
+                    $program_name
+                ) use ($program) {
+                    return $program_name !== $program;
+                }
+            )
+        );
+
+    if (empty($valid_comparison_programs)) {
+        wp_die(
+            esc_html(
+                sprintf(
+                    'No comparison program has %s data for the selected cohort.',
+                    $comparison_evaluation_label
+                )
+            )
+        );
+    }
+
+    /*
+     * A single-stage primary report cannot show genuine growth.
+     * Use the already-loaded live comparison data to make the
+     * Overview useful rather than leaving the lower page empty.
+     */
+    if ($is_single_stage_report) {
+        $overview_comparison_rows = '';
+
+        $overview_comparison_sections = [
+            'Insight'   => 'insight',
+            'Influence' => 'influence',
+            'Impact'    => 'impact',
+        ];
+
+        $overview_comparison_palette = [
+            $report_colour,
+            '#E66B5B',
+            '#7A5AA6',
+            '#93B83E',
+            '#4F7F9B',
+            '#D89A42',
+        ];
+
+        $overview_program_index = 0;
+
+        foreach (
+            $comparison_program_series
+            as $comparison_program_name => $sections
+        ) {
+            $overview_metric_cells = '';
+            $has_overview_scores = false;
+
+            foreach (
+                $overview_comparison_sections
+                as $section_name => $section_key
+            ) {
+                $section_scores =
+                    isset($sections[$section_key]) &&
+                    is_array($sections[$section_key])
+                        ? $sections[$section_key]
+                        : [];
+
+                $numeric_scores =
+                    array_values(
+                        array_filter(
+                            $section_scores,
+                            static function ($score) {
+                                return is_numeric($score);
+                            }
+                        )
+                    );
+
+                if (empty($numeric_scores)) {
+                    $overview_metric_cells .= '
+                        <td class="overview-comparison-metric">
+                            <strong>—</strong>
+                            <span>Not available</span>
+                        </td>
+                    ';
+
+                    continue;
+                }
+
+                $section_average =
+                    array_sum($numeric_scores) /
+                    count($numeric_scores);
+
+                $section_percentage =
+                    round(
+                        ($section_average / 7) * 100
+                    );
+
+                $overview_metric_cells .= '
+                    <td class="overview-comparison-metric">
+                        <strong>' .
+                            esc_html(
+                                $section_percentage
+                            ) .
+                        '%</strong>
+                        <span>' .
+                            esc_html(
+                                number_format(
+                                    $section_average,
+                                    2
+                                )
+                            ) .
+                        ' / 7</span>
+                    </td>
+                ';
+
+                $has_overview_scores = true;
+            }
+
+            if (!$has_overview_scores) {
+                continue;
+            }
+
+            $series_colour =
+                $overview_comparison_palette[
+                    $overview_program_index %
+                    count(
+                        $overview_comparison_palette
+                    )
+                ];
+
+            $row_class =
+                $comparison_program_name === $program
+                    ? ' overview-comparison-primary'
+                    : '';
+
+            $overview_comparison_rows .= '
+                <tr class="' .
+                    esc_attr(
+                        trim($row_class)
+                    ) .
+                '">
+                    <th>
+                        <span
+                            class="overview-comparison-swatch"
+                            style="background:' .
+                                esc_attr(
+                                    $series_colour
+                                ) .
+                            ';"
+                        ></span>
+
+                        ' .
+                            esc_html(
+                                $comparison_program_name
+                            ) .
+                        '
+                    </th>
+
+                    ' . $overview_metric_cells . '
+                </tr>
+            ';
+
+            $overview_program_index++;
+        }
+
+        if ($overview_comparison_rows !== '') {
+            $overview_highlights_section_html = '
+                <div class="overview-comparison-glance">
+
+                    <h3 class="overview-comparison-heading">
+                        Comparison at a glance
+                    </h3>
+
+                    <div class="overview-comparison-stage">
+                        ' .
+                            esc_html(
+                                $comparison_evaluation_label
+                            ) .
+                        '
+                    </div>
+
+                    <table class="overview-comparison-table">
+
+                        <thead>
+                            <tr>
+                                <th>Program</th>
+                                <th>Insight</th>
+                                <th>Influence</th>
+                                <th>Impact</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            ' . $overview_comparison_rows . '
+                        </tbody>
+
+                    </table>
+
+                </div>
+            ';
+        }
+    }
+    /*
+     * Grouped capability comparison chart.
+     */
+    $build_comparison_chart =
+        static function (
+            array $measures,
+            array $program_series,
+            string $section_key,
+            string $primary_program,
+            string $primary_colour
+        ) {
+            /*
+             * Keep only programs that have real scores in this
+             * particular report section.
+             */
+            $section_series = [];
+
+            foreach (
+                $program_series
+                as $program_name => $sections
+            ) {
+                if (
+                    empty($sections[$section_key]) ||
+                    !is_array(
+                        $sections[$section_key]
+                    )
+                ) {
+                    continue;
+                }
+
+                $section_series[$program_name] =
+                    $sections[$section_key];
+            }
+
+            if (
+                !isset(
+                    $section_series[$primary_program]
+                ) ||
+                count($section_series) < 2
+            ) {
+                return '';
+            }
+
+            $palette = [
+                $primary_colour,
+                '#E66B5B',
+                '#7A5AA6',
+                '#93B83E',
+                '#4F7F9B',
+                '#D89A42',
+            ];
+
+            $series_count =
+                count($section_series);
+
+            $legend_columns = 2;
+            $legend_rows = (int) ceil(
+                $series_count /
+                $legend_columns
+            );
+
+            $plot_left = 70;
+            $plot_right = 550;
+            $plot_width =
+                $plot_right - $plot_left;
+
+            $plot_top =
+                44 + ($legend_rows * 15);
+
+            $plot_bottom = 196;
+            $plot_height =
+                $plot_bottom - $plot_top;
+
+            $filtered_measures = [];
+
+            foreach ($measures as $measure) {
+                $measure_name =
+                    isset($measure['measure'])
+                        ? (string) $measure['measure']
+                        : '';
+
+                if ($measure_name === '') {
+                    continue;
+                }
+
+                $has_score = false;
+
+                foreach (
+                    $section_series
+                    as $scores
+                ) {
+                    if (
+                        isset($scores[$measure_name]) &&
+                        is_numeric(
+                            $scores[$measure_name]
+                        )
+                    ) {
+                        $has_score = true;
+                        break;
+                    }
+                }
+
+                if ($has_score) {
+                    $filtered_measures[] =
+                        $measure_name;
+                }
+            }
+
+            if (empty($filtered_measures)) {
+                return '';
+            }
+
+            $capability_count =
+                count($filtered_measures);
+
+            $slot_width =
+                $plot_width /
+                max(1, $capability_count);
+
+            $group_width =
+                min(
+                    $slot_width * 0.78,
+                    62
+                );
+
+            $bar_gap = 2;
+
+            $bar_width =
+                min(
+                    18,
+                    max(
+                        4,
+                        (
+                            $group_width -
+                            (
+                                $bar_gap *
+                                max(
+                                    0,
+                                    $series_count - 1
+                                )
+                            )
+                        ) /
+                        max(1, $series_count)
+                    )
+                );
+
+            $actual_group_width =
+                ($bar_width * $series_count) +
+                (
+                    $bar_gap *
+                    max(
+                        0,
+                        $series_count - 1
+                    )
+                );
+
+            $bars = '';
+            $legend = '';
+            $series_index = 0;
+
+            foreach (
+                $section_series
+                as $program_name => $scores
+            ) {
+                $colour =
+                    $palette[
+                        $series_index %
+                        count($palette)
+                    ];
+
+                $legend_column =
+                    $series_index %
+                    $legend_columns;
+
+                $legend_row =
+                    intdiv(
+                        $series_index,
+                        $legend_columns
+                    );
+
+                $legend_x =
+                    75 +
+                    ($legend_column * 250);
+
+                $legend_y =
+                    20 +
+                    ($legend_row * 15);
+
+                $legend_label =
+                    $program_name;
+
+                if (
+                    strlen($legend_label) > 30
+                ) {
+                    $legend_label =
+                        substr(
+                            $legend_label,
+                            0,
+                            28
+                        ) . '...';
+                }
+
+                $legend .= '
+                    <rect
+                        x="' . $legend_x . '"
+                        y="' . ($legend_y - 9) . '"
+                        width="10"
+                        height="10"
+                        fill="' .
+                            esc_attr($colour) .
+                        '"
+                    />
+
+                    <text
+                        x="' . ($legend_x + 15) . '"
+                        y="' . $legend_y . '"
+                        font-family="DejaVu Sans"
+                        font-size="8"
+                        fill="#333333"
+                    >' .
+                        esc_html($legend_label) .
+                    '</text>
+                ';
+
+                foreach (
+                    $filtered_measures
+                    as $capability_index =>
+                        $capability_name
+                ) {
+                    if (
+                        !isset(
+                            $scores[
+                                $capability_name
+                            ]
+                        ) ||
+                        !is_numeric(
+                            $scores[
+                                $capability_name
+                            ]
+                        )
+                    ) {
+                        continue;
+                    }
+
+                    $percentage =
+                        (
+                            (float) $scores[
+                                $capability_name
+                            ] /
+                            7
+                        ) * 100;
+
+                    $height =
+                        ($percentage / 100) *
+                        $plot_height;
+
+                    $y =
+                        $plot_bottom -
+                        $height;
+
+                    $centre =
+                        $plot_left +
+                        (
+                            $slot_width *
+                            $capability_index
+                        ) +
+                        ($slot_width / 2);
+
+                    $group_start =
+                        $centre -
+                        ($actual_group_width / 2);
+
+                    $x =
+                        $group_start +
+                        (
+                            $series_index *
+                            (
+                                $bar_width +
+                                $bar_gap
+                            )
+                        );
+
+                    $bars .= '
+                        <rect
+                            x="' . $x . '"
+                            y="' . $y . '"
+                            width="' .
+                                $bar_width .
+                            '"
+                            height="' .
+                                $height .
+                            '"
+                            fill="' .
+                                esc_attr($colour) .
+                            '"
+                        />
+                    ';
+                }
+
+                $series_index++;
+            }
+
+            $labels = '';
+
+            foreach (
+                $filtered_measures
+                as $capability_index =>
+                    $capability_name
+            ) {
+                $centre =
+                    $plot_left +
+                    (
+                        $slot_width *
+                        $capability_index
+                    ) +
+                    ($slot_width / 2);
+
+                $label =
+                    $capability_name;
+
+                $label_words =
+                    preg_split(
+                        '/\s+/',
+                        trim($label)
+                    ) ?: [];
+
+                $label_lines = [$label];
+
+                if (count($label_words) > 1) {
+                    $best_split = 1;
+                    $best_difference = PHP_INT_MAX;
+
+                    for (
+                        $split = 1;
+                        $split < count($label_words);
+                        $split++
+                    ) {
+                        $first_line =
+                            implode(
+                                ' ',
+                                array_slice(
+                                    $label_words,
+                                    0,
+                                    $split
+                                )
+                            );
+
+                        $second_line =
+                            implode(
+                                ' ',
+                                array_slice(
+                                    $label_words,
+                                    $split
+                                )
+                            );
+
+                        $difference =
+                            abs(
+                                strlen($first_line) -
+                                strlen($second_line)
+                            );
+
+                        if (
+                            $difference <
+                            $best_difference
+                        ) {
+                            $best_difference =
+                                $difference;
+                            $best_split =
+                                $split;
+                        }
+                    }
+
+                    $label_lines = [
+                        implode(
+                            ' ',
+                            array_slice(
+                                $label_words,
+                                0,
+                                $best_split
+                            )
+                        ),
+                        implode(
+                            ' ',
+                            array_slice(
+                                $label_words,
+                                $best_split
+                            )
+                        ),
+                    ];
+                }
+
+                $label_svg = '';
+                $label_start_y =
+                    count($label_lines) > 1
+                        ? 216
+                        : 220;
+
+                foreach (
+                    $label_lines
+                    as $line_index =>
+                        $label_line
+                ) {
+                    $label_svg .= '
+                        <text
+                            x="' . $centre . '"
+                            y="' .
+                                (
+                                    $label_start_y +
+                                    ($line_index * 8)
+                                ) .
+                            '"
+                            text-anchor="middle"
+                            font-family="DejaVu Sans"
+                            font-size="6.5"
+                            fill="#333333"
+                        >' .
+                            esc_html($label_line) .
+                        '</text>
+                    ';
+                }
+
+                $labels .= '
+                    ' . $label_svg . '
+                ';
+            }
+
+            $grid = '';
+            $axis_labels = '';
+
+            foreach (
+                [100, 80, 60, 40, 20, 0]
+                as $percentage
+            ) {
+                $y =
+                    $plot_bottom -
+                    (
+                        ($percentage / 100) *
+                        $plot_height
+                    );
+
+                $grid .= '
+                    <line
+                        x1="' . $plot_left . '"
+                        y1="' . $y . '"
+                        x2="' . $plot_right . '"
+                        y2="' . $y . '"
+                    />
+                ';
+
+                $axis_labels .= '
+                    <text
+                        x="43"
+                        y="' . ($y + 3) . '"
+                    >' .
+                        $percentage .
+                        '%</text>
+                ';
+            }
+
+            $svg = '
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="600"
+                height="235"
+                viewBox="0 0 600 235"
+            >
+                <rect
+                    width="600"
+                    height="235"
+                    fill="#ffffff"
+                />
+
+                ' . $legend . '
+
+                <g
+                    stroke="#dddddd"
+                    stroke-width="1"
+                >
+                    ' . $grid . '
+                </g>
+
+                <g
+                    fill="#555555"
+                    font-family="DejaVu Sans"
+                    font-size="8"
+                >
+                    ' . $axis_labels . '
+                </g>
+
+                ' . $bars . '
+                ' . $labels . '
+            </svg>
+            ';
+
+            return
+                'data:image/svg+xml;base64,' .
+                base64_encode($svg);
+        };
+
+    $comparison_section_keys = [
+        'Insight'   => 'insight',
+        'Influence' => 'influence',
+        'Impact'    => 'impact',
+    ];
+
+    foreach (
+        $comparison_section_keys
+        as $section_name => $section_key
+    ) {
+        if (
+            empty($overview_sections[$section_name])
+        ) {
+            continue;
+        }
+
+        $comparison_chart_data =
+            $build_comparison_chart(
+                $overview_sections[
+                    $section_name
+                ],
+                $comparison_program_series,
+                $section_key,
+                $program,
+                $report_colour
+            );
+
+        if ($comparison_chart_data === '') {
+            continue;
+        }
+
+        $section_secondary_html[
+            $section_name
+        ] = '
+            <h3 class="section-movers-title">
+                Comparison - ' .
+                    esc_html(
+                        $comparison_evaluation_label
+                    ) .
+                '
+            </h3>
+
+            <div class="movers-chart">
+                <img
+                    src="' .
+                        esc_attr(
+                            $comparison_chart_data
+                        ) .
+                    '"
+                    alt=""
+                >
+            </div>
+        ';
+    }
+}
+
+
+
+/*
+ * Sprint 3: Manager PDF pages.
+ *
+ * Manager results are filtered by the selected program and cohort.
+ * Historical Form 50 submissions without matching context are never
+ * attributed to the selected report.
+ */
+/*
+ * Global PDF brand logo.
+ * Must be available whether or not Manager pages are included.
+ */
+$brand_logo_path =
+    dirname(__DIR__) .
+    '/assets/images/tasmanian-leaders-logo-black.png';
+
+$brand_logo_html =
+    '<div class="brand">Tasmanian Leaders</div>';
+
+if (is_readable($brand_logo_path)) {
+    $brand_logo_data =
+        'data:image/png;base64,' .
+        base64_encode(
+            file_get_contents($brand_logo_path)
+        );
+
+    $brand_logo_html =
+        '<div class="brand">' .
+            '<img src="' .
+                esc_attr($brand_logo_data) .
+                '" alt="Tasmanian Leaders">' .
+        '</div>';
+}
+
+$total_pages = $include_manager ? 7 : 5;
+$manager_pages_html = '';
+
+if ($include_manager) {
+    // Real-data rendering test: no program attribution is inferred from blank fields.
+    // Use verified program/cohort filters here for production program-specific reports.
+    $manager_filters = [];
+    $manager_service_file = dirname(__DIR__) . '/includes/class-manager-report-service.php';
+    if (!class_exists('TLE_Manager_Report_Service') && is_readable($manager_service_file)) {
+        require_once $manager_service_file;
+    }
+    if (!class_exists('TLE_Manager_Report_Service')) {
+        wp_die('Manager reporting backend is missing.');
+    }
+    $manager_result = TLE_Manager_Report_Service::get_report($manager_filters);
+    if (is_wp_error($manager_result)) {
+        wp_die(esc_html('Unable to retrieve Manager results: ' . $manager_result->get_error_message()));
+    }
+
+    // Reuse the same validated dashboard colour used by the rest of this export.
+    $manager_base_colour = $report_colour;
+    if (strlen(ltrim($manager_base_colour, '#')) === 3) {
+        $manager_short_hex = ltrim($manager_base_colour, '#');
+        $manager_base_colour = '#' . $manager_short_hex[0] . $manager_short_hex[0] . $manager_short_hex[1] . $manager_short_hex[1] . $manager_short_hex[2] . $manager_short_hex[2];
+    }
+    $manager_summary_colour = $report_colour_light;
+    $manager_text_colour = static function ($hex) {
+        $hex = ltrim((string) $hex, '#');
+        $channels = [];
+        foreach ([0, 2, 4] as $offset) {
+            $v = hexdec(substr($hex, $offset, 2)) / 255;
+            $channels[] = $v <= 0.04045 ? $v / 12.92 : pow(($v + 0.055) / 1.055, 2.4);
+        }
+        $luminance = 0.2126 * $channels[0] + 0.7152 * $channels[1] + 0.0722 * $channels[2];
+        return ($luminance + 0.05) / 0.05 >= 1.05 / ($luminance + 0.05) ? '#111111' : '#ffffff';
+    };
+    // Very dark selections need lighter tones so answer categories remain distinct.
+    $manager_hex = ltrim($manager_base_colour, '#');
+    $manager_is_dark = max(hexdec(substr($manager_hex, 0, 2)), hexdec(substr($manager_hex, 2, 2)), hexdec(substr($manager_hex, 4, 2))) < 65;
+    $manager_tones = $manager_is_dark ? [
+        $mix_report_colour($manager_base_colour, '#ffffff', 0.82),
+        $mix_report_colour($manager_base_colour, '#ffffff', 0.62),
+        $mix_report_colour($manager_base_colour, '#ffffff', 0.92),
+        $mix_report_colour($manager_base_colour, '#ffffff', 0.32),
+        $manager_base_colour,
+    ] : [
+        $mix_report_colour($manager_base_colour, '#000000', 0.72),
+        $mix_report_colour($manager_base_colour, '#000000', 0.44),
+        $mix_report_colour($manager_base_colour, '#ffffff', 0.78),
+        $manager_base_colour,
+        $mix_report_colour($manager_base_colour, '#000000', 0.18),
+    ];
+    $manager_colour = static function ($label) use ($manager_tones) {
+        $indices = [
+            'strongly disagree' => 0, 'disagree' => 1, 'neutral' => 2, 'agree' => 3, 'strongly agree' => 4,
+            'extremely dissatisfied' => 0, 'somewhat dissatisfied' => 1, 'somewhat disatisfied' => 1,
+            'somewhat satisfied' => 3, 'extremely satisfied' => 4, 'no' => 0, 'yes' => 3,
+        ];
+        return $manager_tones[$indices[strtolower(trim((string) $label))] ?? 2];
+    };
+    $manager_format_percentage = static function ($value) {
+        return number_format((float) $value, 0, '.', '');
+    };
+    // Allocate whole-number labels within each rating group so totals stay consistent.
+    // Backend percentages, response counts and bar widths are never modified.
+    $manager_display_percentages = static function (array $question) {
+        $labels = array_fill_keys(array_keys($question['categories']), 0);
+        if ((int) $question['answered_count'] === 0) { return $labels; }
+        $has_positive = $question['positive_percentage'] !== null;
+        $positive_target = $has_positive ? (int) round($question['positive_percentage']) : 0;
+        $groups = $has_positive ? [false, true] : [null];
+        foreach ($groups as $positive) {
+            $target = $positive === null ? 100 : ($positive ? $positive_target : 100 - $positive_target);
+            $remainders = [];
+            $allocated = 0;
+            foreach ($question['categories'] as $index => $category) {
+                if ($positive !== null && !empty($category['positive']) !== $positive) { continue; }
+                if ($category['percentage'] === null || (float) $category['percentage'] <= 0) { continue; }
+                $value = (float) $category['percentage'];
+                $labels[$index] = (int) floor($value);
+                $allocated += $labels[$index];
+                $remainders[$index] = $value - $labels[$index];
+            }
+            // Stable sorting resolves equal remainders in the backend category order.
+            arsort($remainders, SORT_NUMERIC);
+            $remaining = $target - $allocated;
+            foreach ($remainders as $index => $remainder) {
+                if ($remaining <= 0) { break; }
+                $labels[$index]++;
+                $remaining--;
+            }
+        }
+        return $labels;
+    };
+    $manager_legend = static function (array $categories) use ($manager_colour) {
+        // Fixed columns and explicit text positions are reliable in Dompdf.
+        $count = count($categories);
+        if (!$count) { return ''; }
+        $start = $count === 2 ? 250 : 0;
+        $available = $count === 2 ? 340 : 840;
+        $cell_width = $available / $count;
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="840" height="58" viewBox="0 0 840 58">';
+        foreach ($categories as $i => $category) {
+            $x = $start + $i * $cell_width + 4;
+            // Wrap long satisfaction labels rather than shrinking the entire legend.
+            $words = preg_split('/\s+/', trim((string) $category['label']));
+            $lines = [''];
+            $limit = max(10, (int) floor(($cell_width - 32) / 9.4));
+            foreach ($words as $word) {
+                $index = count($lines) - 1;
+                $candidate = trim($lines[$index] . ' ' . $word);
+                if (strlen($candidate) > $limit && $lines[$index] !== '') { $lines[] = $word; }
+                else { $lines[$index] = $candidate; }
+            }
+            $svg .= '<rect x="' . $x . '" y="9" width="20" height="13" fill="' . $manager_colour($category['label']) . '"/>';
+            foreach ($lines as $line_index => $line) {
+                $svg .= '<text x="' . ($x + 27) . '" y="' . (21 + 19 * $line_index)
+                    . '" font-family="DejaVu Sans" font-size="16" fill="#111111">' . esc_html($line) . '</text>';
+            }
+        }
+        return '<img class="manager-ux-legend-image" src="data:image/svg+xml;base64,'
+            . base64_encode($svg . '</svg>') . '" alt="' . esc_attr(implode(', ', array_column($categories, 'label'))) . '">';
+    };
+    $manager_bar = static function (array $question) use ($manager_colour, $manager_text_colour, $manager_display_percentages) {
+        if ((int) $question['answered_count'] === 0) {
+            return '<div class="manager-ux-empty">Not available</div>';
+        }
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="420" height="106" viewBox="0 0 420 106">';
+        $x = 0.0;
+        $callouts = [];
+        $display_percentages = $manager_display_percentages($question);
+        foreach ($question['categories'] as $category_index => $category) {
+            $percentage = $category['percentage'];
+            if ($percentage === null || (float) $percentage <= 0) { continue; }
+            // Geometry and badges use original backend precision, never rounded labels.
+            $width = (float) $percentage * 4.2;
+            $colour = $manager_colour($category['label']);
+            $svg .= '<rect x="' . number_format($x, 6, '.', '') . '" y="0" width="'
+                . number_format($width, 6, '.', '') . '" height="72" fill="' . $colour . '"/>';
+            $label = (string) $display_percentages[$category_index];
+            $centre = $x + $width / 2;
+            $text_width = strlen($label) * 7.5;
+            if ($width >= $text_width + 6) {
+                $svg .= '<text x="' . number_format($centre, 6, '.', '')
+                    . '" y="42" text-anchor="middle" font-family="DejaVu Sans" font-size="13" fill="'
+                    . $manager_text_colour($colour) . '">' . $label . '</text>';
+            } else {
+                // Small segments keep readable whole-number labels below the bar.
+                $callouts[] = ['centre' => $centre, 'width' => $text_width, 'label' => $label];
+            }
+            $x += $width;
+        }
+        $right = 0.0;
+        foreach ($callouts as &$callout) {
+            $callout['x'] = max($callout['centre'], $callout['width'] / 2 + 2, $right + $callout['width'] / 2 + 7);
+            $right = $callout['x'] + $callout['width'] / 2;
+        }
+        unset($callout);
+        // Work back from the right edge so callouts cannot collide or leave the chart.
+        $right = 418.0;
+        for ($i = count($callouts) - 1; $i >= 0; $i--) {
+            $callouts[$i]['x'] = min($callouts[$i]['x'], $right - $callouts[$i]['width'] / 2);
+            $right = $callouts[$i]['x'] - $callouts[$i]['width'] / 2 - 7;
+        }
+        foreach ($callouts as $callout) {
+            $svg .= '<path d="M' . number_format($callout['centre'], 3, '.', '') . ' 72 L'
+                . number_format($callout['x'], 3, '.', '') . ' 84" fill="none" stroke="#555555" stroke-width="1"/>';
+            $svg .= '<text x="' . number_format($callout['x'], 3, '.', '')
+                . '" y="99" text-anchor="middle" font-family="DejaVu Sans" font-size="13" fill="#111111">'
+                . $callout['label'] . '</text>';
+        }
+        return '<img class="manager-ux-bar" src="data:image/svg+xml;base64,' . base64_encode($svg . '</svg>')
+            . '" alt="' . esc_attr($question['statement']) . '">';
+    };
+    $manager_row = static function (array $question) use ($manager_bar, $manager_base_colour, $manager_text_colour, $manager_format_percentage) {
+        $has_rating = $question['positive_percentage'] !== null;
+        $rating = $has_rating ? $manager_format_percentage($question['positive_percentage']) . '%' : 'N/A';
+        $badge_label = stripos($question['statement'], 'short-term goals') !== false ? 'Agreement' : 'Positive';
+        $background = $has_rating ? $manager_base_colour : '#e8ebe9';
+        $foreground = $manager_text_colour($background);
+        $badge_svg = '<svg xmlns="http://www.w3.org/2000/svg" width="150" height="72" viewBox="0 0 150 72">'
+            . '<rect width="150" height="72" fill="' . $background . '"/>'
+            . '<text x="75" y="35" text-anchor="middle" font-family="DejaVu Sans" font-weight="bold" font-size="27" fill="' . $foreground . '">'
+            . esc_html($rating) . '</text><text x="75" y="59" text-anchor="middle" font-family="DejaVu Sans" font-weight="bold" font-size="'
+            . ($badge_label === 'Agreement' ? '15' : '18') . '" fill="' . $foreground . '">'
+            . esc_html($has_rating ? $badge_label : 'Unavailable') . '</text></svg>';
+        return '<tr class="manager-ux-row"><td class="manager-ux-statement">' . esc_html($question['statement'])
+            . '</td><td class="manager-ux-chart-cell">' . $manager_bar($question) . '</td><td class="manager-ux-badge-cell">'
+            . '<img class="manager-ux-badge-image" src="data:image/svg+xml;base64,' . base64_encode($badge_svg)
+            . '" alt="' . esc_attr($rating . ' ' . ($has_rating ? $badge_label : 'Unavailable')) . '"></td></tr>';
+    };
+
+    $manager_page_specs = [];
+    foreach ($manager_result['groups'] as $group) {
+        foreach ($group['series'] as $series) {
+            $questions = $series['questions'];
+            // Present agreement items first, then satisfaction, employment and Yes/No,
+            // as in the mock-up. Source order is stable within each section.
+            $ordered = [];
+            foreach ($questions as $i => $question) {
+                $scale = (string) $question['scale'];
+                $rank = strpos($scale, 'agreement') === 0 ? 0 : 1;
+                if (stripos($question['statement'], 'employment opportunities') !== false) { $rank = 2; }
+                if (count($question['categories']) === 2) { $rank = 3; }
+                $ordered[] = ['rank' => $rank, 'index' => $i, 'question' => $question];
+            }
+            usort($ordered, static function ($a, $b) {
+                return ($a['rank'] <=> $b['rank']) ?: ($a['index'] <=> $b['index']);
+            });
+            $questions = array_column($ordered, 'question');
+            $chunks = array_chunk($questions, 9);
+            if (!$chunks) { $chunks = [[]]; }
+            foreach ($chunks as $chunk_index => $chunk) {
+                $manager_page_specs[] = [
+                    'questions' => $chunk, 'context' => $group['context'],
+                    'title' => $series['title'], 'form_id' => $series['form_id'],
+                    'submission_count' => $series['submission_count'],
+                    'first_in_series' => $chunk_index === 0,
+                ];
+            }
+        }
+    }
+    if (!$manager_page_specs) {
+        $manager_page_specs[] = [
+            'questions' => [], 'context' => [], 'title' => 'Manager responses',
+            'form_id' => '', 'submission_count' => 0, 'first_in_series' => true,
+        ];
+    }
+    $total_pages = 5 + count($manager_page_specs);
+    foreach ($manager_page_specs as $page_index => $spec) {
+        $first = $spec['first_in_series'];
+        $context_parts = [];
+        foreach (['program_group', 'program', 'cohort'] as $context_key) {
+            if (!empty($spec['context'][$context_key])) { $context_parts[] = $spec['context'][$context_key]; }
+        }
+        $context_complete = !empty($spec['context']['program']) && !empty($spec['context']['cohort']);
+        $scope = $context_complete ? implode(' / ', $context_parts)
+            : 'All Manager responses - program/year unavailable';
+        $html_rows = '';
+        $last_scale = null;
+        foreach ($spec['questions'] as $question) {
+            $scale_key = json_encode(array_column($question['categories'], 'label'));
+            if ($scale_key !== $last_scale) {
+                $html_rows .= '<tr><td colspan="3" class="manager-ux-legend-cell">'
+                    . $manager_legend($question['categories']) . '</td></tr>';
+                $last_scale = $scale_key;
+            }
+            $html_rows .= $manager_row($question);
+        }
+        if ($html_rows === '') {
+            $html_rows = '<tr><td colspan="3">No Manager responses are available.</td></tr>';
+        }
+        $summary = 'Managers were asked the extent to which they agreed with the following statements, after their employee had completed Tasmanian Leaders leadership development.';
+        // Custom summary remains supported; it never replaces the scope notice.
+        if (trim($manager_summary_text) !== '') { $summary = $manager_summary_text; }
+        $manager_pages_html .= '<div class="page content-page manager-page manager-ux-page'
+            . ($first ? '' : ' manager-ux-continued') . '">'
+            . $brand_logo_html . '<div class="cover-rule"></div>'
+            . '<div class="manager-ux-scope">' . esc_html($scope) . '</div>'
+            . ($first ? '<h2 class="manager-ux-title">Managers</h2>'
+                . '<div class="manager-ux-summary" style="background:' . esc_attr($manager_summary_colour) . ';color:' . esc_attr($manager_text_colour($manager_summary_colour)) . ';">' . nl2br(esc_html($summary)) . '</div>' : '')
+            . '<h3 class="manager-ux-heading">Statements</h3>'
+            . '<p class="manager-ux-description">All numbers are percentages (%).</p>'
+            . '<table class="manager-ux-table"><colgroup><col style="width:36%"><col style="width:48%"><col style="width:16%"></colgroup><tbody>'
+            . '<tr class="manager-ux-widths"><td style="width:36%;padding:0;height:0;"></td><td style="width:48%;padding:0;height:0;"></td><td style="width:16%;padding:0;height:0;"></td></tr>' . $html_rows . '</tbody></table>'
+            . '<div class="mock-page-footer">Page ' . (6 + $page_index) . ' of ' . (int) $total_pages . '</div></div>';
+    }
+}
+
 $html = '
 <!DOCTYPE html>
 <html>
@@ -1489,15 +5773,12 @@ $html = '
 
     .brand {
         margin-bottom: 58px;
-        color: #111111;
-        font-size: 38px;
-        font-weight: normal;
-        line-height: 0.92;
     }
 
-    .brand-second-line {
+    .brand img {
         display: block;
-        margin-left: 70px;
+        width: 205px;
+        height: auto;
     }
 
     .cover-rule {
@@ -1693,68 +5974,40 @@ $html = '
         font-size: 21px;
     }
 
-    .overview-impact-table,
-    .key-growth-table {
+    .overview-highlights-table {
         width: 100%;
         border-collapse: separate;
-        border-spacing: 8px 0;
-        margin-left: -8px;
+        border-spacing: 8px;
+        margin: -8px 0 0 -8px;
     }
 
-    .overview-impact-card {
-        width: 33.33%;
+    .overview-highlight-card {
+        width: 50%;
         height: 92px;
-        padding: 16px;
+        padding: 14px 16px;
         vertical-align: top;
         background: ' . esc_attr($report_colour_light) . ';
     }
 
-    .overview-impact-percent {
+    .overview-highlight-percent {
         margin-bottom: 2px;
         color: #111111;
-        font-size: 28px;
+        font-size: 25px;
         font-weight: bold;
+        line-height: 1;
     }
 
-    .overview-impact-name {
+    .overview-highlight-name {
         margin-bottom: 5px;
         color: #111111;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: bold;
     }
 
-    .overview-impact-description {
+    .overview-highlight-description {
         color: #222222;
         font-size: 10px;
-        line-height: 1.35;
-    }
-
-    .key-growth-cell {
-        width: 20%;
-        text-align: center;
-        vertical-align: top;
-    }
-
-    .key-growth-circle {
-        width: 96px;
-        height: 96px;
-        margin: 0 auto;
-        border-radius: 48px;
-        color: ' . esc_attr($recommendation_text_colour) . ';
-        text-align: center;
-    }
-
-    .key-growth-circle strong {
-        display: block;
-        padding-top: 21px;
-        font-size: 15px;
-    }
-
-    .key-growth-circle span {
-        display: block;
-        padding: 4px 8px 0;
-        font-size: 9px;
-        line-height: 1.15;
+        line-height: 1.3;
     }
 
     .mock-page-footer {
@@ -1799,8 +6052,7 @@ $html = '
         margin-left: -8px;
     }
 
-    .growth-box,
-    .recommendations-box {
+    .growth-box {
         width: 50%;
         padding: 15px;
         vertical-align: top;
@@ -1811,9 +6063,6 @@ $html = '
         color: #111111;
     }
 
-    .recommendations-box {
-        color: ' . esc_attr($recommendation_text_colour) . ';
-    }
 
     .box-heading {
         margin-bottom: 12px;
@@ -1821,8 +6070,7 @@ $html = '
         font-weight: bold;
     }
 
-    .growth-line,
-    .recommendation-line {
+    .growth-line {
         margin-bottom: 11px;
         font-size: 10px;
         line-height: 1.35;
@@ -1880,8 +6128,7 @@ $html = '
         page-break-inside: avoid;
     }
 
-    .growth-box,
-    .recommendations-box {
+    .growth-box {
         height: 130px;
         padding: 14px;
         vertical-align: top;
@@ -1892,8 +6139,7 @@ $html = '
         font-size: 18px;
     }
 
-    .growth-line,
-    .recommendation-line {
+    .growth-line {
         margin-bottom: 8px;
         font-size: 10px;
         line-height: 1.35;
@@ -1960,6 +6206,624 @@ $html = '
     page-break-before: always;
     }
 
+
+    /* Final Sprint 2 Insight PDF page */
+
+    .final-insight-page .section-chart {
+        margin: 4px 0 4px;
+    }
+
+    .final-insight-page .section-chart img {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    .final-insight-page .section-movers-title {
+        margin: 2px 0 2px;
+        font-size: 19px;
+    }
+
+    .final-insight-page .movers-chart {
+        margin-bottom: 4px;
+    }
+
+    .final-insight-page .movers-chart img {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    .final-insight-page .section-summary-table {
+        width: 100%;
+        margin: 6px 0 0;
+        border-collapse: separate;
+        border-spacing: 8px 0;
+        page-break-inside: avoid;
+    }
+
+    .growth-summary-box,
+    .participant-quote-box {
+        padding: 12px 14px;
+        vertical-align: top;
+    }
+
+    .growth-summary-box {
+        background: ' . esc_attr($report_colour_light) . ';
+        color: #111111;
+    }
+
+    .growth-summary-box--with-quote {
+        width: 66%;
+    }
+
+    .growth-summary-box--full {
+        width: 100%;
+    }
+
+    .participant-quote-box {
+        width: 34%;
+    }
+
+    .growth-summary-line {
+        margin-bottom: 6px;
+        font-size: 8.5px;
+        line-height: 1.25;
+    }
+
+    .growth-summary-line strong {
+        display: block;
+        margin-bottom: 1px;
+        font-size: 9px;
+    }
+
+    .growth-summary-line strong span {
+        margin-left: 4px;
+        font-weight: normal;
+    }
+
+    .participant-quote-text {
+        line-height: 1.45;
+        font-style: italic;
+    }
+
+    /* Keep final Insight report on one A4 page. */
+
+    .final-insight-page {
+        padding-top: 38px;
+        padding-bottom: 40px;
+    }
+
+    .final-insight-page .brand {
+        margin-bottom: 18px;
+        font-size: 30px;
+    }
+
+    .final-insight-page .cover-rule {
+        margin-bottom: 13px;
+    }
+
+    .final-insight-page .section-report-title {
+        margin-bottom: 0;
+        font-size: 29px;
+    }
+
+    .final-insight-page .section-chart {
+        width: 86%;
+        margin: 0 auto 0;
+    }
+
+    .final-insight-page .section-movers-title {
+        margin: 0 0 0;
+        font-size: 18px;
+    }
+
+    .final-insight-page .movers-chart {
+        width: 86%;
+        margin: 0 auto 0;
+    }
+
+    .final-insight-page .section-summary-table {
+        margin-top: 2px;
+    }
+
+    .final-insight-page .growth-summary-box,
+    .final-insight-page .participant-quote-box {
+        padding: 9px 12px;
+    }
+
+    .final-insight-page .box-heading {
+        margin-bottom: 5px;
+        font-size: 16px;
+    }
+
+    .final-insight-page .growth-summary-line {
+        margin-bottom: 3px;
+        font-size: 8px;
+        line-height: 1.18;
+    }
+
+    .final-insight-page .growth-summary-line strong {
+        margin-bottom: 0;
+        font-size: 8.5px;
+    }
+
+    /* Final Sprint 2 Influence PDF page */
+
+    .final-influence-page {
+        padding-top: 38px;
+        padding-bottom: 40px;
+    }
+
+    .final-influence-page .brand {
+        margin-bottom: 18px;
+        font-size: 30px;
+    }
+
+    .final-influence-page .cover-rule {
+        margin-bottom: 13px;
+    }
+
+    .final-influence-page .section-report-title {
+        margin-bottom: 0;
+        font-size: 29px;
+    }
+
+    .final-influence-page .section-chart {
+        width: 86%;
+        margin: 0 auto;
+    }
+
+    .final-influence-page .section-chart img {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    .final-influence-page .section-movers-title {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .final-influence-page .movers-chart {
+        width: 86%;
+        margin: 0 auto;
+    }
+
+    .final-influence-page .movers-chart img {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    .final-influence-page .section-summary-table {
+        margin-top: 2px;
+    }
+
+    .final-influence-page .growth-summary-box,
+    .final-influence-page .participant-quote-box {
+        padding: 9px 12px;
+    }
+
+    .final-influence-page .box-heading {
+        margin-bottom: 5px;
+        font-size: 16px;
+    }
+
+    .final-influence-page .growth-summary-line {
+        margin-bottom: 3px;
+        font-size: 8px;
+        line-height: 1.18;
+    }
+
+    .final-influence-page .growth-summary-line strong {
+        margin-bottom: 0;
+        font-size: 8.5px;
+    }
+
+    /* Final Sprint 2 Impact PDF page */
+
+    .final-impact-page {
+        padding-top: 38px;
+        padding-bottom: 40px;
+    }
+
+    .final-impact-page .brand {
+        margin-bottom: 18px;
+        font-size: 30px;
+    }
+
+    .final-impact-page .cover-rule {
+        margin-bottom: 13px;
+    }
+
+    .final-impact-page .section-report-title {
+        margin-bottom: 0;
+        font-size: 29px;
+    }
+
+    .final-impact-page .section-chart {
+        width: 86%;
+        margin: 0 auto;
+    }
+
+    .final-impact-page .section-chart img {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    .final-impact-page .section-movers-title {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .final-impact-page .movers-chart {
+        width: 86%;
+        margin: 0 auto;
+    }
+
+    .final-impact-page .movers-chart img {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    .final-impact-page .section-summary-table {
+        margin-top: 2px;
+    }
+
+    .final-impact-page .growth-summary-box,
+    .final-impact-page .participant-quote-box {
+        padding: 9px 12px;
+    }
+
+    .final-impact-page .box-heading {
+        margin-bottom: 5px;
+        font-size: 16px;
+    }
+
+    .final-impact-page .growth-summary-line {
+        margin-bottom: 4px;
+        font-size: 8.5px;
+        line-height: 1.2;
+    }
+
+    .final-impact-page .growth-summary-line strong {
+        margin-bottom: 0;
+        font-size: 9px;
+    }
+
+    /*
+     * Single-stage reports have less vertical content than growth reports.
+     * Scale the real charts and summary up so the page feels intentional
+     * without changing multi-stage layouts.
+     */
+    .single-stage-section-page .section-chart {
+        width: 96%;
+        margin: 6px auto 8px;
+    }
+
+    .single-stage-section-page .section-movers-title {
+        margin: 10px 0 5px;
+        font-size: 20px;
+    }
+
+    .single-stage-section-page .movers-chart {
+        width: 96%;
+        margin: 0 auto 8px;
+    }
+
+    .single-stage-section-page .section-summary-table {
+        margin-top: 10px;
+    }
+
+    .single-stage-section-page .growth-summary-box,
+    .single-stage-section-page .participant-quote-box {
+        padding: 14px 16px;
+    }
+
+    .single-stage-section-page .box-heading {
+        margin-bottom: 8px;
+        font-size: 18px;
+    }
+
+    .single-stage-section-page .growth-summary-line {
+        margin-bottom: 5px;
+        font-size: 9px;
+        line-height: 1.25;
+    }
+
+    .single-stage-section-page .growth-summary-line strong {
+        margin-bottom: 1px;
+        font-size: 9.5px;
+    }
+
+    /* Sprint 3 Manager pages */
+
+    .manager-page {
+        page-break-before: always;
+        page-break-inside: avoid;
+        padding-top: 38px;
+        padding-bottom: 42px;
+    }
+
+    .manager-page .section-report-title {
+        margin-bottom: 16px;
+    }
+
+    .manager-summary-box {
+        margin: 0 0 18px;
+        padding: 14px 16px;
+        background: #f3f3f3;
+        color: #111111;
+    }
+
+    .manager-summary-text {
+        font-size: 10px;
+        line-height: 1.45;
+    }
+
+    .manager-statements-heading {
+        margin: 0 0 8px;
+        color: #111111;
+        font-size: 18px;
+    }
+
+    .manager-statements-heading--continued {
+        margin-top: 10px;
+    }
+
+    .manager-statements-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 7px;
+        table-layout: fixed;
+    }
+
+    .manager-statements-table th {
+        padding: 0 10px 4px;
+        color: #555555;
+        font-size: 8px;
+        text-align: left;
+        text-transform: uppercase;
+    }
+
+    .manager-statements-table th:last-child {
+        width: 22%;
+        text-align: center;
+    }
+
+    .manager-statement-cell {
+        padding: 9px 12px;
+        background: #f3f3f3;
+        color: #111111;
+        font-size: 9px;
+        line-height: 1.3;
+        vertical-align: middle;
+    }
+
+    .manager-rating-cell {
+        width: 22%;
+        padding: 9px 8px;
+        font-size: 12px;
+        font-weight: bold;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    /* Single-stage Overview comparison summary. */
+
+    .overview-comparison-glance {
+        margin-top: 25px;
+        padding: 17px 19px 18px;
+        border: 1px solid #d9dddb;
+        background: #f7f8f7;
+    }
+
+    .overview-comparison-heading {
+        margin: 0 0 3px;
+        color: #111111;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .overview-comparison-stage {
+        margin-bottom: 11px;
+        color: #6b706d;
+        font-size: 8px;
+        font-weight: bold;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .overview-comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .overview-comparison-table thead th {
+        padding: 0 7px 7px;
+        border-bottom: 1px solid #bfc5c1;
+        color: #555555;
+        font-size: 8px;
+        font-weight: bold;
+        text-align: center;
+    }
+
+    .overview-comparison-table thead th:first-child {
+        width: 43%;
+        padding-left: 0;
+        text-align: left;
+    }
+
+    .overview-comparison-table tbody th,
+    .overview-comparison-table tbody td {
+        padding: 10px 7px;
+        border-bottom: 1px solid #e2e5e3;
+        vertical-align: middle;
+    }
+
+    .overview-comparison-table tbody tr:last-child th,
+    .overview-comparison-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .overview-comparison-table tbody th {
+        padding-left: 0;
+        color: #222222;
+        font-size: 9px;
+        font-weight: normal;
+        text-align: left;
+    }
+
+    .overview-comparison-primary th {
+        font-weight: bold;
+    }
+
+    .overview-comparison-swatch {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        margin-right: 6px;
+        vertical-align: middle;
+    }
+
+    .overview-comparison-metric {
+        text-align: center;
+    }
+
+    .overview-comparison-metric strong {
+        display: block;
+        color: #111111;
+        font-size: 15px;
+        line-height: 1;
+    }
+
+    .overview-comparison-metric span {
+        display: block;
+        margin-top: 3px;
+        color: #777777;
+        font-size: 7px;
+    }
+
+    /* Sprint 3 client branding refinement */
+
+    /* Official logo at 50% of the cover-page size. */
+    .content-page .brand {
+        margin-bottom: 12px;
+    }
+
+    .content-page .brand img {
+        width: 103px;
+        height: auto;
+    }
+
+    /* Fine divider beneath the page branding. */
+    .content-page .cover-rule {
+        border-top-width: 1px;
+        margin-bottom: 13px;
+    }
+
+    /* Lighter, more compact page footer. */
+    .mock-page-footer {
+        bottom: 38px;
+        padding-top: 6px;
+        border-top-width: 1px;
+        font-size: 8px;
+    }
+
+    /* Cover footer uses the same fine rule. */
+    .cover-bottom {
+        padding-top: 6px;
+        border-top-width: 1px;
+        font-size: 9px;
+    }
+
+    /* Cohort year should read as text, not a button/pill. */
+    .cover-year {
+        display: block;
+        width: auto;
+        margin-top: 18px;
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
+        color: #222222;
+        font-size: 17px;
+        font-weight: bold;
+    }
+
+    /* Sprint 3 PDF typography refinement */
+
+    /*
+     * Temporary display-font substitute.
+     * Replace DejaVu Serif with approved Playfair/Larken font
+     * once the font assets are added to the project.
+     */
+    .cover-title,
+    .overview-title,
+    .section-report-title {
+        font-family: DejaVu Serif, serif;
+        font-weight: normal;
+    }
+
+    .cover-title {
+        font-size: 40px;
+        line-height: 1.12;
+    }
+
+    .overview-title {
+        font-size: 34px;
+        line-height: 1.05;
+    }
+
+    .final-insight-page .section-report-title,
+    .final-influence-page .section-report-title,
+    .final-impact-page .section-report-title,
+    .manager-page .section-report-title {
+        font-size: 28px;
+        line-height: 1.05;
+    }
+    /* Manager pages only: three-column UX layout, backed by service distributions. */
+    .manager-ux-page {
+        min-height: 0;
+        height: 990px;
+        padding: 38px 70px 42px;
+        page-break-before: always;
+        page-break-inside: avoid;
+        font-family: DejaVu Sans, sans-serif;
+    }
+    .manager-ux-page .brand { margin-bottom: 12px; }
+    .manager-ux-scope { font-size: 10px; font-weight: bold; margin: 15px 0 10px; color: #222; }
+    .manager-ux-title { font-family: DejaVu Sans, sans-serif; font-size: 29px; margin: 0 0 20px; line-height: 1.15; }
+    .manager-ux-summary { padding: 10px 12px; font-size: 10px; line-height: 1.35; margin-bottom: 15px; }
+    .manager-ux-heading { font-size: 17px; margin: 0 0 10px; line-height: 1.2; }
+    .manager-ux-description { margin: 0 0 5px; font-size: 10px; }
+    .manager-ux-source { font-size: 7px; color: #555; margin-bottom: 9px; }
+    .manager-ux-table { width: 100%; table-layout: fixed; border-collapse: collapse; border-spacing: 0; }
+    .manager-ux-table td { vertical-align: middle; }
+    .manager-ux-legend-cell { padding: 5px 0 6px; }
+    .manager-ux-legend-image { display: block; width: 100%; height: 42px; }
+    .manager-ux-rounding-note { margin: 0 0 5px; font-size: 8px; line-height: 1.3; color: #444; }
+    .manager-ux-legend { text-align: center; font-size: 7px; line-height: 1.8; }
+    .manager-ux-legend-item { display: inline-block; white-space: nowrap; margin-right: 9px; }
+    .manager-ux-swatch { display: inline-block; width: 14px; height: 8px; margin-right: 4px; vertical-align: middle; }
+    .manager-ux-row { page-break-inside: avoid; }
+    .manager-ux-statement { width: 36%; padding: 3px 12px 3px 0; font-size: 10px; line-height: 1.35; background: white; color: #111; }
+    .manager-ux-chart-cell { width: 48%; padding: 3px 0; border-top: 1px solid #d8d8e0; border-bottom: 1px solid #d8d8e0; border-left: 1px solid #888; }
+    .manager-ux-bar { display: block; width: 100%; height: 54px; position: relative; top: 5px; }
+    .manager-ux-badge-cell { width: 16%; padding: 3px 0 3px 12px; }
+    .manager-ux-badge { text-align: center; height: 46px; }
+    .manager-ux-number { display: block; font-size: 22px; font-weight: bold; padding-top: 2px; line-height: 24px; }
+    .manager-ux-badge-label { display: block; font-size: 10px; font-weight: bold; line-height: 13px; }
+    .manager-ux-badge-empty { background: #e8ebe9; color: #555; }
+    .manager-ux-badge-empty .manager-ux-badge-label { font-size: 8px; }
+    .manager-ux-empty { height: 46px; line-height: 46px; text-align: center; font-size: 9px; color: #555; background: #f3f3f3; }
+    .manager-ux-continued .manager-ux-scope { margin-top: 0; margin-bottom: 16px; }
+
+    .manager-ux-badge-image { display: block; width: 100%; height: 46px; }
+
 </style>
 </head>
 
@@ -1967,10 +6831,7 @@ $html = '
 
 <div class="page cover">
 
-    <div class="brand">
-        Tasmanian
-        <span class="brand-second-line">Leaders</span>
-    </div>
+    ' . $brand_logo_html . '
 
     <div class="cover-rule"></div>
 
@@ -1993,17 +6854,14 @@ $html = '
     </div>
 
     <div class="cover-bottom">
-        Page 1 of 5
+        Page 1 of ' . esc_html($total_pages) . '
     </div>
 
 </div>
 
 <div class="page content-page">
 
-    <div class="brand">
-        Tasmanian
-        <span class="brand-second-line">Leaders</span>
-    </div>
+    ' . $brand_logo_html . '
 
     <div class="cover-rule"></div>
 
@@ -2047,37 +6905,16 @@ $html = '
         <img src="' . esc_attr($overview_chart_data) . '" alt="">
     </div>
 
-    <h3 class="overview-subheading">
-        Strongest Impact
-    </h3>
-
-    <table class="overview-impact-table">
-        <tr>
-            ' . $strongest_impact_html . '
-        </tr>
-    </table>
-
-    <h3 class="overview-subheading">
-        Key Growth
-    </h3>
-
-    <table class="key-growth-table">
-        <tr>
-            ' . $key_growth_html . '
-        </tr>
-    </table>
+    ' . $overview_highlights_section_html . '
 
     <div class="mock-page-footer">
-        Page 2 of 5
+        Page 2 of ' . esc_html($total_pages) . '
     </div>
 
 </div>
-<div class="page content-page insight-page">
+<div class="page content-page insight-page final-insight-page' . ($is_single_stage_report ? ' single-stage-section-page' : '') . '">
 
-    <div class="brand">
-        Tasmanian
-        <span class="brand-second-line">Leaders</span>
-    </div>
+    ' . $brand_logo_html . '
 
     <div class="cover-rule"></div>
 
@@ -2096,63 +6933,32 @@ $html = '
         >
     </div>
 
-    <h3 class="section-movers-title">
-        Top 3 Positive Movers
-    </h3>
-
-    <div class="movers-chart">
-        <img
-            src="' . esc_attr($section_movers_chart_data['Insight']) . '"
-            alt=""
-        >
-    </div>
+    ' . $section_secondary_html['Insight'] . '
 
     <table class="section-summary-table">
         <tr>
 
-            <td class="growth-box">
+            <td class="' . esc_attr($insight_growth_summary_class) . '">
                 <div class="box-heading">
-                    Growth
+                    ' . esc_html($section_summary_heading) . '
                 </div>
 
-                ' . $section_growth_html['Insight'] . '
+                ' . $insight_growth_summary_html . '
             </td>
 
-            <td
-                class="recommendations-box"
-                style="background: ' . esc_attr($report_colour) . ';"
-            >
-                <div class="box-heading">
-                    Recommendations
-                </div>
-
-                <div class="recommendation-line">
-                    1. ' . esc_html($section_recommendations['Insight'][0]) . '
-                </div>
-
-                <div class="recommendation-line">
-                    2. ' . esc_html($section_recommendations['Insight'][1]) . '
-                </div>
-
-                <div class="recommendation-line">
-                    3. ' . esc_html($section_recommendations['Insight'][2]) . '
-                </div>
-            </td>
+            ' . $insight_quote_html . '
 
         </tr>
     </table>
 
     <div class="mock-page-footer">
-        Page 3 of 5
+        Page 3 of ' . esc_html($total_pages) . '
     </div>
 
 </div>
-<div class="page content-page insight-page">
+<div class="page content-page insight-page final-influence-page' . ($is_single_stage_report ? ' single-stage-section-page' : '') . '">
 
-    <div class="brand">
-        Tasmanian
-        <span class="brand-second-line">Leaders</span>
-    </div>
+    ' . $brand_logo_html . '
 
     <div class="cover-rule"></div>
 
@@ -2171,63 +6977,32 @@ $html = '
         >
     </div>
 
-    <h3 class="section-movers-title">
-        Top 3 Positive Movers
-    </h3>
-
-    <div class="movers-chart">
-        <img
-            src="' . esc_attr($section_movers_chart_data['Influence']) . '"
-            alt=""
-        >
-    </div>
+    ' . $section_secondary_html['Influence'] . '
 
     <table class="section-summary-table">
         <tr>
 
-            <td class="growth-box">
+            <td class="' . esc_attr($influence_growth_summary_class) . '">
                 <div class="box-heading">
-                    Growth
+                    ' . esc_html($section_summary_heading) . '
                 </div>
 
-                ' . $section_growth_html['Influence'] . '
+                ' . $influence_growth_summary_html . '
             </td>
 
-            <td
-                class="recommendations-box"
-                style="background: ' . esc_attr($report_colour) . ';"
-            >
-                <div class="box-heading">
-                    Recommendations
-                </div>
-
-                <div class="recommendation-line">
-                    1. ' . esc_html($section_recommendations['Influence'][0]) . '
-                </div>
-
-                <div class="recommendation-line">
-                    2. ' . esc_html($section_recommendations['Influence'][1]) . '
-                </div>
-
-                <div class="recommendation-line">
-                    3. ' . esc_html($section_recommendations['Influence'][2]) . '
-                </div>
-            </td>
+            ' . $influence_quote_html . '
 
         </tr>
     </table>
 
     <div class="mock-page-footer">
-        Page 4 of 5
+        Page 4 of ' . esc_html($total_pages) . '
     </div>
 
 </div>
-<div class="page content-page insight-page">
+<div class="page content-page insight-page final-impact-page' . ($is_single_stage_report ? ' single-stage-section-page' : '') . '">
 
-    <div class="brand">
-        Tasmanian
-        <span class="brand-second-line">Leaders</span>
-    </div>
+    ' . $brand_logo_html . '
 
     <div class="cover-rule"></div>
 
@@ -2246,57 +7021,31 @@ $html = '
         >
     </div>
 
-    <h3 class="section-movers-title">
-        Top 3 Positive Movers
-    </h3>
-
-    <div class="movers-chart">
-        <img
-            src="' . esc_attr($section_movers_chart_data['Impact']) . '"
-            alt=""
-        >
-    </div>
+    ' . $section_secondary_html['Impact'] . '
 
     <table class="section-summary-table">
         <tr>
 
-            <td class="growth-box">
+            <td class="' . esc_attr($impact_growth_summary_class) . '">
                 <div class="box-heading">
-                    Growth
+                    ' . esc_html($section_summary_heading) . '
                 </div>
 
-                ' . $section_growth_html['Impact'] . '
+                ' . $impact_growth_summary_html . '
             </td>
 
-            <td
-                class="recommendations-box"
-                style="background: ' . esc_attr($report_colour) . ';"
-            >
-                <div class="box-heading">
-                    Recommendations
-                </div>
-
-                <div class="recommendation-line">
-                    1. ' . esc_html($section_recommendations['Impact'][0]) . '
-                </div>
-
-                <div class="recommendation-line">
-                    2. ' . esc_html($section_recommendations['Impact'][1]) . '
-                </div>
-
-                <div class="recommendation-line">
-                    3. ' . esc_html($section_recommendations['Impact'][2]) . '
-                </div>
-            </td>
+            ' . $impact_quote_html . '
 
         </tr>
     </table>
 
     <div class="mock-page-footer">
-        Page 5 of 5
+        Page 5 of ' . esc_html($total_pages) . '
     </div>
 
 </div>
+' . $manager_pages_html . '
+
 </body>
 </html>
 ';
