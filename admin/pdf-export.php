@@ -663,16 +663,76 @@ function tle_export_pdf()
         true
     );
 
-    $comparison_programs = isset($_POST['comparison_programs'])
-        ? array_values(
-            array_filter(
-                array_map(
-                    'sanitize_text_field',
-                    (array) wp_unslash($_POST['comparison_programs'])
+    $comparison_program_values =
+        isset($_POST['comparison_programs'])
+            ? array_map(
+                'sanitize_text_field',
+                (array) wp_unslash(
+                    $_POST['comparison_programs']
                 )
             )
-        )
-        : [];
+            : [];
+
+    $comparison_cohort_values =
+        isset($_POST['comparison_cohorts'])
+            ? array_map(
+                'sanitize_text_field',
+                (array) wp_unslash(
+                    $_POST['comparison_cohorts']
+                )
+            )
+            : [];
+
+    $comparison_selections = [];
+
+    $comparison_selection_count = max(
+        count($comparison_program_values),
+        count($comparison_cohort_values)
+    );
+
+    for (
+        $comparison_index = 0;
+        $comparison_index < $comparison_selection_count;
+        $comparison_index++
+    ) {
+        $comparison_program_name =
+            trim(
+                (string) (
+                    $comparison_program_values[$comparison_index]
+                    ?? ''
+                )
+            );
+
+        $comparison_cohort =
+            trim(
+                (string) (
+                    $comparison_cohort_values[$comparison_index]
+                    ?? ''
+                )
+            );
+
+        if (
+            $comparison_program_name === '' ||
+            $comparison_cohort === ''
+        ) {
+            continue;
+        }
+
+        $comparison_selections[] = [
+            'program' => $comparison_program_name,
+            'cohort'  => $comparison_cohort,
+        ];
+    }
+
+    /*
+     * Keep the legacy program list available to existing validation
+     * while retaining Program + Cohort pairs above.
+     */
+    $comparison_programs =
+        array_column(
+            $comparison_selections,
+            'program'
+        );
 
     $comparison_evaluation_point = isset($_POST['comparison_evaluation_point'])
         ? sanitize_key(
@@ -715,7 +775,7 @@ function tle_export_pdf()
             : '';
 
     $has_comparisons =
-        !empty($comparison_programs) &&
+        !empty($comparison_selections) &&
         $comparison_evaluation_point !== '';
 
     $manager_summary_text = isset($_POST['manager_summary_text'])
@@ -779,6 +839,15 @@ function tle_export_pdf()
         ? sanitize_textarea_field(wp_unslash($_POST['insight_quote']))
         : '';
 
+    $insight_comparison_text =
+        isset($_POST['insight_comparison_text'])
+            ? sanitize_textarea_field(
+                wp_unslash(
+                    $_POST['insight_comparison_text']
+                )
+            )
+            : '';
+
     $influence_tolerance_ambiguity_text = isset($_POST['influence_tolerance_ambiguity_text'])
         ? sanitize_text_field(wp_unslash($_POST['influence_tolerance_ambiguity_text']))
         : '';
@@ -807,6 +876,15 @@ function tle_export_pdf()
         ? sanitize_textarea_field(wp_unslash($_POST['influence_quote']))
         : '';
 
+    $influence_comparison_text =
+        isset($_POST['influence_comparison_text'])
+            ? sanitize_textarea_field(
+                wp_unslash(
+                    $_POST['influence_comparison_text']
+                )
+            )
+            : '';
+
     $impact_belonging_text = isset($_POST['impact_belonging_text'])
         ? sanitize_text_field(wp_unslash($_POST['impact_belonging_text']))
         : '';
@@ -826,6 +904,15 @@ function tle_export_pdf()
     $impact_quote = isset($_POST['impact_quote'])
         ? sanitize_textarea_field(wp_unslash($_POST['impact_quote']))
         : '';
+
+    $impact_comparison_text =
+        isset($_POST['impact_comparison_text'])
+            ? sanitize_textarea_field(
+                wp_unslash(
+                    $_POST['impact_comparison_text']
+                )
+            )
+            : '';
 
     $report_colour_key = isset($_POST['report_colour'])
         ? sanitize_key(wp_unslash($_POST['report_colour']))
@@ -1855,12 +1942,12 @@ foreach ($insight_measures as $measure) {
 
 $insight_axis_min = max(
     0,
-    floor((min($insight_percentages) - 10) / 10) * 10
+    floor((min($insight_percentages) - 5) / 5) * 5
 );
 
 $insight_axis_max = min(
     100,
-    ceil((max($insight_percentages) + 10) / 10) * 10
+    ceil((max($insight_percentages) + 5) / 5) * 5
 );
 
 if (($insight_axis_max - $insight_axis_min) < 20) {
@@ -2076,6 +2163,476 @@ $insight_key_growth = array_slice(
     0,
     3
 );
+
+$build_key_growth_line_svg =
+    static function (
+        array $items,
+        array $series
+    ) {
+        if (
+            empty($items) ||
+            empty($series)
+        ) {
+            return '';
+        }
+
+        $all_percentages = [];
+
+        foreach ($items as $item) {
+            foreach ($series as $series_item) {
+                $key =
+                    $series_item['key'];
+
+                if (
+                    isset($item[$key]) &&
+                    is_numeric($item[$key])
+                ) {
+                    $all_percentages[] =
+                        (float) $item[$key];
+                }
+            }
+        }
+
+        if (empty($all_percentages)) {
+            return '';
+        }
+
+        $axis_min = max(
+            0,
+            floor(
+                (
+                    min($all_percentages) -
+                    10
+                ) / 10
+            ) * 10
+        );
+
+        $axis_max = min(
+            100,
+            ceil(
+                (
+                    max($all_percentages) +
+                    10
+                ) / 10
+            ) * 10
+        );
+
+        if (
+            ($axis_max - $axis_min) < 20
+        ) {
+            $axis_min =
+                max(
+                    0,
+                    $axis_min - 10
+                );
+
+            $axis_max =
+                min(
+                    100,
+                    $axis_max + 10
+                );
+        }
+
+        $plot_left = 75;
+        $plot_right = 540;
+        $plot_top = 38;
+        $plot_bottom = 150;
+
+        $plot_width =
+            $plot_right - $plot_left;
+
+        $plot_height =
+            $plot_bottom - $plot_top;
+
+        $axis_range =
+            max(
+                1,
+                $axis_max - $axis_min
+            );
+
+        $chart_y =
+            static function ($percentage) use (
+                $plot_bottom,
+                $plot_height,
+                $axis_min,
+                $axis_range
+            ) {
+                return
+                    $plot_bottom -
+                    (
+                        (
+                            (
+                                $percentage -
+                                $axis_min
+                            ) /
+                            $axis_range
+                        ) *
+                        $plot_height
+                    );
+            };
+
+        $grid = '';
+        $axis_labels = '';
+
+        for (
+            $grid_percentage = $axis_min;
+            $grid_percentage <= $axis_max;
+            $grid_percentage += 10
+        ) {
+            $grid_y =
+                $chart_y(
+                    $grid_percentage
+                );
+
+            $grid .= '
+                <line
+                    x1="' . $plot_left . '"
+                    y1="' . $grid_y . '"
+                    x2="' . $plot_right . '"
+                    y2="' . $grid_y . '"
+                />
+            ';
+
+            $axis_labels .= '
+                <text
+                    x="58"
+                    y="' . ($grid_y + 3) . '"
+                    text-anchor="end"
+                >' .
+                    esc_html(
+                        $grid_percentage
+                    ) .
+                '%</text>
+            ';
+        }
+
+        $item_count =
+            count($items);
+
+        $slot_width =
+            $plot_width /
+            max(
+                1,
+                $item_count
+            );
+
+        $item_x = [];
+        $x_labels = '';
+
+        foreach (
+            $items
+            as $index => $item
+        ) {
+            $x =
+                $plot_left +
+                ($slot_width * $index) +
+                ($slot_width / 2);
+
+            $item_x[$index] = $x;
+
+            $label =
+                (string) $item['measure'];
+
+            $words =
+                preg_split(
+                    '/\s+/',
+                    trim($label)
+                ) ?: [];
+
+            $lines = [$label];
+
+            if (count($words) > 1) {
+                $best_split = 1;
+                $best_difference =
+                    PHP_INT_MAX;
+
+                for (
+                    $split = 1;
+                    $split < count($words);
+                    $split++
+                ) {
+                    $first =
+                        implode(
+                            ' ',
+                            array_slice(
+                                $words,
+                                0,
+                                $split
+                            )
+                        );
+
+                    $second =
+                        implode(
+                            ' ',
+                            array_slice(
+                                $words,
+                                $split
+                            )
+                        );
+
+                    $difference =
+                        abs(
+                            strlen($first) -
+                            strlen($second)
+                        );
+
+                    if (
+                        $difference <
+                        $best_difference
+                    ) {
+                        $best_difference =
+                            $difference;
+
+                        $best_split =
+                            $split;
+                    }
+                }
+
+                $lines = [
+                    implode(
+                        ' ',
+                        array_slice(
+                            $words,
+                            0,
+                            $best_split
+                        )
+                    ),
+                    implode(
+                        ' ',
+                        array_slice(
+                            $words,
+                            $best_split
+                        )
+                    ),
+                ];
+            }
+
+            foreach (
+                $lines
+                as $line_index => $line
+            ) {
+                $x_labels .= '
+                    <text
+                        x="' . $x . '"
+                        y="' .
+                            (
+                                172 +
+                                ($line_index * 9)
+                            ) .
+                        '"
+                        text-anchor="middle"
+                        font-family="DejaVu Sans"
+                        font-size="7"
+                        font-weight="600"
+                        fill="#111111"
+                    >' .
+                        esc_html(
+                            $line
+                        ) .
+                    '</text>
+                ';
+            }
+        }
+
+        $series_svg = '';
+        $legend_svg = '';
+        $legend_x = 275;
+
+        foreach (
+            $series
+            as $series_index =>
+                $series_item
+        ) {
+            $points = [];
+            $circles = '';
+
+            foreach (
+                $items
+                as $index => $item
+            ) {
+                $key =
+                    $series_item['key'];
+
+                if (
+                    !isset($item[$key]) ||
+                    !is_numeric($item[$key])
+                ) {
+                    continue;
+                }
+
+                $x = $item_x[$index];
+
+                $y =
+                    $chart_y(
+                        (float) $item[$key]
+                    );
+
+                $points[] =
+                    $x . ',' . $y;
+
+                $circles .= '
+                    <circle
+                        cx="' . $x . '"
+                        cy="' . $y . '"
+                        r="4"
+                        fill="' .
+                            esc_attr(
+                                $series_item[
+                                    'colour'
+                                ]
+                            ) .
+                        '"
+                    />
+                ';
+            }
+
+            $dash =
+                !empty(
+                    $series_item['dash']
+                )
+                    ? ' stroke-dasharray="' .
+                        esc_attr(
+                            $series_item[
+                                'dash'
+                            ]
+                        ) .
+                        '"'
+                    : '';
+
+            if (count($points) >= 2) {
+                $series_svg .= '
+                    <polyline
+                        points="' .
+                            esc_attr(
+                                implode(
+                                    ' ',
+                                    $points
+                                )
+                            ) .
+                        '"
+                        fill="none"
+                        stroke="' .
+                            esc_attr(
+                                $series_item[
+                                    'colour'
+                                ]
+                            ) .
+                        '"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        ' . $dash . '
+                    />
+
+                    ' . $circles . '
+                ';
+            } else {
+                $series_svg .=
+                    $circles;
+            }
+
+            $current_legend_x =
+                $legend_x +
+                ($series_index * 105);
+
+            $legend_svg .= '
+                <line
+                    x1="' .
+                        $current_legend_x .
+                    '"
+                    y1="16"
+                    x2="' .
+                        (
+                            $current_legend_x +
+                            18
+                        ) .
+                    '"
+                    y2="16"
+                    stroke="' .
+                        esc_attr(
+                            $series_item[
+                                'colour'
+                            ]
+                        ) .
+                    '"
+                    stroke-width="3"
+                    ' . $dash . '
+                />
+
+                <circle
+                    cx="' .
+                        (
+                            $current_legend_x +
+                            9
+                        ) .
+                    '"
+                    cy="16"
+                    r="3"
+                    fill="' .
+                        esc_attr(
+                            $series_item[
+                                'colour'
+                            ]
+                        ) .
+                    '"
+                />
+
+                <text
+                    x="' .
+                        (
+                            $current_legend_x +
+                            24
+                        ) .
+                    '"
+                    y="19"
+                    font-family="DejaVu Sans"
+                    font-size="8"
+                    fill="#555555"
+                >' .
+                    esc_html(
+                        $series_item[
+                            'label'
+                        ]
+                    ) .
+                '</text>
+            ';
+        }
+
+        return '
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="600"
+            height="205"
+            viewBox="0 0 600 205"
+        >
+            <rect
+                width="600"
+                height="205"
+                fill="#ffffff"
+            />
+
+            ' . $legend_svg . '
+
+            <g
+                stroke="#dedede"
+                stroke-width="1"
+            >
+                ' . $grid . '
+            </g>
+
+            <g
+                fill="#555555"
+                font-family="DejaVu Sans"
+                font-size="8"
+            >
+                ' . $axis_labels . '
+            </g>
+
+            ' . $series_svg . '
+            ' . $x_labels . '
+        </svg>
+        ';
+    };
 
 $insight_bar_pre = $report_colour_light;
 $insight_bar_post = $before_bar_colour;
@@ -2346,12 +2903,12 @@ foreach ($influence_measures as $measure) {
 
 $influence_axis_min = max(
     0,
-    floor((min($influence_percentages) - 10) / 10) * 10
+    floor((min($influence_percentages) - 5) / 5) * 5
 );
 
 $influence_axis_max = min(
     100,
-    ceil((max($influence_percentages) + 10) / 10) * 10
+    ceil((max($influence_percentages) + 5) / 5) * 5
 );
 
 if (($influence_axis_max - $influence_axis_min) < 20) {
@@ -2695,7 +3252,7 @@ $section_movers_chart_data['Influence'] =
     base64_encode($influence_key_growth_svg);
 
 /*
- * Growth Summary — all six capabilities, ordered by growth.
+ * Growth Summary ÔÇö all six capabilities, ordered by growth.
  */
 
 $influence_growth_summary_html = '';
@@ -2800,12 +3357,12 @@ foreach ($impact_measures as $measure) {
 
 $impact_axis_min = max(
     0,
-    floor((min($impact_percentages) - 10) / 10) * 10
+    floor((min($impact_percentages) - 5) / 5) * 5
 );
 
 $impact_axis_max = min(
     100,
-    ceil((max($impact_percentages) + 10) / 10) * 10
+    ceil((max($impact_percentages) + 5) / 5) * 5
 );
 
 if (($impact_axis_max - $impact_axis_min) < 20) {
@@ -3147,7 +3704,7 @@ $section_movers_chart_data['Impact'] =
     base64_encode($impact_key_growth_svg);
 
 /*
- * Growth Summary — every Impact capability.
+ * Growth Summary ÔÇö every Impact capability.
  */
 
 $impact_growth_summary_html = '';
@@ -3322,7 +3879,11 @@ if ($is_single_stage_report) {
     };
 
     /*
-     * Overview bar chart.
+     * Single-stage Overview line chart.
+     *
+     * The three report sections remain the x-axis categories,
+     * while the available evaluation stage is shown as one
+     * continuous series.
      */
     $overview_values = [];
 
@@ -3340,45 +3901,202 @@ if ($is_single_stage_report) {
 
     $overview_x = [
         'Insight' => 125,
-        'Influence' => 275,
-        'Impact' => 425,
+        'Influence' => 300,
+        'Impact' => 475,
     ];
 
-    $overview_bars = '';
+    $overview_percentages =
+        !empty($overview_values)
+            ? array_values($overview_values)
+            : [0];
 
-    foreach ($overview_values as $section_name => $percentage) {
+    $overview_axis_min = max(
+        0,
+        floor(
+            (
+                min($overview_percentages) - 5
+            ) / 5
+        ) * 5
+    );
+
+    $overview_axis_max = min(
+        100,
+        ceil(
+            (
+                max($overview_percentages) + 5
+            ) / 5
+        ) * 5
+    );
+
+    if (
+        ($overview_axis_max - $overview_axis_min)
+        < 20
+    ) {
+        $overview_axis_min =
+            max(
+                0,
+                $overview_axis_min - 10
+            );
+
+        $overview_axis_max =
+            min(
+                100,
+                $overview_axis_max + 10
+            );
+    }
+
+    $overview_plot_top = 45;
+    $overview_plot_bottom = 190;
+
+    $overview_plot_height =
+        $overview_plot_bottom -
+        $overview_plot_top;
+
+    $overview_axis_range =
+        max(
+            1,
+            $overview_axis_max -
+            $overview_axis_min
+        );
+
+    $overview_y =
+        static function ($percentage) use (
+            $overview_plot_bottom,
+            $overview_plot_height,
+            $overview_axis_min,
+            $overview_axis_range
+        ) {
+            return
+                $overview_plot_bottom -
+                (
+                    (
+                        (
+                            $percentage -
+                            $overview_axis_min
+                        ) /
+                        $overview_axis_range
+                    ) *
+                    $overview_plot_height
+                );
+        };
+
+    $overview_grid = '';
+    $overview_axis_labels = '';
+
+    for (
+        $grid_percentage =
+            $overview_axis_min;
+        $grid_percentage <=
+            $overview_axis_max;
+        $grid_percentage += 10
+    ) {
+        $grid_y =
+            $overview_y(
+                $grid_percentage
+            );
+
+        $overview_grid .= '
+            <line
+                x1="70"
+                y1="' . $grid_y . '"
+                x2="550"
+                y2="' . $grid_y . '"
+            />
+        ';
+
+        $overview_axis_labels .= '
+            <text
+                x="54"
+                y="' . ($grid_y + 4) . '"
+                text-anchor="end"
+            >' .
+                esc_html(
+                    $grid_percentage
+                ) .
+            '%</text>
+        ';
+    }
+
+    $overview_points = [];
+    $overview_markers = '';
+
+    foreach (
+        $overview_values
+        as $section_name => $percentage
+    ) {
         $x = $overview_x[$section_name];
-        $height = $percentage * 1.45;
-        $y = 190 - $height;
+        $y = $overview_y($percentage);
 
-        $overview_bars .= '
-            <rect
-                x="' . $x . '"
-                y="' . $y . '"
-                width="70"
-                height="' . $height . '"
-                fill="' . esc_attr($report_colour) . '"
+        $overview_points[] =
+            $x . ',' . $y;
+
+        $overview_markers .= '
+            <circle
+                cx="' . $x . '"
+                cy="' . $y . '"
+                r="6"
+                fill="' .
+                    esc_attr(
+                        $report_colour
+                    ) .
+                '"
             />
 
             <text
-                x="' . ($x + 35) . '"
-                y="' . ($y - 7) . '"
+                x="' . $x . '"
+                y="' . ($y - 10) . '"
                 text-anchor="middle"
                 font-family="DejaVu Sans"
-                font-size="10"
+                font-size="9"
                 font-weight="600"
                 fill="#111111"
-            >' . esc_html(round($percentage)) . '%</text>
+            >' .
+                esc_html(
+                    round($percentage)
+                ) .
+            '%</text>
 
             <text
-                x="' . ($x + 35) . '"
+                x="' . $x . '"
                 y="216"
                 text-anchor="middle"
                 font-family="DejaVu Sans"
                 font-size="11"
                 font-weight="600"
                 fill="#111111"
-            >' . esc_html($section_name) . '</text>
+            >' .
+                esc_html(
+                    $section_name
+                ) .
+            '</text>
+        ';
+    }
+
+    $overview_line = '';
+
+    if (
+        count($overview_points) >= 2
+    ) {
+        $overview_line = '
+            <polyline
+                points="' .
+                    esc_attr(
+                        implode(
+                            ' ',
+                            $overview_points
+                        )
+                    ) .
+                '"
+                fill="none"
+                stroke="' .
+                    esc_attr(
+                        $report_colour
+                    ) .
+                '"
+                stroke-width="4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            />
         ';
     }
 
@@ -3389,15 +4107,17 @@ if ($is_single_stage_report) {
         height="245"
         viewBox="0 0 600 245"
     >
-        <rect width="600" height="245" fill="#ffffff"/>
+        <rect
+            width="600"
+            height="245"
+            fill="#ffffff"
+        />
 
-        <g stroke="#dddddd" stroke-width="1">
-            <line x1="70" y1="45" x2="550" y2="45"/>
-            <line x1="70" y1="74" x2="550" y2="74"/>
-            <line x1="70" y1="103" x2="550" y2="103"/>
-            <line x1="70" y1="132" x2="550" y2="132"/>
-            <line x1="70" y1="161" x2="550" y2="161"/>
-            <line x1="70" y1="190" x2="550" y2="190"/>
+        <g
+            stroke="#dddddd"
+            stroke-width="1"
+        >
+            ' . $overview_grid . '
         </g>
 
         <g
@@ -3405,27 +4125,44 @@ if ($is_single_stage_report) {
             font-family="DejaVu Sans"
             font-size="10"
         >
-            <text x="35" y="48">100%</text>
-            <text x="42" y="77">80%</text>
-            <text x="42" y="106">60%</text>
-            <text x="42" y="135">40%</text>
-            <text x="42" y="164">20%</text>
-            <text x="49" y="193">0%</text>
+            ' . $overview_axis_labels . '
 
-            <rect
-                x="448"
-                y="14"
-                width="12"
-                height="12"
-                fill="' . esc_attr($report_colour) . '"
+            <line
+                x1="438"
+                y1="20"
+                x2="458"
+                y2="20"
+                stroke="' .
+                    esc_attr(
+                        $report_colour
+                    ) .
+                '"
+                stroke-width="3"
             />
 
-            <text x="466" y="24">
-                ' . esc_html($single_stage_label) . '
-            </text>
+            <circle
+                cx="448"
+                cy="20"
+                r="4"
+                fill="' .
+                    esc_attr(
+                        $report_colour
+                    ) .
+                '"
+            />
+
+            <text
+                x="466"
+                y="24"
+            >' .
+                esc_html(
+                    $single_stage_label
+                ) .
+            '</text>
         </g>
 
-        ' . $overview_bars . '
+        ' . $overview_line . '
+        ' . $overview_markers . '
     </svg>
     ';
 
@@ -3434,7 +4171,7 @@ if ($is_single_stage_report) {
         base64_encode($overview_svg);
 
     /*
-     * Single-stage capability bar chart.
+     * Single-stage capability line chart.
      */
     $single_stage_section_chart = static function (
         array $measures,
@@ -3447,35 +4184,174 @@ if ($is_single_stage_report) {
                 $measures,
                 static function ($measure) use ($stage_key) {
                     return
-                        array_key_exists($stage_key, $measure) &&
+                        array_key_exists(
+                            $stage_key,
+                            $measure
+                        ) &&
                         $measure[$stage_key] !== null &&
-                        is_numeric($measure[$stage_key]);
+                        is_numeric(
+                            $measure[$stage_key]
+                        );
                 }
             )
         );
 
-        $count = max(1, count($measures));
+        if (empty($measures)) {
+            return '';
+        }
+
+        $percentages = [];
+
+        foreach ($measures as $measure) {
+            $percentages[] =
+                (
+                    (float) $measure[$stage_key] /
+                    7
+                ) * 100;
+        }
+
+        $axis_min = max(
+            0,
+            floor(
+                (
+                    min($percentages) - 5
+                ) / 5
+            ) * 5
+        );
+
+        $axis_max = min(
+            100,
+            ceil(
+                (
+                    max($percentages) + 5
+                ) / 5
+            ) * 5
+        );
+
+        if (
+            ($axis_max - $axis_min) < 20
+        ) {
+            $axis_min =
+                max(
+                    0,
+                    $axis_min - 10
+                );
+
+            $axis_max =
+                min(
+                    100,
+                    $axis_max + 10
+                );
+        }
+
         $plot_left = 70;
-        $plot_width = 480;
-        $slot_width = $plot_width / $count;
-        $bar_width = min(42, $slot_width * 0.55);
-        $bars = '';
+        $plot_right = 550;
+        $plot_top = 45;
+        $plot_bottom = 185;
 
-        foreach ($measures as $index => $measure) {
+        $plot_width =
+            $plot_right - $plot_left;
+
+        $plot_height =
+            $plot_bottom - $plot_top;
+
+        $axis_range =
+            max(
+                1,
+                $axis_max - $axis_min
+            );
+
+        $chart_y =
+            static function ($percentage) use (
+                $plot_bottom,
+                $plot_height,
+                $axis_min,
+                $axis_range
+            ) {
+                return
+                    $plot_bottom -
+                    (
+                        (
+                            (
+                                $percentage -
+                                $axis_min
+                            ) /
+                            $axis_range
+                        ) *
+                        $plot_height
+                    );
+            };
+
+        $grid = '';
+        $axis_labels = '';
+
+        for (
+            $grid_percentage = $axis_min;
+            $grid_percentage <= $axis_max;
+            $grid_percentage += 10
+        ) {
+            $grid_y =
+                $chart_y(
+                    $grid_percentage
+                );
+
+            $grid .= '
+                <line
+                    x1="' . $plot_left . '"
+                    y1="' . $grid_y . '"
+                    x2="' . $plot_right . '"
+                    y2="' . $grid_y . '"
+                />
+            ';
+
+            $axis_labels .= '
+                <text
+                    x="54"
+                    y="' . ($grid_y + 4) . '"
+                    text-anchor="end"
+                >' .
+                    esc_html(
+                        $grid_percentage
+                    ) .
+                '%</text>
+            ';
+        }
+
+        $count = count($measures);
+
+        $slot_width =
+            $plot_width /
+            max(
+                1,
+                $count
+            );
+
+        $points = [];
+        $markers = '';
+
+        foreach (
+            $measures
+            as $index => $measure
+        ) {
             $percentage =
-                ((float) $measure[$stage_key] / 7) * 100;
+                (
+                    (float) $measure[$stage_key] /
+                    7
+                ) * 100;
 
-            $height = $percentage * 1.45;
-            $y = 190 - $height;
-
-            $centre =
+            $x =
                 $plot_left +
                 ($slot_width * $index) +
                 ($slot_width / 2);
 
-            $x = $centre - ($bar_width / 2);
+            $y = $chart_y($percentage);
 
-            $label = (string) $measure['measure'];
+            $points[] =
+                $x . ',' . $y;
+
+            $label =
+                (string) $measure['measure'];
+
             $label_words =
                 preg_split(
                     '/\s+/',
@@ -3484,13 +4360,17 @@ if ($is_single_stage_report) {
 
             $label_lines = [$label];
 
-            if (count($label_words) > 1) {
+            if (
+                count($label_words) > 1
+            ) {
                 $best_split = 1;
-                $best_difference = PHP_INT_MAX;
+                $best_difference =
+                    PHP_INT_MAX;
 
                 for (
                     $split = 1;
-                    $split < count($label_words);
+                    $split <
+                        count($label_words);
                     $split++
                 ) {
                     $first_line =
@@ -3518,9 +4398,15 @@ if ($is_single_stage_report) {
                             strlen($second_line)
                         );
 
-                    if ($difference < $best_difference) {
-                        $best_difference = $difference;
-                        $best_split = $split;
+                    if (
+                        $difference <
+                        $best_difference
+                    ) {
+                        $best_difference =
+                            $difference;
+
+                        $best_split =
+                            $split;
                     }
                 }
 
@@ -3544,10 +4430,6 @@ if ($is_single_stage_report) {
             }
 
             $label_svg = '';
-            $label_start_y =
-                count($label_lines) > 1
-                    ? 211
-                    : 216;
 
             foreach (
                 $label_lines
@@ -3556,10 +4438,10 @@ if ($is_single_stage_report) {
             ) {
                 $label_svg .= '
                     <text
-                        x="' . $centre . '"
+                        x="' . $x . '"
                         y="' .
                             (
-                                $label_start_y +
+                                207 +
                                 ($line_index * 9)
                             ) .
                         '"
@@ -3568,31 +4450,66 @@ if ($is_single_stage_report) {
                         font-size="7"
                         fill="#333333"
                     >' .
-                        esc_html($label_line) .
+                        esc_html(
+                            $label_line
+                        ) .
                     '</text>
                 ';
             }
 
-            $bars .= '
-                <rect
-                    x="' . $x . '"
-                    y="' . $y . '"
-                    width="' . $bar_width . '"
-                    height="' . $height . '"
-                    fill="' . esc_attr($colour) . '"
+            $markers .= '
+                <circle
+                    cx="' . $x . '"
+                    cy="' . $y . '"
+                    r="5"
+                    fill="' .
+                        esc_attr(
+                            $colour
+                        ) .
+                    '"
                 />
 
                 <text
-                    x="' . $centre . '"
-                    y="' . ($y - 5) . '"
+                    x="' . $x . '"
+                    y="' . ($y - 8) . '"
                     text-anchor="middle"
                     font-family="DejaVu Sans"
                     font-size="8"
                     font-weight="600"
                     fill="#111111"
-                >' . esc_html(round($percentage)) . '%</text>
+                >' .
+                    esc_html(
+                        round($percentage)
+                    ) .
+                '%</text>
 
                 ' . $label_svg . '
+            ';
+        }
+
+        $line = '';
+
+        if (count($points) >= 2) {
+            $line = '
+                <polyline
+                    points="' .
+                        esc_attr(
+                            implode(
+                                ' ',
+                                $points
+                            )
+                        ) .
+                    '"
+                    fill="none"
+                    stroke="' .
+                        esc_attr(
+                            $colour
+                        ) .
+                    '"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
             ';
         }
 
@@ -3603,15 +4520,17 @@ if ($is_single_stage_report) {
             height="240"
             viewBox="0 0 600 240"
         >
-            <rect width="600" height="240" fill="#ffffff"/>
+            <rect
+                width="600"
+                height="240"
+                fill="#ffffff"
+            />
 
-            <g stroke="#dddddd" stroke-width="1">
-                <line x1="70" y1="45" x2="550" y2="45"/>
-                <line x1="70" y1="74" x2="550" y2="74"/>
-                <line x1="70" y1="103" x2="550" y2="103"/>
-                <line x1="70" y1="132" x2="550" y2="132"/>
-                <line x1="70" y1="161" x2="550" y2="161"/>
-                <line x1="70" y1="190" x2="550" y2="190"/>
+            <g
+                stroke="#dddddd"
+                stroke-width="1"
+            >
+                ' . $grid . '
             </g>
 
             <g
@@ -3619,27 +4538,44 @@ if ($is_single_stage_report) {
                 font-family="DejaVu Sans"
                 font-size="10"
             >
-                <text x="35" y="48">100%</text>
-                <text x="42" y="77">80%</text>
-                <text x="42" y="106">60%</text>
-                <text x="42" y="135">40%</text>
-                <text x="42" y="164">20%</text>
-                <text x="49" y="193">0%</text>
+                ' . $axis_labels . '
 
-                <rect
-                    x="448"
-                    y="14"
-                    width="12"
-                    height="12"
-                    fill="' . esc_attr($colour) . '"
+                <line
+                    x1="438"
+                    y1="20"
+                    x2="458"
+                    y2="20"
+                    stroke="' .
+                        esc_attr(
+                            $colour
+                        ) .
+                    '"
+                    stroke-width="3"
                 />
 
-                <text x="466" y="24">
-                    ' . esc_html($stage_label) . '
-                </text>
+                <circle
+                    cx="448"
+                    cy="20"
+                    r="4"
+                    fill="' .
+                        esc_attr(
+                            $colour
+                        ) .
+                    '"
+                />
+
+                <text
+                    x="466"
+                    y="24"
+                >' .
+                    esc_html(
+                        $stage_label
+                    ) .
+                '</text>
             </g>
 
-            ' . $bars . '
+            ' . $line . '
+            ' . $markers . '
         </svg>
         ';
 
@@ -3829,20 +4765,18 @@ if (count($primary_available_stages) === 2) {
         0,
         floor(
             (
-                min($two_stage_overview_percentages) -
-                10
-            ) / 10
-        ) * 10
+                min($two_stage_overview_percentages) - 5
+            ) / 5
+        ) * 5
     );
 
     $two_stage_overview_axis_max = min(
         100,
         ceil(
             (
-                max($two_stage_overview_percentages) +
-                10
-            ) / 10
-        ) * 10
+                max($two_stage_overview_percentages) + 5
+            ) / 5
+        ) * 5
     );
 
     if (
@@ -4066,12 +5000,12 @@ if (count($primary_available_stages) === 2) {
 
         $axis_min = max(
             0,
-            floor((min($percentages) - 10) / 10) * 10
+            floor((min($percentages) - 5) / 5) * 5
         );
 
         $axis_max = min(
             100,
-            ceil((max($percentages) + 10) / 10) * 10
+            ceil((max($percentages) + 5) / 5) * 5
         );
 
         if (($axis_max - $axis_min) < 20) {
@@ -4294,8 +5228,9 @@ if (count($primary_available_stages) === 2) {
     }
 
     /*
-     * Key Growth chart: rank by change between the two real stages
-     * and show exactly two bars per capability.
+     * Key Growth line chart: rank by change between the two real
+     * stages and connect the stage values across the top three
+     * capabilities.
      */
     $two_stage_growth_chart = static function (
         array $measures,
@@ -4541,30 +5476,162 @@ $comparison_backend_stage =
 
 $comparison_program_series = [];
 
+$primary_comparison_label =
+    trim(
+        $program . ' ' . $cohort
+    );
+
 if (
     $has_comparisons &&
     $comparison_backend_stage !== '' &&
     class_exists('TLE_Report_Service')
 ) {
     /*
-     * Always include the primary program as the first comparison series.
+     * Each comparison is a Program + Cohort pair.
+     * The primary Program + Cohort is included in the chart too.
      */
-    $requested_comparison_programs = array_values(
-        array_unique(
-            array_merge(
-                [$program],
-                $comparison_programs
+    $requested_comparison_selections = [
+        [
+            'program' => $program,
+            'cohort' => $cohort,
+            'label' => $primary_comparison_label,
+            'is_primary' => true,
+        ],
+    ];
+
+    $seen_comparison_keys = [
+        $program . '|' . $cohort => true,
+    ];
+
+    foreach (
+        $comparison_selections
+        as $comparison_selection
+    ) {
+        $comparison_program_name =
+            trim(
+                (string) (
+                    $comparison_selection['program']
+                    ?? ''
+                )
+            );
+
+        $comparison_cohort =
+            trim(
+                (string) (
+                    $comparison_selection['cohort']
+                    ?? ''
+                )
+            );
+
+        if (
+            $comparison_program_name === '' ||
+            $comparison_cohort === ''
+        ) {
+            continue;
+        }
+
+        $comparison_key =
+            $comparison_program_name .
+            '|' .
+            $comparison_cohort;
+
+        if (
+            isset(
+                $seen_comparison_keys[
+                    $comparison_key
+                ]
             )
-        )
+        ) {
+            continue;
+        }
+
+        $seen_comparison_keys[
+            $comparison_key
+        ] = true;
+
+        $requested_comparison_selections[] = [
+            'program' => $comparison_program_name,
+            'cohort' => $comparison_cohort,
+            'label' =>
+                trim(
+                    $comparison_program_name .
+                    ' ' .
+                    $comparison_cohort
+                ),
+            'is_primary' => false,
+        ];
+    }
+
+    /*
+     * Richard's mock-up orders cohorts from oldest to newest.
+     * For equal years, the current primary is shown last.
+     */
+    usort(
+        $requested_comparison_selections,
+        static function (
+            $first,
+            $second
+        ) {
+            $first_cohort =
+                (string) (
+                    $first['cohort'] ?? ''
+                );
+
+            $second_cohort =
+                (string) (
+                    $second['cohort'] ?? ''
+                );
+
+            if (
+                is_numeric($first_cohort) &&
+                is_numeric($second_cohort) &&
+                (int) $first_cohort !==
+                    (int) $second_cohort
+            ) {
+                return
+                    (int) $first_cohort <=>
+                    (int) $second_cohort;
+            }
+
+            $cohort_order =
+                strcmp(
+                    $first_cohort,
+                    $second_cohort
+                );
+
+            if ($cohort_order !== 0) {
+                return $cohort_order;
+            }
+
+            if (
+                !empty($first['is_primary']) !==
+                !empty($second['is_primary'])
+            ) {
+                return
+                    !empty($first['is_primary'])
+                        ? 1
+                        : -1;
+            }
+
+            return strcmp(
+                (string) ($first['program'] ?? ''),
+                (string) ($second['program'] ?? '')
+            );
+        }
     );
 
     foreach (
-        $requested_comparison_programs
-        as $comparison_program_name
+        $requested_comparison_selections
+        as $comparison_selection
     ) {
-        if (trim($comparison_program_name) === '') {
-            continue;
-        }
+        $comparison_program_name =
+            (string) $comparison_selection['program'];
+
+        $comparison_cohort =
+            (string) $comparison_selection['cohort'];
+
+        $comparison_series_label =
+            (string) $comparison_selection['label'];
 
         $comparison_report =
             TLE_Report_Service::get_report(
@@ -4572,7 +5639,7 @@ if (
                     'program' =>
                         $comparison_program_name,
                     'cohort' =>
-                        $cohort,
+                        $comparison_cohort,
                     'evaluation_stage' =>
                         $comparison_backend_stage,
                 ]
@@ -4587,11 +5654,13 @@ if (
         }
 
         /*
-         * A program/cohort/stage comparison must resolve to one
-         * unambiguous reporting context. Do not combine unrelated
-         * groups by averaging averages.
+         * Never average unrelated reporting groups together.
          */
-        if (count($comparison_report['groups']) !== 1) {
+        if (
+            count(
+                $comparison_report['groups']
+            ) !== 1
+        ) {
             continue;
         }
 
@@ -4599,9 +5668,15 @@ if (
             $comparison_report['groups'][0];
 
         if (
-            empty($comparison_group['capability_averages']) ||
+            empty(
+                $comparison_group[
+                    'capability_averages'
+                ]
+            ) ||
             !is_array(
-                $comparison_group['capability_averages']
+                $comparison_group[
+                    'capability_averages'
+                ]
             )
         ) {
             continue;
@@ -4643,15 +5718,16 @@ if (
                     $section_key
                 ][
                     $capability_name
-                ] = (float) $stage_values[
-                    $comparison_backend_stage
-                ];
+                ] =
+                    (float) $stage_values[
+                        $comparison_backend_stage
+                    ];
             }
         }
 
         if (!empty($program_capabilities)) {
             $comparison_program_series[
-                $comparison_program_name
+                $comparison_series_label
             ] = $program_capabilities;
         }
     }
@@ -4662,7 +5738,9 @@ if (
      */
     if (
         !isset(
-            $comparison_program_series[$program]
+            $comparison_program_series[
+                $primary_comparison_label
+            ]
         )
     ) {
         wp_die(
@@ -4687,8 +5765,12 @@ if (
                 ),
                 static function (
                     $program_name
-                ) use ($program) {
-                    return $program_name !== $program;
+                ) use (
+                    $primary_comparison_label
+                ) {
+                    return
+                        $program_name !==
+                        $primary_comparison_label;
                 }
             )
         );
@@ -4697,7 +5779,7 @@ if (
         wp_die(
             esc_html(
                 sprintf(
-                    'No comparison program has %s data for the selected cohort.',
+                    'No selected comparison has %s data.',
                     $comparison_evaluation_label
                 )
             )
@@ -4810,7 +5892,8 @@ if (
                 ];
 
             $row_class =
-                $comparison_program_name === $program
+                $comparison_program_name ===
+                    $primary_comparison_label
                     ? ' overview-comparison-primary'
                     : '';
 
@@ -4864,7 +5947,7 @@ if (
 
                         <thead>
                             <tr>
-                                <th>Program</th>
+                                <th>Program / Year</th>
                                 <th>Insight</th>
                                 <th>Influence</th>
                                 <th>Impact</th>
@@ -4893,8 +5976,13 @@ if (
             string $primary_colour
         ) {
             /*
-             * Keep only programs that have real scores in this
-             * particular report section.
+             * Richard / Joseph comparison treatment:
+             *
+             * - Program + Cohort on the x-axis.
+             * - Capability values shown as individual dots.
+             * - No connecting lines between cohorts.
+             * - Chronological ordering is inherited from the
+             *   already-sorted comparison program series.
              */
             $section_series = [];
 
@@ -4917,49 +6005,29 @@ if (
 
             if (
                 !isset(
-                    $section_series[$primary_program]
+                    $section_series[
+                        $primary_program
+                    ]
                 ) ||
                 count($section_series) < 2
             ) {
                 return '';
             }
 
-            $palette = [
-                $primary_colour,
-                '#E66B5B',
-                '#7A5AA6',
-                '#93B83E',
-                '#4F7F9B',
-                '#D89A42',
-            ];
-
-            $series_count =
-                count($section_series);
-
-            $legend_columns = 2;
-            $legend_rows = (int) ceil(
-                $series_count /
-                $legend_columns
-            );
-
-            $plot_left = 70;
-            $plot_right = 550;
-            $plot_width =
-                $plot_right - $plot_left;
-
-            $plot_top =
-                44 + ($legend_rows * 15);
-
-            $plot_bottom = 196;
-            $plot_height =
-                $plot_bottom - $plot_top;
-
+            /*
+             * Keep capability order consistent with the main
+             * section chart.
+             */
             $filtered_measures = [];
 
             foreach ($measures as $measure) {
                 $measure_name =
                     isset($measure['measure'])
-                        ? (string) $measure['measure']
+                        ? trim(
+                            (string) $measure[
+                                'measure'
+                            ]
+                        )
                         : '';
 
                 if ($measure_name === '') {
@@ -4973,9 +6041,15 @@ if (
                     as $scores
                 ) {
                     if (
-                        isset($scores[$measure_name]) &&
+                        isset(
+                            $scores[
+                                $measure_name
+                            ]
+                        ) &&
                         is_numeric(
-                            $scores[$measure_name]
+                            $scores[
+                                $measure_name
+                            ]
                         )
                     ) {
                         $has_score = true;
@@ -4993,117 +6067,388 @@ if (
                 return '';
             }
 
+            /*
+             * Capability colours. The first capability follows
+             * the selected report colour and the remainder use
+             * the established secondary reporting palette.
+             */
+            $palette = [
+                $primary_colour,
+                '#E66B5B',
+                '#7A5AA6',
+                '#93B83E',
+                '#4F7F9B',
+                '#D89A42',
+                '#616161',
+                '#9E6C93',
+            ];
+
+            /*
+             * Calculate an adaptive Y-axis from the actual
+             * comparison scores rather than forcing 0â€“100.
+             */
+            $all_percentages = [];
+
+            foreach (
+                $section_series
+                as $scores
+            ) {
+                foreach (
+                    $filtered_measures
+                    as $capability_name
+                ) {
+                    if (
+                        !isset(
+                            $scores[
+                                $capability_name
+                            ]
+                        ) ||
+                        !is_numeric(
+                            $scores[
+                                $capability_name
+                            ]
+                        )
+                    ) {
+                        continue;
+                    }
+
+                    $all_percentages[] =
+                        (
+                            (float) $scores[
+                                $capability_name
+                            ] /
+                            7
+                        ) * 100;
+                }
+            }
+
+            if (empty($all_percentages)) {
+                return '';
+            }
+
+            $minimum_value =
+                min($all_percentages);
+
+            $maximum_value =
+                max($all_percentages);
+
+            $axis_min =
+                max(
+                    0,
+                    floor(
+                        ($minimum_value - 5) /
+                        10
+                    ) * 10
+                );
+
+            $axis_max =
+                min(
+                    100,
+                    ceil(
+                        ($maximum_value + 5) /
+                        10
+                    ) * 10
+                );
+
+            /*
+             * Avoid a visually exaggerated axis when values
+             * happen to sit very close together.
+             */
+            if (
+                ($axis_max - $axis_min) < 20
+            ) {
+                $axis_mid =
+                    (
+                        $axis_min +
+                        $axis_max
+                    ) / 2;
+
+                $axis_min =
+                    max(
+                        0,
+                        floor(
+                            ($axis_mid - 10) /
+                            10
+                        ) * 10
+                    );
+
+                $axis_max =
+                    min(
+                        100,
+                        ceil(
+                            ($axis_mid + 10) /
+                            10
+                        ) * 10
+                    );
+            }
+
+            if ($axis_max <= $axis_min) {
+                $axis_min = max(
+                    0,
+                    $axis_min - 10
+                );
+
+                $axis_max = min(
+                    100,
+                    $axis_max + 10
+                );
+            }
+
+            $axis_span =
+                max(
+                    10,
+                    $axis_max - $axis_min
+                );
+
+            $series_count =
+                count($section_series);
+
             $capability_count =
                 count($filtered_measures);
 
-            $slot_width =
-                $plot_width /
-                max(1, $capability_count);
+            /*
+             * Three legend columns keep the chart compact enough
+             * to fit above the comparison explanatory text.
+             */
+            $legend_columns = 3;
 
-            $group_width =
-                min(
-                    $slot_width * 0.78,
-                    62
+            $legend_rows =
+                (int) ceil(
+                    $capability_count /
+                    $legend_columns
                 );
 
-            $bar_gap = 2;
+            $legend_row_height = 22;
 
-            $bar_width =
-                min(
-                    18,
-                    max(
-                        4,
-                        (
-                            $group_width -
-                            (
-                                $bar_gap *
-                                max(
-                                    0,
-                                    $series_count - 1
-                                )
-                            )
-                        ) /
-                        max(1, $series_count)
-                    )
-                );
+            $plot_left = 68;
+            $plot_right = 548;
+            $plot_width =
+                $plot_right - $plot_left;
 
-            $actual_group_width =
-                ($bar_width * $series_count) +
+            $plot_top =
+                24 +
                 (
-                    $bar_gap *
+                    $legend_rows *
+                    $legend_row_height
+                );
+
+            $plot_bottom = 184;
+
+            $plot_height =
+                max(
+                    80,
+                    $plot_bottom -
+                    $plot_top
+                );
+
+            /*
+             * Program/cohort x positions.
+             */
+            $program_slot_width =
+                $plot_width /
+                max(
+                    1,
+                    $series_count
+                );
+
+            /*
+             * Slight horizontal offsets prevent capability dots
+             * with similar values from completely overlapping.
+             * They remain visually grouped under the same cohort.
+             */
+            $dot_spread =
+                min(
+                    24,
                     max(
-                        0,
-                        $series_count - 1
+                        10,
+                        $program_slot_width *
+                        0.22
                     )
                 );
 
-            $bars = '';
+            $points = '';
+            $x_labels = '';
             $legend = '';
-            $series_index = 0;
+
+            /*
+             * Capability legend.
+             */
+            foreach (
+                $filtered_measures
+                as $capability_index =>
+                    $capability_name
+            ) {
+                $colour =
+                    $palette[
+                        $capability_index %
+                        count($palette)
+                    ];
+
+                $legend_column =
+                    $capability_index %
+                    $legend_columns;
+
+                $legend_row =
+                    intdiv(
+                        $capability_index,
+                        $legend_columns
+                    );
+
+                $legend_x =
+                    72 +
+                    ($legend_column * 165);
+
+                $legend_y =
+                    18 +
+                    (
+                        $legend_row *
+                        $legend_row_height
+                    );
+
+                $legend_words =
+                    preg_split(
+                        '/\s+/',
+                        trim($capability_name)
+                    ) ?: [];
+
+                $legend_lines = [
+                    $capability_name
+                ];
+
+                if (
+                    strlen($capability_name) > 22 &&
+                    count($legend_words) > 1
+                ) {
+                    $best_split = 1;
+                    $best_difference =
+                        PHP_INT_MAX;
+
+                    for (
+                        $split = 1;
+                        $split <
+                            count($legend_words);
+                        $split++
+                    ) {
+                        $first_line =
+                            implode(
+                                ' ',
+                                array_slice(
+                                    $legend_words,
+                                    0,
+                                    $split
+                                )
+                            );
+
+                        $second_line =
+                            implode(
+                                ' ',
+                                array_slice(
+                                    $legend_words,
+                                    $split
+                                )
+                            );
+
+                        $difference =
+                            abs(
+                                strlen($first_line) -
+                                strlen($second_line)
+                            );
+
+                        if (
+                            $difference <
+                            $best_difference
+                        ) {
+                            $best_difference =
+                                $difference;
+
+                            $best_split =
+                                $split;
+                        }
+                    }
+
+                    $legend_lines = [
+                        implode(
+                            ' ',
+                            array_slice(
+                                $legend_words,
+                                0,
+                                $best_split
+                            )
+                        ),
+                        implode(
+                            ' ',
+                            array_slice(
+                                $legend_words,
+                                $best_split
+                            )
+                        ),
+                    ];
+                }
+
+                $legend .= '
+                    <circle
+                        cx="' .
+                            $legend_x .
+                        '"
+                        cy="' .
+                            ($legend_y - 3) .
+                        '"
+                        r="4"
+                        fill="' .
+                            esc_attr(
+                                $colour
+                            ) .
+                        '"
+                    />
+                ';
+
+                foreach (
+                    $legend_lines
+                    as $legend_line_index =>
+                        $legend_line
+                ) {
+                    $legend .= '
+                        <text
+                            x="' .
+                                ($legend_x + 9) .
+                            '"
+                            y="' .
+                                (
+                                    $legend_y +
+                                    (
+                                        $legend_line_index *
+                                        8
+                                    )
+                                ) .
+                            '"
+                            font-family="DejaVu Sans"
+                            font-size="7"
+                            fill="#333333"
+                        >' .
+                            esc_html(
+                                $legend_line
+                            ) .
+                        '</text>
+                    ';
+                }
+            }
+
+            $program_index = 0;
 
             foreach (
                 $section_series
                 as $program_name => $scores
             ) {
-                $colour =
-                    $palette[
-                        $series_index %
-                        count($palette)
-                    ];
-
-                $legend_column =
-                    $series_index %
-                    $legend_columns;
-
-                $legend_row =
-                    intdiv(
-                        $series_index,
-                        $legend_columns
+                $centre_x =
+                    $plot_left +
+                    (
+                        $program_slot_width *
+                        $program_index
+                    ) +
+                    (
+                        $program_slot_width /
+                        2
                     );
-
-                $legend_x =
-                    75 +
-                    ($legend_column * 250);
-
-                $legend_y =
-                    20 +
-                    ($legend_row * 15);
-
-                $legend_label =
-                    $program_name;
-
-                if (
-                    strlen($legend_label) > 30
-                ) {
-                    $legend_label =
-                        substr(
-                            $legend_label,
-                            0,
-                            28
-                        ) . '...';
-                }
-
-                $legend .= '
-                    <rect
-                        x="' . $legend_x . '"
-                        y="' . ($legend_y - 9) . '"
-                        width="10"
-                        height="10"
-                        fill="' .
-                            esc_attr($colour) .
-                        '"
-                    />
-
-                    <text
-                        x="' . ($legend_x + 15) . '"
-                        y="' . $legend_y . '"
-                        font-family="DejaVu Sans"
-                        font-size="8"
-                        fill="#333333"
-                    >' .
-                        esc_html($legend_label) .
-                    '</text>
-                ';
 
                 foreach (
                     $filtered_measures
@@ -5133,96 +6478,119 @@ if (
                             7
                         ) * 100;
 
-                    $height =
-                        ($percentage / 100) *
-                        $plot_height;
-
-                    $y =
-                        $plot_bottom -
-                        $height;
-
-                    $centre =
-                        $plot_left +
+                    $relative =
                         (
-                            $slot_width *
-                            $capability_index
-                        ) +
-                        ($slot_width / 2);
+                            $percentage -
+                            $axis_min
+                        ) /
+                        $axis_span;
 
-                    $group_start =
-                        $centre -
-                        ($actual_group_width / 2);
-
-                    $x =
-                        $group_start +
-                        (
-                            $series_index *
-                            (
-                                $bar_width +
-                                $bar_gap
+                    $relative =
+                        max(
+                            0,
+                            min(
+                                1,
+                                $relative
                             )
                         );
 
-                    $bars .= '
-                        <rect
-                            x="' . $x . '"
-                            y="' . $y . '"
-                            width="' .
-                                $bar_width .
+                    $y =
+                        $plot_bottom -
+                        (
+                            $relative *
+                            $plot_height
+                        );
+
+                    if ($capability_count > 1) {
+                        $offset_position =
+                            (
+                                $capability_index /
+                                (
+                                    $capability_count -
+                                    1
+                                )
+                            ) - 0.5;
+                    } else {
+                        $offset_position = 0;
+                    }
+
+                    $x =
+                        $centre_x +
+                        (
+                            $offset_position *
+                            $dot_spread
+                        );
+
+                    $colour =
+                        $palette[
+                            $capability_index %
+                            count($palette)
+                        ];
+
+                    $points .= '
+                        <circle
+                            cx="' .
+                                $x .
                             '"
-                            height="' .
-                                $height .
+                            cy="' .
+                                $y .
                             '"
+                            r="4.6"
                             fill="' .
-                                esc_attr($colour) .
+                                esc_attr(
+                                    $colour
+                                ) .
                             '"
+                            stroke="#ffffff"
+                            stroke-width="1.2"
                         />
                     ';
                 }
 
-                $series_index++;
-            }
-
-            $labels = '';
-
-            foreach (
-                $filtered_measures
-                as $capability_index =>
-                    $capability_name
-            ) {
-                $centre =
-                    $plot_left +
-                    (
-                        $slot_width *
-                        $capability_index
-                    ) +
-                    ($slot_width / 2);
-
-                $label =
-                    $capability_name;
-
+                /*
+                 * Wrap Program + Year labels rather than
+                 * truncating them.
+                 */
                 $label_words =
                     preg_split(
                         '/\s+/',
-                        trim($label)
+                        trim($program_name)
                     ) ?: [];
 
-                $label_lines = [$label];
+                $label_lines = [
+                    $program_name
+                ];
 
-                if (count($label_words) > 1) {
+                if (
+                    count($label_words) > 2
+                ) {
+                    $year =
+                        end(
+                            $label_words
+                        );
+
+                    $name_words =
+                        array_slice(
+                            $label_words,
+                            0,
+                            -1
+                        );
+
                     $best_split = 1;
-                    $best_difference = PHP_INT_MAX;
+                    $best_difference =
+                        PHP_INT_MAX;
 
                     for (
                         $split = 1;
-                        $split < count($label_words);
+                        $split <
+                            count($name_words);
                         $split++
                     ) {
                         $first_line =
                             implode(
                                 ' ',
                                 array_slice(
-                                    $label_words,
+                                    $name_words,
                                     0,
                                     $split
                                 )
@@ -5232,15 +6600,19 @@ if (
                             implode(
                                 ' ',
                                 array_slice(
-                                    $label_words,
+                                    $name_words,
                                     $split
                                 )
                             );
 
                         $difference =
                             abs(
-                                strlen($first_line) -
-                                strlen($second_line)
+                                strlen(
+                                    $first_line
+                                ) -
+                                strlen(
+                                    $second_line
+                                )
                             );
 
                         if (
@@ -5249,48 +6621,64 @@ if (
                         ) {
                             $best_difference =
                                 $difference;
+
                             $best_split =
                                 $split;
                         }
                     }
 
-                    $label_lines = [
+                    $first_line =
                         implode(
                             ' ',
                             array_slice(
-                                $label_words,
+                                $name_words,
                                 0,
                                 $best_split
                             )
-                        ),
+                        );
+
+                    $second_line =
                         implode(
                             ' ',
                             array_slice(
-                                $label_words,
+                                $name_words,
                                 $best_split
                             )
+                        );
+
+                    /*
+                     * Keep the cohort/year visibly attached to
+                     * the program label.
+                     */
+                    $label_lines = [
+                        $first_line,
+                        trim(
+                            $second_line .
+                            ' ' .
+                            $year
                         ),
                     ];
                 }
 
-                $label_svg = '';
-                $label_start_y =
-                    count($label_lines) > 1
-                        ? 216
-                        : 220;
+                $label_start_y = 202;
 
                 foreach (
                     $label_lines
                     as $line_index =>
                         $label_line
                 ) {
-                    $label_svg .= '
+                    $x_labels .= '
                         <text
-                            x="' . $centre . '"
+                            x="' .
+                                $centre_x .
+                            '"
                             y="' .
                                 (
                                     $label_start_y +
-                                    ($line_index * 8)
+                                    (
+                                        $line_index *
+                                        9
+                                    )
                                 ) .
                             '"
                             text-anchor="middle"
@@ -5298,46 +6686,70 @@ if (
                             font-size="6.5"
                             fill="#333333"
                         >' .
-                            esc_html($label_line) .
+                            esc_html(
+                                $label_line
+                            ) .
                         '</text>
                     ';
                 }
 
-                $labels .= '
-                    ' . $label_svg . '
-                ';
+                $program_index++;
             }
 
+            /*
+             * Adaptive 10-point grid.
+             */
             $grid = '';
             $axis_labels = '';
 
-            foreach (
-                [100, 80, 60, 40, 20, 0]
-                as $percentage
+            for (
+                $percentage = $axis_min;
+                $percentage <= $axis_max;
+                $percentage += 10
             ) {
+                $relative =
+                    (
+                        $percentage -
+                        $axis_min
+                    ) /
+                    $axis_span;
+
                 $y =
                     $plot_bottom -
                     (
-                        ($percentage / 100) *
+                        $relative *
                         $plot_height
                     );
 
                 $grid .= '
                     <line
-                        x1="' . $plot_left . '"
-                        y1="' . $y . '"
-                        x2="' . $plot_right . '"
-                        y2="' . $y . '"
+                        x1="' .
+                            $plot_left .
+                        '"
+                        y1="' .
+                            $y .
+                        '"
+                        x2="' .
+                            $plot_right .
+                        '"
+                        y2="' .
+                            $y .
+                        '"
                     />
                 ';
 
                 $axis_labels .= '
                     <text
-                        x="43"
-                        y="' . ($y + 3) . '"
+                        x="56"
+                        y="' .
+                            ($y + 3) .
+                        '"
+                        text-anchor="end"
                     >' .
-                        $percentage .
-                        '%</text>
+                        esc_html(
+                            $percentage
+                        ) .
+                    '%</text>
                 ';
             }
 
@@ -5345,12 +6757,12 @@ if (
             <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="600"
-                height="235"
-                viewBox="0 0 600 235"
+                height="225"
+                viewBox="0 0 600 225"
             >
                 <rect
                     width="600"
-                    height="235"
+                    height="225"
                     fill="#ffffff"
                 />
 
@@ -5371,8 +6783,8 @@ if (
                     ' . $axis_labels . '
                 </g>
 
-                ' . $bars . '
-                ' . $labels . '
+                ' . $points . '
+                ' . $x_labels . '
             </svg>
             ';
 
@@ -5380,11 +6792,19 @@ if (
                 'data:image/svg+xml;base64,' .
                 base64_encode($svg);
         };
-
     $comparison_section_keys = [
         'Insight'   => 'insight',
         'Influence' => 'influence',
         'Impact'    => 'impact',
+    ];
+
+    $comparison_text_map = [
+        'Insight' =>
+            trim($insight_comparison_text),
+        'Influence' =>
+            trim($influence_comparison_text),
+        'Impact' =>
+            trim($impact_comparison_text),
     ];
 
     foreach (
@@ -5404,12 +6824,33 @@ if (
                 ],
                 $comparison_program_series,
                 $section_key,
-                $program,
+                $primary_comparison_label,
                 $report_colour
             );
 
         if ($comparison_chart_data === '') {
             continue;
+        }
+
+        $comparison_context_text =
+            $comparison_text_map[
+                $section_name
+            ] ?? '';
+
+        $comparison_context_html = '';
+
+        if ($comparison_context_text !== '') {
+            $comparison_context_html = '
+                <div class="comparison-context-box">
+                    ' .
+                        nl2br(
+                            esc_html(
+                                $comparison_context_text
+                            )
+                        ) .
+                    '
+                </div>
+            ';
         }
 
         $section_secondary_html[
@@ -5433,6 +6874,8 @@ if (
                     alt=""
                 >
             </div>
+
+            ' . $comparison_context_html . '
         ';
     }
 }
@@ -6123,6 +7566,18 @@ $html = '
         height: auto;
     }
 
+    .comparison-context-box {
+        width: 86%;
+        margin: 2px auto 6px;
+        padding: 9px 12px;
+        box-sizing: border-box;
+        background: ' . esc_attr($report_colour_light) . ';
+        color: #111111;
+        font-size: 9px;
+        line-height: 1.35;
+        page-break-inside: avoid;
+    }
+
     .section-summary-table {
         margin-top: 8px;
         page-break-inside: avoid;
@@ -6323,6 +7778,10 @@ $html = '
         margin: 0 auto 0;
     }
 
+    .final-insight-page .comparison-context-box {
+        margin-bottom: 4px;
+    }
+
     .final-insight-page .section-summary-table {
         margin-top: 2px;
     }
@@ -6396,6 +7855,10 @@ $html = '
         height: auto;
     }
 
+    .final-influence-page .comparison-context-box {
+        margin-bottom: 4px;
+    }
+
     .final-influence-page .section-summary-table {
         margin-top: 2px;
     }
@@ -6467,6 +7930,10 @@ $html = '
         display: block;
         width: 100%;
         height: auto;
+    }
+
+    .final-impact-page .comparison-context-box {
+        margin-bottom: 4px;
     }
 
     .final-impact-page .section-summary-table {
@@ -6785,7 +8252,8 @@ $html = '
         font-size: 28px;
         line-height: 1.05;
     }
-    /* Manager pages only: three-column UX layout, backed by service distributions. */
+
+        /* Manager pages only: three-column UX layout, backed by service distributions. */
     .manager-ux-page {
         min-height: 0;
         height: 990px;
@@ -6824,7 +8292,8 @@ $html = '
 
     .manager-ux-badge-image { display: block; width: 100%; height: 46px; }
 
-</style>
+
+    </style>
 </head>
 
 <body>

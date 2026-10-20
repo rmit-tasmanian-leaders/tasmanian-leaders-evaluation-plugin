@@ -3,11 +3,56 @@
 if (!defined('ABSPATH')) { exit; }
 class TLE_Report_Service
 {
+    /**
+     * Return the canonical dashboard/reporting name for a program.
+     */
+    public static function canonical_program($program) {
+        $program = sanitize_text_field((string) $program);
+
+        $aliases = [
+            'I-LEAD Women in Community Services' =>
+                'I-LEAD Women in Community',
+            'I-LEAD Tassie Wine' =>
+                'I-LEAD Wine Industry',
+        ];
+
+        return $aliases[$program] ?? $program;
+    }
+
+    /**
+     * Return all Gravity Forms values that represent a program.
+     */
+    public static function program_filter_values($program) {
+        $canonical = self::canonical_program($program);
+
+        $values = [
+            'I-LEAD Women in Community' => [
+                'I-LEAD Women in Community',
+                'I-LEAD Women in Community Services',
+            ],
+            'I-LEAD Wine Industry' => [
+                'I-LEAD Wine Industry',
+                'I-LEAD Tassie Wine',
+            ],
+        ];
+
+        return $values[$canonical] ?? [$canonical];
+    }
+
     public static function get_report($filters = [], $form_ids = []) {
         if (!is_array($filters) || !is_array($form_ids)) { return new WP_Error('tle_invalid_report', 'Report filters and form IDs must be arrays.', ['status' => 400]); }
         foreach ($filters as $key => $value) {
             if (!in_array($key, ['participant_key', 'program', 'program_group', 'cohort', 'evaluation_stage', 'comparison', 'form_id', 'form_key'], true) || !is_scalar($value)) { return new WP_Error('tle_invalid_filter', 'Invalid report filter.', ['status' => 400]); }
             $filters[$key] = sanitize_text_field((string) $value);
+        }
+        if (
+            isset($filters['program']) &&
+            $filters['program'] !== ''
+        ) {
+            $filters['program'] =
+                self::canonical_program(
+                    $filters['program']
+                );
         }
         if (isset($filters['form_id']) && !$form_ids) { $form_ids = [$filters['form_id']]; }
         if (isset($filters['form_key']) && !$form_ids) { $form_ids = [$filters['form_key']]; }
@@ -36,15 +81,80 @@ class TLE_Report_Service
             $profiles[$profile['form_id']] = $profile;
         }
         $records = [];
+
         foreach ($profiles as $id => $profile) {
-            $search = ['status' => 'active']; $field_filters = ['mode' => 'all'];
-            foreach (['participant_key', 'program', 'program_group', 'cohort'] as $field) {
-                if (isset($filters[$field]) && $filters[$field] !== '') { $field_filters[] = ['key' => $profile['fields'][$field], 'value' => $filters[$field], 'operator' => 'is']; }
+            $base_filters = ['mode' => 'all'];
+
+            foreach (
+                ['participant_key', 'program_group', 'cohort']
+                as $field
+            ) {
+                if (
+                    isset($filters[$field]) &&
+                    $filters[$field] !== ''
+                ) {
+                    $base_filters[] = [
+                        'key' => $profile['fields'][$field],
+                        'value' => $filters[$field],
+                        'operator' => 'is',
+                    ];
+                }
             }
-            if (count($field_filters) > 1) { $search['field_filters'] = $field_filters; }
-            $form_records = TLE_Evaluation_Data_Service::get_all_evaluations($id, $search);
-            if (is_wp_error($form_records)) { return $form_records; }
-            $records = array_merge($records, $form_records);
+
+            $program_values =
+                isset($filters['program']) &&
+                $filters['program'] !== ''
+                    ? self::program_filter_values(
+                        $filters['program']
+                    )
+                    : [null];
+
+            foreach ($program_values as $program_value) {
+                $search = ['status' => 'active'];
+                $field_filters = $base_filters;
+
+                if ($program_value !== null) {
+                    $field_filters[] = [
+                        'key' => $profile['fields']['program'],
+                        'value' => $program_value,
+                        'operator' => 'is',
+                    ];
+                }
+
+                if (count($field_filters) > 1) {
+                    $search['field_filters'] =
+                        $field_filters;
+                }
+
+                $form_records =
+                    TLE_Evaluation_Data_Service::
+                        get_all_evaluations(
+                            $id,
+                            $search
+                        );
+
+                if (is_wp_error($form_records)) {
+                    return $form_records;
+                }
+
+                foreach ($form_records as &$record) {
+                    if (
+                        isset($record['program']) &&
+                        $record['program'] !== ''
+                    ) {
+                        $record['program'] =
+                            self::canonical_program(
+                                $record['program']
+                            );
+                    }
+                }
+                unset($record);
+
+                $records = array_merge(
+                    $records,
+                    $form_records
+                );
+            }
         }
         $report = TLE_Reporting_Service::generate_report($records, $filters);
         $report['selected_forms'] = array_map(static function ($p) {

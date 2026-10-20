@@ -83,8 +83,22 @@ function tle_render_dashboard_shortcode()
         'tle-dashboard',
         plugin_dir_url(dirname(__FILE__)) . 'assets/js/dashboard.js',
         [],
-        '0.1.0',
+        '0.1.1',
         true
+    );
+
+    wp_localize_script(
+        'tle-dashboard',
+        'tleDashboardConfig',
+        [
+            'evaluationsUrl' => esc_url_raw(
+                rest_url('tle/v1/evaluations')
+            ),
+            'comparisonOptionsUrl' => esc_url_raw(
+                rest_url('tle/v1/comparison-options')
+            ),
+            'restNonce' => wp_create_nonce('wp_rest'),
+        ]
     );
 
     /*
