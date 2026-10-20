@@ -8006,6 +8006,26 @@ $html = '
         font-size: 9.5px;
     }
 
+    /* Prevent single-stage Insight content overlapping the footer. */
+    .single-stage-section-page.final-insight-page .section-chart {
+        width: 86%;
+        margin: 0 auto;
+    }
+
+    .single-stage-section-page.final-insight-page .section-movers-title {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .single-stage-section-page.final-insight-page .movers-chart {
+        width: 86%;
+        margin: 0 auto;
+    }
+
+    .single-stage-section-page.final-insight-page .section-summary-table {
+        margin-top: 2px;
+    }
+
     /* Sprint 3 Manager pages */
 
     .manager-page {
