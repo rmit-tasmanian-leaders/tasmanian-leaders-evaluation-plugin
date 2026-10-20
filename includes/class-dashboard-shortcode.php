@@ -94,6 +94,9 @@ function tle_render_dashboard_shortcode()
             'evaluationsUrl' => esc_url_raw(
                 rest_url('tle/v1/evaluations')
             ),
+            'comparisonOptionsUrl' => esc_url_raw(
+                rest_url('tle/v1/comparison-options')
+            ),
             'restNonce' => wp_create_nonce('wp_rest'),
         ]
     );

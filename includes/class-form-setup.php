@@ -16,8 +16,30 @@ class TLE_Form_Setup
             $profile = TLE_Form_Registry::profile($id);
             $input = $_POST['profile_json'] ?? '';
             $config = is_string($input) ? json_decode(wp_unslash($input), true) : null;
-            $result = is_wp_error($profile) ? $profile : TLE_Form_Registry::save($id, $config);
-            echo '<p>' . esc_html(is_wp_error($result) ? $result->get_error_message() : 'Profile saved.') . '</p>';
+            $result = is_wp_error($profile)
+                ? $profile
+                : TLE_Form_Registry::save(
+                    $id,
+                    $config
+                );
+
+            if (!is_wp_error($result)) {
+                /*
+                 * Program/cohort availability may have changed.
+                 * Force the dashboard selector to rebuild.
+                 */
+                delete_transient(
+                    'tle_comparison_options_v1'
+                );
+            }
+
+            echo '<p>' .
+                esc_html(
+                    is_wp_error($result)
+                        ? $result->get_error_message()
+                        : 'Profile saved.'
+                ) .
+                '</p>';
         }
         $forms = TLE_Form_Registry::discover();
         if (is_wp_error($forms)) { echo '<p>' . esc_html($forms->get_error_message()) . '</p></div>'; return; }

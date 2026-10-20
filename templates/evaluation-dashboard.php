@@ -97,45 +97,23 @@ if (!defined('ABSPATH')) {
                                 <input
                                     id="tle-program-0"
                                     type="text"
-                                    name="program"
-                                    placeholder="Enter a program name here"
+                                    placeholder="Search program or year"
                                     autocomplete="off"
                                     data-tle-program-search
+                                >
+
+                                <input
+                                    type="hidden"
+                                    name="program"
+                                    value=""
+                                    data-tle-primary-program-value
                                 >
 
                                 <div
                                     class="tle-dashboard__program-suggestions"
                                     data-tle-program-suggestions
                                     hidden
-                                >
-                                    <button
-                                        type="button"
-                                        data-tle-program-option="I-LEAD Young Professionals"
-                                    >
-                                        I-LEAD Young Professionals
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        data-tle-program-option="I-LEAD Women in Community"
-                                    >
-                                        I-LEAD Women in Community
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        data-tle-program-option="I-LEAD Wine Industry"
-                                    >
-                                        I-LEAD Wine Industry
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        data-tle-program-option="I-LEAD Pride"
-                                    >
-                                        I-LEAD Pride
-                                    </button>
-                                </div>
+                                ></div>
                             </div>
                         </div>
 
@@ -175,7 +153,7 @@ if (!defined('ABSPATH')) {
                     id="tle-cohort"
                     type="hidden"
                     name="cohort"
-                    value="2026"
+                    value=""
                     data-tle-cohort
                 >
 
@@ -265,10 +243,22 @@ if (!defined('ABSPATH')) {
                             <div class="tle-dashboard__program-search-wrap">
                                 <input
                                     type="text"
-                                    name="comparison_programs[]"
                                     placeholder="Enter a program name here"
                                     autocomplete="off"
                                     data-tle-comparison-search
+                                >
+                                <input
+                                    type="hidden"
+                                    name="comparison_programs[]"
+                                    value=""
+                                    data-tle-comparison-program-value
+                                >
+
+                                <input
+                                    type="hidden"
+                                    name="comparison_cohorts[]"
+                                    value=""
+                                    data-tle-comparison-cohort-value
                                 >
 
                                 <div
@@ -638,6 +628,25 @@ if (!defined('ABSPATH')) {
                             placeholder="Enter a participant's quote here"
                         ></textarea>
                     </div>
+
+                    <div
+                        class="tle-dashboard__field tle-dashboard__comparison-text-field"
+                        data-tle-comparison-text-section
+                        hidden
+                    >
+                        <label for="tle-insight-comparison">
+                            Comparison
+                        </label>
+
+                        <textarea
+                            id="tle-insight-comparison"
+                            name="insight_comparison_text"
+                            rows="3"
+                            data-tle-comparison-text
+                            data-tle-auto-text
+                            placeholder="Enter comparison context here"
+                        ></textarea>
+                    </div>
                 </div>
 
                 <div class="tle-dashboard__text-section">
@@ -723,6 +732,25 @@ if (!defined('ABSPATH')) {
                             placeholder="Enter a participant's quote here"
                         ></textarea>
                     </div>
+
+                    <div
+                        class="tle-dashboard__field tle-dashboard__comparison-text-field"
+                        data-tle-comparison-text-section
+                        hidden
+                    >
+                        <label for="tle-influence-comparison">
+                            Comparison
+                        </label>
+
+                        <textarea
+                            id="tle-influence-comparison"
+                            name="influence_comparison_text"
+                            rows="3"
+                            data-tle-comparison-text
+                            data-tle-auto-text
+                            placeholder="Enter comparison context here"
+                        ></textarea>
+                    </div>
                 </div>
 
                 <div class="tle-dashboard__text-section">
@@ -784,6 +812,25 @@ if (!defined('ABSPATH')) {
                             name="impact_quote"
                             rows="2"
                             placeholder="Enter a participant's quote here"
+                        ></textarea>
+                    </div>
+
+                    <div
+                        class="tle-dashboard__field tle-dashboard__comparison-text-field"
+                        data-tle-comparison-text-section
+                        hidden
+                    >
+                        <label for="tle-impact-comparison">
+                            Comparison
+                        </label>
+
+                        <textarea
+                            id="tle-impact-comparison"
+                            name="impact_comparison_text"
+                            rows="3"
+                            data-tle-comparison-text
+                            data-tle-auto-text
+                            placeholder="Enter comparison context here"
                         ></textarea>
                     </div>
                 </div>

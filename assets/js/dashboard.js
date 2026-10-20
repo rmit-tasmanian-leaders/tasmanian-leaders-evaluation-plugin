@@ -12,6 +12,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const primaryProgramInput = primaryProgramRow
         ? primaryProgramRow.querySelector('[data-tle-program-search]')
         : null;
+
+    const primaryProgramValue = primaryProgramRow
+        ? primaryProgramRow.querySelector(
+            '[data-tle-primary-program-value]'
+        )
+        : null;
+
     const primaryProgramSuggestions = primaryProgramRow
         ? primaryProgramRow.querySelector('[data-tle-program-suggestions]')
         : null;
@@ -68,9 +75,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const exportForm = dashboard.querySelector('#tle-pdf-export-form');
     const exportButton = exportForm
         ? exportForm.querySelector('button[type="submit"]')
-        : null;
+        : null;    let comparisonRequirementNotice = null;
 
-    let comparisonRequirementNotice = null;
+    let comparisonOptions = [];
+    let comparisonOptionsLoaded = false;
+    let comparisonOptionsPromise = null;
 
     const summaryPrograms = dashboard.querySelector('[data-tle-summary-programs]');
     const summaryCohort = dashboard.querySelector('[data-tle-summary-cohort]');
@@ -93,24 +102,55 @@ document.addEventListener('DOMContentLoaded', function () {
         return primaryProgramInput.dataset.tleProgramSelected || '';
     }
 
-    function getComparisonProgramNames() {
+    function getComparisonSelections() {
         return Array.from(
             comparisonRows.querySelectorAll('[data-tle-comparison-row]')
         ).map(function (row) {
-            const input = row.querySelector('[data-tle-comparison-search]');
+            const input = row.querySelector(
+                '[data-tle-comparison-search]'
+            );
 
-            return input
-                ? input.dataset.tleProgramSelected || ''
-                : '';
+            if (!input) {
+                return null;
+            }
+
+            const program =
+                input.dataset.tleProgramSelected || '';
+
+            const cohort =
+                input.dataset.tleCohortSelected || '';
+
+            if (!program || !cohort) {
+                return null;
+            }
+
+            return {
+                program: program,
+                cohort: cohort,
+                label: input.value.trim(),
+                key: program + '|' + cohort
+            };
         }).filter(Boolean);
+    }
+
+    function getComparisonProgramNames() {
+        return getComparisonSelections().map(function (selection) {
+            return selection.label;
+        });
     }
 
     function getUnavailableComparisonPrograms(currentRow) {
         const unavailable = new Set();
-        const primaryProgram = getPrimaryProgramName();
 
-        if (primaryProgram) {
-            unavailable.add(primaryProgram);
+        const primaryProgram = getPrimaryProgramName();
+        const primaryCohort = cohortSelect
+            ? cohortSelect.value
+            : '';
+
+        if (primaryProgram && primaryCohort) {
+            unavailable.add(
+                primaryProgram + '|' + primaryCohort
+            );
         }
 
         comparisonRows
@@ -128,17 +168,67 @@ document.addEventListener('DOMContentLoaded', function () {
                     ? input.dataset.tleProgramSelected || ''
                     : '';
 
-                if (selectedProgram) {
-                    unavailable.add(selectedProgram);
+                const selectedCohort = input
+                    ? input.dataset.tleCohortSelected || ''
+                    : '';
+
+                if (selectedProgram && selectedCohort) {
+                    unavailable.add(
+                        selectedProgram + '|' + selectedCohort
+                    );
                 }
             });
 
         return unavailable;
     }
 
+    function clearComparisonSelection(input) {
+        if (!input) {
+            return;
+        }
+
+        input.value = '';
+        input.dataset.tleProgramSelected = '';
+        input.dataset.tleCohortSelected = '';
+
+        const row = input.closest(
+            '[data-tle-comparison-row]'
+        );
+
+        if (!row) {
+            return;
+        }
+
+        const programField = row.querySelector(
+            '[data-tle-comparison-program-value]'
+        );
+
+        const cohortField = row.querySelector(
+            '[data-tle-comparison-cohort-value]'
+        );
+
+        if (programField) {
+            programField.value = '';
+        }
+
+        if (cohortField) {
+            cohortField.value = '';
+        }
+    }
+
     function syncComparisonProgramSelections() {
         const primaryProgram = getPrimaryProgramName();
-        const seenPrograms = new Set();
+
+        const primaryCohort = cohortSelect
+            ? cohortSelect.value
+            : '';
+
+        const primaryKey =
+            primaryProgram && primaryCohort
+                ? primaryProgram + '|' + primaryCohort
+                : '';
+
+        const seenSelections = new Set();
 
         comparisonRows
             .querySelectorAll('[data-tle-comparison-row]')
@@ -154,28 +244,78 @@ document.addEventListener('DOMContentLoaded', function () {
                 const selectedProgram =
                     input.dataset.tleProgramSelected || '';
 
-                if (!selectedProgram) {
+                const selectedCohort =
+                    input.dataset.tleCohortSelected || '';
+
+                if (!selectedProgram || !selectedCohort) {
                     return;
                 }
 
+                const selectionKey =
+                    selectedProgram + '|' + selectedCohort;
+
                 const conflictsWithPrimary =
-                    primaryProgram &&
-                    selectedProgram === primaryProgram;
+                    primaryKey !== '' &&
+                    selectionKey === primaryKey;
 
                 const duplicateComparison =
-                    seenPrograms.has(selectedProgram);
+                    seenSelections.has(selectionKey);
 
                 if (
                     conflictsWithPrimary ||
                     duplicateComparison
                 ) {
-                    input.value = '';
-                    input.dataset.tleProgramSelected = '';
+                    clearComparisonSelection(input);
                     return;
                 }
 
-                seenPrograms.add(selectedProgram);
+                seenSelections.add(selectionKey);
             });
+    }
+
+    function getAvailableComparisonStageValues() {
+        if (!primaryStageAvailabilityLoaded) {
+            return normalEvaluationStageValues.slice();
+        }
+
+        let availableStages =
+            primaryAvailableStageValues.slice();
+
+        const selections =
+            getComparisonSelections();
+
+        selections.forEach(function (selection) {
+            const option =
+                comparisonOptions.find(
+                    function (candidate) {
+                        return (
+                            candidate.program ===
+                                selection.program &&
+                            candidate.cohort ===
+                                selection.cohort
+                        );
+                    }
+                );
+
+            if (
+                !option ||
+                !Array.isArray(option.stages)
+            ) {
+                availableStages = [];
+                return;
+            }
+
+            availableStages =
+                availableStages.filter(
+                    function (stage) {
+                        return option.stages.includes(
+                            stage
+                        );
+                    }
+                );
+        });
+
+        return availableStages;
     }
 
     function getComparisonEvaluationPoint() {
@@ -253,6 +393,358 @@ document.addEventListener('DOMContentLoaded', function () {
                 return availableStages.has(stage);
             }
         );
+    }
+
+    function deriveComparisonOptions(report) {
+        const options = [];
+        const seen = new Set();
+
+        const groups =
+            report && Array.isArray(report.groups)
+                ? report.groups
+                : [];
+
+        groups.forEach(function (group) {
+            const context =
+                group && group.context
+                    ? group.context
+                    : {};
+
+            const program =
+                String(context.program || '').trim();
+
+            const cohort =
+                String(context.cohort || '').trim();
+
+            if (!program || !cohort) {
+                return;
+            }
+
+            const series =
+                group && Array.isArray(group.series)
+                    ? group.series
+                    : [];
+
+            const availableStages = [];
+
+            series.forEach(function (item) {
+                if (
+                    !item ||
+                    !backendEvaluationStageMap[
+                        item.evaluation_stage
+                    ] ||
+                    !hasNumericScore(
+                        item.capability_averages
+                    )
+                ) {
+                    return;
+                }
+
+                const frontendStage =
+                    backendEvaluationStageMap[
+                        item.evaluation_stage
+                    ];
+
+                if (
+                    !availableStages.includes(
+                        frontendStage
+                    )
+                ) {
+                    availableStages.push(
+                        frontendStage
+                    );
+                }
+            });
+
+            if (availableStages.length === 0) {
+                return;
+            }
+
+            const key =
+                program + '|' + cohort;
+
+            if (seen.has(key)) {
+                return;
+            }
+
+            seen.add(key);
+
+            options.push({
+                program: program,
+                cohort: cohort,
+                key: key,
+                label: program + ' ' + cohort,
+                stages: availableStages
+            });
+        });
+
+        options.sort(function (first, second) {
+            const firstYear = Number(first.cohort);
+            const secondYear = Number(second.cohort);
+
+            if (
+                Number.isFinite(firstYear) &&
+                Number.isFinite(secondYear) &&
+                firstYear !== secondYear
+            ) {
+                return firstYear - secondYear;
+            }
+
+            const cohortOrder =
+                first.cohort.localeCompare(
+                    second.cohort
+                );
+
+            if (cohortOrder !== 0) {
+                return cohortOrder;
+            }
+
+            return first.program.localeCompare(
+                second.program
+            );
+        });
+
+        return options;
+    }
+
+    function loadComparisonOptions() {
+        if (comparisonOptionsLoaded) {
+            return Promise.resolve(
+                comparisonOptions
+            );
+        }
+
+        if (comparisonOptionsPromise) {
+            return comparisonOptionsPromise;
+        }
+
+        if (!window.tleDashboardConfig) {
+            return Promise.resolve([]);
+        }
+
+        const endpoint =
+            window.tleDashboardConfig
+                .comparisonOptionsUrl ||
+            window.tleDashboardConfig
+                .evaluationsUrl;
+
+        if (!endpoint) {
+            return Promise.resolve([]);
+        }
+
+        const headers = {
+            Accept: 'application/json'
+        };
+
+        if (
+            window.tleDashboardConfig.restNonce
+        ) {
+            headers['X-WP-Nonce'] =
+                window.tleDashboardConfig
+                    .restNonce;
+        }
+
+        comparisonOptionsPromise = fetch(
+            endpoint,
+            {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: headers
+            }
+        )
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error(
+                        'Comparison option request failed with HTTP ' +
+                        response.status
+                    );
+                }
+
+                return response.json();
+            })
+            .then(function (payload) {
+                /*
+                 * New lightweight endpoint already returns
+                 * Program + Cohort + stage metadata.
+                 *
+                 * Keep the old full-report parser as a fallback
+                 * for backwards compatibility.
+                 */
+                if (
+                    !payload ||
+                    !Array.isArray(payload.options)
+                ) {
+                    comparisonOptions =
+                        deriveComparisonOptions(
+                            payload
+                        );
+
+                    comparisonOptionsLoaded = true;
+
+                    return comparisonOptions;
+                }
+
+                const seen = new Set();
+                const options = [];
+
+                payload.options.forEach(
+                    function (option) {
+                        if (!option) {
+                            return;
+                        }
+
+                        const program =
+                            String(
+                                option.program || ''
+                            ).trim();
+
+                        const cohort =
+                            String(
+                                option.cohort || ''
+                            ).trim();
+
+                        if (
+                            !program ||
+                            !cohort
+                        ) {
+                            return;
+                        }
+
+                        const stages =
+                            Array.isArray(
+                                option.stages
+                            )
+                                ? option.stages
+                                    .map(
+                                        function (
+                                            stage
+                                        ) {
+                                            return (
+                                                backendEvaluationStageMap[
+                                                    stage
+                                                ] ||
+                                                stage
+                                            );
+                                        }
+                                    )
+                                    .filter(
+                                        function (
+                                            stage
+                                        ) {
+                                            return normalEvaluationStageValues
+                                                .includes(
+                                                    stage
+                                                );
+                                        }
+                                    )
+                                : [];
+
+                        if (
+                            stages.length === 0
+                        ) {
+                            return;
+                        }
+
+                        const key =
+                            program +
+                            '|' +
+                            cohort;
+
+                        if (seen.has(key)) {
+                            return;
+                        }
+
+                        seen.add(key);
+
+                        options.push({
+                            program: program,
+                            cohort: cohort,
+                            key: key,
+                            label:
+                                program +
+                                ' ' +
+                                cohort,
+                            stages:
+                                Array.from(
+                                    new Set(
+                                        stages
+                                    )
+                                )
+                        });
+                    }
+                );
+
+                options.sort(
+                    function (
+                        first,
+                        second
+                    ) {
+                        const firstYear =
+                            Number(
+                                first.cohort
+                            );
+
+                        const secondYear =
+                            Number(
+                                second.cohort
+                            );
+
+                        if (
+                            Number.isFinite(
+                                firstYear
+                            ) &&
+                            Number.isFinite(
+                                secondYear
+                            ) &&
+                            firstYear !==
+                                secondYear
+                        ) {
+                            return (
+                                firstYear -
+                                secondYear
+                            );
+                        }
+
+                        const cohortOrder =
+                            first.cohort
+                                .localeCompare(
+                                    second.cohort
+                                );
+
+                        if (
+                            cohortOrder !== 0
+                        ) {
+                            return cohortOrder;
+                        }
+
+                        return first.program
+                            .localeCompare(
+                                second.program
+                            );
+                    }
+                );
+
+                comparisonOptions = options;
+                comparisonOptionsLoaded = true;
+
+                return comparisonOptions;
+            })
+            .catch(function (error) {
+                comparisonOptions = [];
+                comparisonOptionsLoaded = false;
+
+                console.warn(
+                    'Unable to load comparison program/year options.',
+                    error
+                );
+
+                return [];
+            })
+            .finally(function () {
+                comparisonOptionsPromise = null;
+            });
+
+        return comparisonOptionsPromise;
     }
 
     function clearPrimaryStageAvailability() {
@@ -558,10 +1050,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function syncComparisonPointState() {
+        const availableStages =
+            getAvailableComparisonStageValues();
+
         comparisonPoints.forEach(function (checkbox) {
             const unavailable =
                 primaryStageAvailabilityLoaded &&
-                !primaryAvailableStageValues.includes(
+                !availableStages.includes(
                     checkbox.value
                 );
 
@@ -570,16 +1065,17 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        const selectedPoint = comparisonPoints.find(
-            function (checkbox) {
-                return checkbox.checked;
-            }
-        );
+        const selectedPoint =
+            comparisonPoints.find(
+                function (checkbox) {
+                    return checkbox.checked;
+                }
+            );
 
         comparisonPoints.forEach(function (checkbox) {
             const unavailable =
                 primaryStageAvailabilityLoaded &&
-                !primaryAvailableStageValues.includes(
+                !availableStages.includes(
                     checkbox.value
                 );
 
@@ -591,7 +1087,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 unavailable ||
                 lockedBySelection;
 
-            const label = checkbox.closest('label');
+            const label =
+                checkbox.closest('label');
 
             if (label) {
                 label.classList.toggle(
@@ -648,163 +1145,308 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const optionButtons = primaryProgramSuggestions.querySelectorAll(
-            '[data-tle-program-option]'
-        );
+        function clearPrimarySelection() {
+            primaryProgramInput.dataset.tleProgramSelected = '';
+            primaryProgramInput.dataset.tleCohortSelected = '';
 
-        function updateSuggestions() {
-            const query = primaryProgramInput.value.trim().toLowerCase();
-            let visibleCount = 0;
+            if (primaryProgramValue) {
+                primaryProgramValue.value = '';
+            }
 
-            optionButtons.forEach(function (button) {
-                const value = button.dataset.tleProgramOption || '';
-                const matches =
-                    query === '' ||
-                    value.toLowerCase().includes(query);
-
-                button.hidden = !matches;
-
-                if (matches) {
-                    visibleCount++;
-                }
-            });
-
-            primaryProgramSuggestions.hidden = visibleCount === 0;
+            if (cohortSelect) {
+                cohortSelect.value = '';
+            }
         }
 
-        primaryProgramInput.addEventListener('focus', updateSuggestions);
+        async function updateSuggestions() {
+            const options =
+                await loadComparisonOptions();
 
-        primaryProgramInput.addEventListener('input', function () {
-            primaryProgramInput.dataset.tleProgramSelected = '';
+            const query =
+                primaryProgramInput.value
+                    .trim()
+                    .toLowerCase();
 
-            clearPrimaryStageAvailability();
-            updateSuggestions();
-            syncManagerOption();
-            updateReportOverview();
-            syncReportTextState();
-        });
+            primaryProgramSuggestions.innerHTML = '';
 
-        optionButtons.forEach(function (button) {
-            button.addEventListener('click', function () {
-                const selectedProgram =
-                    button.dataset.tleProgramOption || '';
+            let visibleCount = 0;
 
-                primaryProgramInput.value = selectedProgram;
-                primaryProgramInput.dataset.tleProgramSelected =
-                    selectedProgram;
-                primaryProgramSuggestions.hidden = true;
+            options.forEach(function (option) {
+                if (
+                    !option ||
+                    !option.program ||
+                    !option.cohort
+                ) {
+                    return;
+                }
+
+                const label =
+                    option.label ||
+                    (
+                        option.program +
+                        ' ' +
+                        option.cohort
+                    );
+
+                const matches =
+                    query === '' ||
+                    label
+                        .toLowerCase()
+                        .includes(query);
+
+                if (!matches) {
+                    return;
+                }
+
+                const button =
+                    document.createElement(
+                        'button'
+                    );
+
+                button.type = 'button';
+                button.textContent = label;
+
+                button.addEventListener(
+                    'click',
+                    function () {
+                        primaryProgramInput.value =
+                            label;
+
+                        primaryProgramInput.dataset
+                            .tleProgramSelected =
+                            option.program;
+
+                        primaryProgramInput.dataset
+                            .tleCohortSelected =
+                            option.cohort;
+
+                        if (primaryProgramValue) {
+                            primaryProgramValue.value =
+                                option.program;
+                        }
+
+                        if (cohortSelect) {
+                            cohortSelect.value =
+                                option.cohort;
+                        }
+
+                        primaryProgramSuggestions.hidden =
+                            true;
+
+                        syncManagerOption();
+                        syncComparisonProgramSelections();
+                        syncComparisonState();
+                        updateReportOverview();
+                        syncReportTextState();
+                        loadPrimaryStageAvailability();
+                    }
+                );
+
+                primaryProgramSuggestions.appendChild(
+                    button
+                );
+
+                visibleCount++;
+            });
+
+            primaryProgramSuggestions.hidden =
+                visibleCount === 0;
+        }
+
+        primaryProgramInput.addEventListener(
+            'focus',
+            function () {
+                updateSuggestions();
+            }
+        );
+
+        primaryProgramInput.addEventListener(
+            'input',
+            function () {
+                clearPrimarySelection();
+                clearPrimaryStageAvailability();
+
+                updateSuggestions();
 
                 syncManagerOption();
                 syncComparisonProgramSelections();
                 syncComparisonState();
                 updateReportOverview();
                 syncReportTextState();
-                loadPrimaryStageAvailability();
-            });
-        });
-
-        document.addEventListener('click', function (event) {
-            if (!primaryProgramRow.contains(event.target)) {
-                primaryProgramSuggestions.hidden = true;
             }
-        });
+        );
+
+        document.addEventListener(
+            'click',
+            function (event) {
+                if (
+                    !primaryProgramRow.contains(
+                        event.target
+                    )
+                ) {
+                    primaryProgramSuggestions.hidden =
+                        true;
+                }
+            }
+        );
     }
 
     function initialiseComparisonRow(row) {
-        const searchInput = row.querySelector('[data-tle-comparison-search]');
+        const searchInput = row.querySelector(
+            '[data-tle-comparison-search]'
+        );
+
         const suggestions = row.querySelector(
             '[data-tle-comparison-suggestions]'
         );
+
+        const programField = row.querySelector(
+            '[data-tle-comparison-program-value]'
+        );
+
+        const cohortField = row.querySelector(
+            '[data-tle-comparison-cohort-value]'
+        );
+
         const removeButton = row.querySelector(
             '[data-tle-remove-comparison]'
         );
 
         if (searchInput && suggestions) {
-            const optionButtons = suggestions.querySelectorAll(
-                '[data-tle-comparison-option]'
-            );
+            async function updateSuggestions() {
+                await loadComparisonOptions();
 
-            function updateSuggestions() {
-                const query = searchInput.value.trim().toLowerCase();
-                const unavailablePrograms =
+                const query =
+                    searchInput.value
+                        .trim()
+                        .toLowerCase();
+
+                const unavailableSelections =
                     getUnavailableComparisonPrograms(row);
+
+                suggestions.innerHTML = '';
 
                 let visibleCount = 0;
 
-                optionButtons.forEach(function (button) {
-                    const value =
-                        button.dataset.tleComparisonOption || '';
+                comparisonOptions.forEach(
+                    function (option) {
+                        const matchesQuery =
+                            query === '' ||
+                            option.label
+                                .toLowerCase()
+                                .includes(query);
 
-                    const matchesQuery =
-                        query === '' ||
-                        value.toLowerCase().includes(query);
+                        const available =
+                            !unavailableSelections.has(
+                                option.key
+                            );
 
-                    const available =
-                        !unavailablePrograms.has(value);
+                        if (
+                            !matchesQuery ||
+                            !available
+                        ) {
+                            return;
+                        }
 
-                    const visible =
-                        matchesQuery && available;
+                        const button =
+                            document.createElement(
+                                'button'
+                            );
 
-                    button.hidden = !visible;
+                        button.type = 'button';
+                        button.textContent =
+                            option.label;
 
-                    if (visible) {
+                        button.addEventListener(
+                            'click',
+                            function () {
+                                searchInput.value =
+                                    option.label;
+
+                                searchInput.dataset.tleProgramSelected =
+                                    option.program;
+
+                                searchInput.dataset.tleCohortSelected =
+                                    option.cohort;
+
+                                if (programField) {
+                                    programField.value =
+                                        option.program;
+                                }
+
+                                if (cohortField) {
+                                    cohortField.value =
+                                        option.cohort;
+                                }
+
+                                suggestions.hidden = true;
+
+                                syncComparisonProgramSelections();
+                                syncComparisonState();
+                                updateReportOverview();
+                                syncReportTextState();
+                            }
+                        );
+
+                        suggestions.appendChild(
+                            button
+                        );
+
                         visibleCount++;
                     }
-                });
+                );
 
-                suggestions.hidden = visibleCount === 0;
+                suggestions.hidden =
+                    visibleCount === 0;
             }
 
-            searchInput.addEventListener('focus', updateSuggestions);
+            searchInput.addEventListener(
+                'focus',
+                updateSuggestions
+            );
 
-            searchInput.addEventListener('input', function () {
-                searchInput.dataset.tleProgramSelected = '';
+            searchInput.addEventListener(
+                'input',
+                function () {
+                    searchInput.dataset.tleProgramSelected = '';
+                    searchInput.dataset.tleCohortSelected = '';
 
-                updateSuggestions();
-                syncComparisonState();
-                updateReportOverview();
-            });
-
-            optionButtons.forEach(function (button) {
-                button.addEventListener('click', function () {
-                    const selectedProgram =
-                        button.dataset.tleComparisonOption || '';
-
-                    const unavailablePrograms =
-                        getUnavailableComparisonPrograms(row);
-
-                    if (
-                        !selectedProgram ||
-                        unavailablePrograms.has(selectedProgram)
-                    ) {
-                        return;
+                    if (programField) {
+                        programField.value = '';
                     }
 
-                    searchInput.value = selectedProgram;
-                    searchInput.dataset.tleProgramSelected =
-                        selectedProgram;
-                    suggestions.hidden = true;
+                    if (cohortField) {
+                        cohortField.value = '';
+                    }
 
-                    syncComparisonProgramSelections();
+                    updateSuggestions();
                     syncComparisonState();
                     updateReportOverview();
-                });
-            });
-
-            document.addEventListener('click', function (event) {
-                if (!row.contains(event.target)) {
-                    suggestions.hidden = true;
+                    syncReportTextState();
                 }
-            });
+            );
+
+            document.addEventListener(
+                'click',
+                function (event) {
+                    if (!row.contains(event.target)) {
+                        suggestions.hidden = true;
+                    }
+                }
+            );
         }
 
         if (removeButton) {
-            removeButton.addEventListener('click', function () {
-                row.remove();
+            removeButton.addEventListener(
+                'click',
+                function () {
+                    row.remove();
 
-                syncComparisonState();
-                updateReportOverview();
-            });
+                    syncComparisonState();
+                    updateReportOverview();
+                    syncReportTextState();
+                }
+            );
         }
     }
 
@@ -1152,6 +1794,18 @@ document.addEventListener('DOMContentLoaded', function () {
         '[data-tle-manager-text-section]'
     );
 
+    const comparisonTextSections = Array.from(
+        dashboard.querySelectorAll(
+            '[data-tle-comparison-text-section]'
+        )
+    );
+
+    const comparisonTextFields = Array.from(
+        dashboard.querySelectorAll(
+            '[data-tle-comparison-text]'
+        )
+    );
+
     reportAutoTextFields.forEach(function (field) {
         field.dataset.tleUserEdited = 'false';
 
@@ -1188,9 +1842,52 @@ document.addEventListener('DOMContentLoaded', function () {
         return Boolean(managerCheckbox && managerCheckbox.checked);
     }
 
+    function buildAutomaticComparisonText() {
+        const primaryProgram =
+            getPrimaryProgramName();
+
+        const primaryCohort =
+            cohortSelect
+                ? cohortSelect.value
+                : '';
+
+        if (!primaryProgram) {
+            return '';
+        }
+
+        const primaryLabel =
+            primaryCohort
+                ? primaryProgram + ' ' + primaryCohort
+                : primaryProgram;
+
+        return (
+            'To quality assure the ongoing excellence of ' +
+            primaryLabel +
+            ', we compare performance in the current program ' +
+            'to similar previous leadership programs.'
+        );
+    }
+
     function syncReportTextState() {
         const programs = getSelectedProgramNames();
         const hasProgram = programs.length > 0;
+
+        const hasComparisons =
+            getComparisonSelections().length > 0;
+
+        comparisonTextSections.forEach(
+            function (section) {
+                section.hidden =
+                    !hasComparisons;
+            }
+        );
+
+        comparisonTextFields.forEach(
+            function (field) {
+                field.disabled =
+                    !hasComparisons;
+            }
+        );
 
         if (managerTextSection) {
             const showManagerSection = hasManagerEvaluationSelected();
@@ -1228,6 +1925,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
+            if (
+                field.hasAttribute(
+                    'data-tle-comparison-text'
+                )
+            ) {
+                field.value =
+                    hasComparisons
+                        ? buildAutomaticComparisonText()
+                        : '';
+
+                return;
+            }
+
             field.value = field.dataset.tleDefault || '';
         });
     }
@@ -1245,5 +1955,6 @@ document.addEventListener('DOMContentLoaded', function () {
     syncComparisonState();
     updateReportOverview();
     syncReportTextState();
+    loadComparisonOptions();
     loadPrimaryStageAvailability();
 });
