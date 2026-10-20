@@ -6919,503 +6919,269 @@ $total_pages = $include_manager ? 7 : 5;
 $manager_pages_html = '';
 
 if ($include_manager) {
-    $manager_question_ids = [
-        '11',
-        '14',
-        '16',
-        '17',
-        '18',
-        '19',
-        '20',
-        '21',
-        '22',
-        '23',
-        '24',
-        '25',
-        '26',
-        '27',
-        '28',
-        '30',
-    ];
-
-    $manager_program_aliases = [
-        'I-LEAD Young Professionals' =>
-            'I-LEAD Young Professionals',
-        'I-LEAD Women in Community' =>
-            'I-LEAD Women in Community Services',
-        'I-LEAD Wine Industry' =>
-            'I-LEAD Tassie Wine',
-        'I-LEAD Pride' =>
-            'I-LEAD Pride',
-    ];
-
-    $manager_program_value =
-        $manager_program_aliases[$program] ??
-        $program;
-
-    $manager_form = null;
-    $manager_entries = [];
-    $manager_matching_entries = [];
-
-    if (
-        class_exists('TLE_Gravity_Forms_Provider') &&
-        TLE_Gravity_Forms_Provider::is_available()
-    ) {
-        $manager_form =
-            TLE_Gravity_Forms_Provider::get_form(50);
-
-        $manager_entries =
-            TLE_Gravity_Forms_Provider::get_all_entries(
-                50,
-                ['status' => 'active']
-            );
-
-        if (is_wp_error($manager_form)) {
-            $manager_form = null;
-        }
-
-        if (is_wp_error($manager_entries)) {
-            $manager_entries = [];
-        }
+    // Real-data rendering test: no program attribution is inferred from blank fields.
+    // Use verified program/cohort filters here for production program-specific reports.
+    $manager_filters = [];
+    $manager_service_file = dirname(__DIR__) . '/includes/class-manager-report-service.php';
+    if (!class_exists('TLE_Manager_Report_Service') && is_readable($manager_service_file)) {
+        require_once $manager_service_file;
+    }
+    if (!class_exists('TLE_Manager_Report_Service')) {
+        wp_die('Manager reporting backend is missing.');
+    }
+    $manager_result = TLE_Manager_Report_Service::get_report($manager_filters);
+    if (is_wp_error($manager_result)) {
+        wp_die(esc_html('Unable to retrieve Manager results: ' . $manager_result->get_error_message()));
     }
 
-    foreach ($manager_entries as $manager_entry) {
-        $entry_program = trim(
-            (string) ($manager_entry['45'] ?? '')
-        );
-
-        $entry_cohort = trim(
-            (string) ($manager_entry['43'] ?? '')
-        );
-
-        if (
-            $entry_program === $manager_program_value &&
-            $entry_cohort === (string) $cohort
-        ) {
-            $manager_matching_entries[] =
-                $manager_entry;
-        }
+    // Reuse the same validated dashboard colour used by the rest of this export.
+    $manager_base_colour = $report_colour;
+    if (strlen(ltrim($manager_base_colour, '#')) === 3) {
+        $manager_short_hex = ltrim($manager_base_colour, '#');
+        $manager_base_colour = '#' . $manager_short_hex[0] . $manager_short_hex[0] . $manager_short_hex[1] . $manager_short_hex[1] . $manager_short_hex[2] . $manager_short_hex[2];
     }
-
-    /*
-     * Build question labels and choice maps from Form 50.
-     */
-    $manager_fields = [];
-
-    if (
-        is_array($manager_form) &&
-        !empty($manager_form['fields']) &&
-        is_array($manager_form['fields'])
-    ) {
-        foreach ($manager_form['fields'] as $field) {
-            $field_id =
-                isset($field['id'])
-                    ? (string) $field['id']
-                    : '';
-
-            if (
-                $field_id === '' ||
-                !in_array(
-                    $field_id,
-                    $manager_question_ids,
-                    true
-                )
-            ) {
-                continue;
+    $manager_summary_colour = $report_colour_light;
+    $manager_text_colour = static function ($hex) {
+        $hex = ltrim((string) $hex, '#');
+        $channels = [];
+        foreach ([0, 2, 4] as $offset) {
+            $v = hexdec(substr($hex, $offset, 2)) / 255;
+            $channels[] = $v <= 0.04045 ? $v / 12.92 : pow(($v + 0.055) / 1.055, 2.4);
+        }
+        $luminance = 0.2126 * $channels[0] + 0.7152 * $channels[1] + 0.0722 * $channels[2];
+        return ($luminance + 0.05) / 0.05 >= 1.05 / ($luminance + 0.05) ? '#111111' : '#ffffff';
+    };
+    // Very dark selections need lighter tones so answer categories remain distinct.
+    $manager_hex = ltrim($manager_base_colour, '#');
+    $manager_is_dark = max(hexdec(substr($manager_hex, 0, 2)), hexdec(substr($manager_hex, 2, 2)), hexdec(substr($manager_hex, 4, 2))) < 65;
+    $manager_tones = $manager_is_dark ? [
+        $mix_report_colour($manager_base_colour, '#ffffff', 0.82),
+        $mix_report_colour($manager_base_colour, '#ffffff', 0.62),
+        $mix_report_colour($manager_base_colour, '#ffffff', 0.92),
+        $mix_report_colour($manager_base_colour, '#ffffff', 0.32),
+        $manager_base_colour,
+    ] : [
+        $mix_report_colour($manager_base_colour, '#000000', 0.72),
+        $mix_report_colour($manager_base_colour, '#000000', 0.44),
+        $mix_report_colour($manager_base_colour, '#ffffff', 0.78),
+        $manager_base_colour,
+        $mix_report_colour($manager_base_colour, '#000000', 0.18),
+    ];
+    $manager_colour = static function ($label) use ($manager_tones) {
+        $indices = [
+            'strongly disagree' => 0, 'disagree' => 1, 'neutral' => 2, 'agree' => 3, 'strongly agree' => 4,
+            'extremely dissatisfied' => 0, 'somewhat dissatisfied' => 1, 'somewhat disatisfied' => 1,
+            'somewhat satisfied' => 3, 'extremely satisfied' => 4, 'no' => 0, 'yes' => 3,
+        ];
+        return $manager_tones[$indices[strtolower(trim((string) $label))] ?? 2];
+    };
+    $manager_format_percentage = static function ($value) {
+        return number_format((float) $value, 0, '.', '');
+    };
+    // Allocate whole-number labels within each rating group so totals stay consistent.
+    // Backend percentages, response counts and bar widths are never modified.
+    $manager_display_percentages = static function (array $question) {
+        $labels = array_fill_keys(array_keys($question['categories']), 0);
+        if ((int) $question['answered_count'] === 0) { return $labels; }
+        $has_positive = $question['positive_percentage'] !== null;
+        $positive_target = $has_positive ? (int) round($question['positive_percentage']) : 0;
+        $groups = $has_positive ? [false, true] : [null];
+        foreach ($groups as $positive) {
+            $target = $positive === null ? 100 : ($positive ? $positive_target : 100 - $positive_target);
+            $remainders = [];
+            $allocated = 0;
+            foreach ($question['categories'] as $index => $category) {
+                if ($positive !== null && !empty($category['positive']) !== $positive) { continue; }
+                if ($category['percentage'] === null || (float) $category['percentage'] <= 0) { continue; }
+                $value = (float) $category['percentage'];
+                $labels[$index] = (int) floor($value);
+                $allocated += $labels[$index];
+                $remainders[$index] = $value - $labels[$index];
             }
-
-            $choice_map = [];
-
-            if (
-                !empty($field['choices']) &&
-                is_array($field['choices'])
-            ) {
-                foreach ($field['choices'] as $choice) {
-                    if (!is_array($choice)) {
-                        continue;
-                    }
-
-                    $choice_text = trim(
-                        (string) ($choice['text'] ?? '')
-                    );
-
-                    $choice_value = trim(
-                        (string) (
-                            $choice['value'] ??
-                            $choice_text
-                        )
-                    );
-
-                    if ($choice_text === '') {
-                        continue;
-                    }
-
-                    $choice_map[$choice_text] =
-                        $choice_text;
-
-                    if ($choice_value !== '') {
-                        $choice_map[$choice_value] =
-                            $choice_text;
-                    }
-                }
+            // Stable sorting resolves equal remainders in the backend category order.
+            arsort($remainders, SORT_NUMERIC);
+            $remaining = $target - $allocated;
+            foreach ($remainders as $index => $remainder) {
+                if ($remaining <= 0) { break; }
+                $labels[$index]++;
+                $remaining--;
             }
-
-            $manager_fields[$field_id] = [
-                'label' =>
-                    trim(
-                        (string) (
-                            $field['label'] ??
-                            ('Question ' . $field_id)
-                        )
-                    ),
-                'choices' => $choice_map,
-            ];
         }
-    }
-
-    /*
-     * Fallback labels preserve the approved Form 50 statements if
-     * remote field metadata is temporarily unavailable.
-     */
-    $manager_fallback_labels = [
-        '11' =>
-            'Overall satisfaction with Tasmanian Leaders.',
-        '14' =>
-            'Shows greater emotional consistency in how they respond to workplace situations.',
-        '16' =>
-            'Has clearer reasoning for their decisions.',
-        '17' =>
-            'Appears to be less defensive and self-critical when making mistakes.',
-        '18' =>
-            'Shows increased awareness in meetings and work situations.',
-        '19' =>
-            'Has a greater focus on short-term goals.',
-        '20' =>
-            'Engages more openly with colleagues who hold different or opposing views.',
-        '21' =>
-            'More often proposes innovative approaches to work.',
-        '22' =>
-            'Exerts greater positive influence on others beyond their role.',
-        '23' =>
-            'More deeply engages in conversations with colleagues and clients.',
-        '24' =>
-            'Appears more comfortable working in situations where outcomes are not fully defined.',
-        '25' =>
-            'Is more willing to make decisions with complex information.',
-        '26' =>
-            'More frequently contributes beyond their core role to support their team.',
-        '27' =>
-            'More often helps build connections between colleagues who might not otherwise interact.',
-        '28' =>
-            'Has a clearer personal motivation for work beyond salary or benefits.',
-        '30' =>
-            'Has a stronger sense of commitment to the community.',
-    ];
-
-    $manager_rows = [];
-
-    foreach ($manager_question_ids as $field_id) {
-        $field =
-            $manager_fields[$field_id] ??
-            [
-                'label' =>
-                    $manager_fallback_labels[$field_id],
-                'choices' => [],
-            ];
-
-        if ($field_id === '11') {
-            $field['label'] =
-                'Overall satisfaction with Tasmanian Leaders.';
+        return $labels;
+    };
+    $manager_legend = static function (array $categories) use ($manager_colour) {
+        // Fixed columns and explicit text positions are reliable in Dompdf.
+        $count = count($categories);
+        if (!$count) { return ''; }
+        $start = $count === 2 ? 250 : 0;
+        $available = $count === 2 ? 340 : 840;
+        $cell_width = $available / $count;
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="840" height="58" viewBox="0 0 840 58">';
+        foreach ($categories as $i => $category) {
+            $x = $start + $i * $cell_width + 4;
+            // Wrap long satisfaction labels rather than shrinking the entire legend.
+            $words = preg_split('/\s+/', trim((string) $category['label']));
+            $lines = [''];
+            $limit = max(10, (int) floor(($cell_width - 32) / 9.4));
+            foreach ($words as $word) {
+                $index = count($lines) - 1;
+                $candidate = trim($lines[$index] . ' ' . $word);
+                if (strlen($candidate) > $limit && $lines[$index] !== '') { $lines[] = $word; }
+                else { $lines[$index] = $candidate; }
+            }
+            $svg .= '<rect x="' . $x . '" y="9" width="20" height="13" fill="' . $manager_colour($category['label']) . '"/>';
+            foreach ($lines as $line_index => $line) {
+                $svg .= '<text x="' . ($x + 27) . '" y="' . (21 + 19 * $line_index)
+                    . '" font-family="DejaVu Sans" font-size="16" fill="#111111">' . esc_html($line) . '</text>';
+            }
         }
+        return '<img class="manager-ux-legend-image" src="data:image/svg+xml;base64,'
+            . base64_encode($svg . '</svg>') . '" alt="' . esc_attr(implode(', ', array_column($categories, 'label'))) . '">';
+    };
+    $manager_bar = static function (array $question) use ($manager_colour, $manager_text_colour, $manager_display_percentages) {
+        if ((int) $question['answered_count'] === 0) {
+            return '<div class="manager-ux-empty">Not available</div>';
+        }
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="420" height="106" viewBox="0 0 420 106">';
+        $x = 0.0;
+        $callouts = [];
+        $display_percentages = $manager_display_percentages($question);
+        foreach ($question['categories'] as $category_index => $category) {
+            $percentage = $category['percentage'];
+            if ($percentage === null || (float) $percentage <= 0) { continue; }
+            // Geometry and badges use original backend precision, never rounded labels.
+            $width = (float) $percentage * 4.2;
+            $colour = $manager_colour($category['label']);
+            $svg .= '<rect x="' . number_format($x, 6, '.', '') . '" y="0" width="'
+                . number_format($width, 6, '.', '') . '" height="72" fill="' . $colour . '"/>';
+            $label = (string) $display_percentages[$category_index];
+            $centre = $x + $width / 2;
+            $text_width = strlen($label) * 7.5;
+            if ($width >= $text_width + 6) {
+                $svg .= '<text x="' . number_format($centre, 6, '.', '')
+                    . '" y="42" text-anchor="middle" font-family="DejaVu Sans" font-size="13" fill="'
+                    . $manager_text_colour($colour) . '">' . $label . '</text>';
+            } else {
+                // Small segments keep readable whole-number labels below the bar.
+                $callouts[] = ['centre' => $centre, 'width' => $text_width, 'label' => $label];
+            }
+            $x += $width;
+        }
+        $right = 0.0;
+        foreach ($callouts as &$callout) {
+            $callout['x'] = max($callout['centre'], $callout['width'] / 2 + 2, $right + $callout['width'] / 2 + 7);
+            $right = $callout['x'] + $callout['width'] / 2;
+        }
+        unset($callout);
+        // Work back from the right edge so callouts cannot collide or leave the chart.
+        $right = 418.0;
+        for ($i = count($callouts) - 1; $i >= 0; $i--) {
+            $callouts[$i]['x'] = min($callouts[$i]['x'], $right - $callouts[$i]['width'] / 2);
+            $right = $callouts[$i]['x'] - $callouts[$i]['width'] / 2 - 7;
+        }
+        foreach ($callouts as $callout) {
+            $svg .= '<path d="M' . number_format($callout['centre'], 3, '.', '') . ' 72 L'
+                . number_format($callout['x'], 3, '.', '') . ' 84" fill="none" stroke="#555555" stroke-width="1"/>';
+            $svg .= '<text x="' . number_format($callout['x'], 3, '.', '')
+                . '" y="99" text-anchor="middle" font-family="DejaVu Sans" font-size="13" fill="#111111">'
+                . $callout['label'] . '</text>';
+        }
+        return '<img class="manager-ux-bar" src="data:image/svg+xml;base64,' . base64_encode($svg . '</svg>')
+            . '" alt="' . esc_attr($question['statement']) . '">';
+    };
+    $manager_row = static function (array $question) use ($manager_bar, $manager_base_colour, $manager_text_colour, $manager_format_percentage) {
+        $has_rating = $question['positive_percentage'] !== null;
+        $rating = $has_rating ? $manager_format_percentage($question['positive_percentage']) . '%' : 'N/A';
+        $badge_label = stripos($question['statement'], 'short-term goals') !== false ? 'Agreement' : 'Positive';
+        $background = $has_rating ? $manager_base_colour : '#e8ebe9';
+        $foreground = $manager_text_colour($background);
+        $badge_svg = '<svg xmlns="http://www.w3.org/2000/svg" width="150" height="72" viewBox="0 0 150 72">'
+            . '<rect width="150" height="72" fill="' . $background . '"/>'
+            . '<text x="75" y="35" text-anchor="middle" font-family="DejaVu Sans" font-weight="bold" font-size="27" fill="' . $foreground . '">'
+            . esc_html($rating) . '</text><text x="75" y="59" text-anchor="middle" font-family="DejaVu Sans" font-weight="bold" font-size="'
+            . ($badge_label === 'Agreement' ? '15' : '18') . '" fill="' . $foreground . '">'
+            . esc_html($has_rating ? $badge_label : 'Unavailable') . '</text></svg>';
+        return '<tr class="manager-ux-row"><td class="manager-ux-statement">' . esc_html($question['statement'])
+            . '</td><td class="manager-ux-chart-cell">' . $manager_bar($question) . '</td><td class="manager-ux-badge-cell">'
+            . '<img class="manager-ux-badge-image" src="data:image/svg+xml;base64,' . base64_encode($badge_svg)
+            . '" alt="' . esc_attr($rating . ' ' . ($has_rating ? $badge_label : 'Unavailable')) . '"></td></tr>';
+    };
 
-        $positive_choices =
-            $field_id === '11'
-                ? [
-                    'Somewhat satisfied',
-                    'Extremely satisfied',
-                ]
-                : [
-                    'Agree',
-                    'Strongly agree',
+    $manager_page_specs = [];
+    foreach ($manager_result['groups'] as $group) {
+        foreach ($group['series'] as $series) {
+            $questions = $series['questions'];
+            // Present agreement items first, then satisfaction, employment and Yes/No,
+            // as in the mock-up. Source order is stable within each section.
+            $ordered = [];
+            foreach ($questions as $i => $question) {
+                $scale = (string) $question['scale'];
+                $rank = strpos($scale, 'agreement') === 0 ? 0 : 1;
+                if (stripos($question['statement'], 'employment opportunities') !== false) { $rank = 2; }
+                if (count($question['categories']) === 2) { $rank = 3; }
+                $ordered[] = ['rank' => $rank, 'index' => $i, 'question' => $question];
+            }
+            usort($ordered, static function ($a, $b) {
+                return ($a['rank'] <=> $b['rank']) ?: ($a['index'] <=> $b['index']);
+            });
+            $questions = array_column($ordered, 'question');
+            $chunks = array_chunk($questions, 9);
+            if (!$chunks) { $chunks = [[]]; }
+            foreach ($chunks as $chunk_index => $chunk) {
+                $manager_page_specs[] = [
+                    'questions' => $chunk, 'context' => $group['context'],
+                    'title' => $series['title'], 'form_id' => $series['form_id'],
+                    'submission_count' => $series['submission_count'],
+                    'first_in_series' => $chunk_index === 0,
                 ];
-
-        $answered_count = 0;
-        $positive_count = 0;
-
-        foreach (
-            $manager_matching_entries
-            as $manager_entry
-        ) {
-            $raw_value = trim(
-                (string) (
-                    $manager_entry[$field_id] ??
-                    ''
-                )
-            );
-
-            if ($raw_value === '') {
-                continue;
-            }
-
-            $answered_count++;
-
-            $display_value =
-                $field['choices'][$raw_value] ??
-                $raw_value;
-
-            if (
-                in_array(
-                    $display_value,
-                    $positive_choices,
-                    true
-                )
-            ) {
-                $positive_count++;
             }
         }
-
-        $positive_rating = null;
-
-        if ($answered_count > 0) {
-            $positive_rating =
-                ($positive_count / $answered_count) *
-                100;
-        }
-
-        $manager_rows[] = [
-            'statement' => $field['label'],
-            'rating' => $positive_rating,
-            'answered' => $answered_count,
+    }
+    if (!$manager_page_specs) {
+        $manager_page_specs[] = [
+            'questions' => [], 'context' => [], 'title' => 'Manager responses',
+            'form_id' => '', 'submission_count' => 0, 'first_in_series' => true,
         ];
     }
-
-    $manager_response_count =
-        count($manager_matching_entries);
-
-    if (trim($manager_summary_text) !== '') {
-        $manager_summary_output =
-            $manager_summary_text;
-    } elseif ($manager_response_count > 0) {
-        $manager_summary_output = sprintf(
-            'Manager feedback based on %d response%s for %s in %s.',
-            $manager_response_count,
-            $manager_response_count === 1
-                ? ''
-                : 's',
-            $program,
-            $cohort
-        );
-    } else {
-        $manager_summary_output =
-            'No manager responses could be matched to the selected program and cohort. The statements below are shown for reference; ratings will appear when matching manager responses are available.';
-    }
-
-    $build_manager_rows =
-        static function (array $rows) use (
-            $report_colour,
-            $recommendation_text_colour
-        ) {
-            $html = '';
-
-            foreach ($rows as $row) {
-                $has_rating =
-                    $row['rating'] !== null;
-
-                $rating_text =
-                    $has_rating
-                        ? round(
-                            (float) $row['rating']
-                        ) . '%'
-                        : '—';
-
-                $rating_background =
-                    $has_rating
-                        ? $report_colour
-                        : '#e8ebe9';
-
-                $rating_colour =
-                    $has_rating
-                        ? $recommendation_text_colour
-                        : '#555555';
-
-                $html .= '
-                    <tr>
-                        <td class="manager-statement-cell">
-                            ' .
-                                esc_html(
-                                    $row['statement']
-                                ) .
-                            '
-                        </td>
-
-                        <td
-                            class="manager-rating-cell"
-                            style="
-                                background: ' .
-                                    esc_attr(
-                                        $rating_background
-                                    ) .
-                                ';
-                                color: ' .
-                                    esc_attr(
-                                        $rating_colour
-                                    ) .
-                                ';
-                            "
-                        >
-                            ' .
-                                esc_html(
-                                    $rating_text
-                                ) .
-                            '
-                        </td>
-                    </tr>
-                ';
+    $total_pages = 5 + count($manager_page_specs);
+    foreach ($manager_page_specs as $page_index => $spec) {
+        $first = $spec['first_in_series'];
+        $context_parts = [];
+        foreach (['program_group', 'program', 'cohort'] as $context_key) {
+            if (!empty($spec['context'][$context_key])) { $context_parts[] = $spec['context'][$context_key]; }
+        }
+        $context_complete = !empty($spec['context']['program']) && !empty($spec['context']['cohort']);
+        $scope = $context_complete ? implode(' / ', $context_parts)
+            : 'All Manager responses - program/year unavailable';
+        $html_rows = '';
+        $last_scale = null;
+        foreach ($spec['questions'] as $question) {
+            $scale_key = json_encode(array_column($question['categories'], 'label'));
+            if ($scale_key !== $last_scale) {
+                $html_rows .= '<tr><td colspan="3" class="manager-ux-legend-cell">'
+                    . $manager_legend($question['categories']) . '</td></tr>';
+                $last_scale = $scale_key;
             }
-
-            return $html;
-        };
-
-    $manager_page_1_rows =
-        array_slice($manager_rows, 0, 8);
-
-    $manager_page_2_rows =
-        array_slice($manager_rows, 8);
-
-    $manager_page_1_table =
-        $build_manager_rows(
-            $manager_page_1_rows
-        );
-
-    $manager_page_2_table =
-        $build_manager_rows(
-            $manager_page_2_rows
-        );
-
-    /*
-     * Official Tasmanian Leaders logo.
-     * Embedded as base64 so Dompdf does not depend on local file URLs.
-     */
-    $brand_logo_path =
-        dirname(__DIR__) .
-        '/assets/images/tasmanian-leaders-logo-black.png';
-
-    $brand_logo_html =
-        '<div class="brand">Tasmanian Leaders</div>';
-
-    if (is_readable($brand_logo_path)) {
-        $brand_logo_data =
-            'data:image/png;base64,' .
-            base64_encode(
-                file_get_contents($brand_logo_path)
-            );
-
-        $brand_logo_html =
-            '<div class="brand">' .
-                '<img src="' .
-                    esc_attr($brand_logo_data) .
-                    '" alt="Tasmanian Leaders">' .
-            '</div>';
+            $html_rows .= $manager_row($question);
+        }
+        if ($html_rows === '') {
+            $html_rows = '<tr><td colspan="3">No Manager responses are available.</td></tr>';
+        }
+        $summary = 'Managers were asked the extent to which they agreed with the following statements, after their employee had completed Tasmanian Leaders leadership development.';
+        // Custom summary remains supported; it never replaces the scope notice.
+        if (trim($manager_summary_text) !== '') { $summary = $manager_summary_text; }
+        $manager_pages_html .= '<div class="page content-page manager-page manager-ux-page'
+            . ($first ? '' : ' manager-ux-continued') . '">'
+            . $brand_logo_html . '<div class="cover-rule"></div>'
+            . '<div class="manager-ux-scope">' . esc_html($scope) . '</div>'
+            . ($first ? '<h2 class="manager-ux-title">Managers</h2>'
+                . '<div class="manager-ux-summary" style="background:' . esc_attr($manager_summary_colour) . ';color:' . esc_attr($manager_text_colour($manager_summary_colour)) . ';">' . nl2br(esc_html($summary)) . '</div>' : '')
+            . '<h3 class="manager-ux-heading">Statements</h3>'
+            . '<p class="manager-ux-description">All numbers are percentages (%).</p>'
+            . '<table class="manager-ux-table"><colgroup><col style="width:36%"><col style="width:48%"><col style="width:16%"></colgroup><tbody>'
+            . '<tr class="manager-ux-widths"><td style="width:36%;padding:0;height:0;"></td><td style="width:48%;padding:0;height:0;"></td><td style="width:16%;padding:0;height:0;"></td></tr>' . $html_rows . '</tbody></table>'
+            . '<div class="mock-page-footer">Page ' . (6 + $page_index) . ' of ' . (int) $total_pages . '</div></div>';
     }
-
-    $manager_pages_html = '
-
-    <div class="page content-page manager-page">
-
-        ' . $brand_logo_html . '
-
-        <div class="cover-rule"></div>
-
-        <div class="section-label">
-            ' .
-                esc_html($program) .
-                ' &middot; ' .
-                esc_html($cohort) .
-            '
-        </div>
-
-        <h2 class="section-report-title">
-            Managers
-        </h2>
-
-        <div class="manager-summary-box">
-            <div class="box-heading">
-                Summary
-            </div>
-
-            <div class="manager-summary-text">
-                ' .
-                    nl2br(
-                        esc_html(
-                            $manager_summary_output
-                        )
-                    ) .
-                '
-            </div>
-        </div>
-
-        <h3 class="manager-statements-heading">
-            Statements
-        </h3>
-
-        <table class="manager-statements-table">
-            <thead>
-                <tr>
-                    <th>Statement</th>
-                    <th>Positive rating</th>
-                </tr>
-            </thead>
-            <tbody>
-                ' . $manager_page_1_table . '
-            </tbody>
-        </table>
-
-        <div class="mock-page-footer">
-            Page 6 of 7
-        </div>
-
-    </div>
-
-    <div class="page content-page manager-page">
-
-        ' . $brand_logo_html . '
-
-        <div class="cover-rule"></div>
-
-        <div class="section-label">
-            ' .
-                esc_html($program) .
-                ' &middot; ' .
-                esc_html($cohort) .
-            '
-        </div>
-
-        <h2 class="section-report-title">
-            Managers
-        </h2>
-
-        <h3 class="manager-statements-heading manager-statements-heading--continued">
-            Statements
-        </h3>
-
-        <table class="manager-statements-table">
-            <thead>
-                <tr>
-                    <th>Statement</th>
-                    <th>Positive rating</th>
-                </tr>
-            </thead>
-            <tbody>
-                ' . $manager_page_2_table . '
-            </tbody>
-        </table>
-
-        <div class="mock-page-footer">
-            Page 7 of 7
-        </div>
-
-    </div>
-    ';
 }
 
 $html = '
@@ -8486,6 +8252,46 @@ $html = '
         font-size: 28px;
         line-height: 1.05;
     }
+
+        /* Manager pages only: three-column UX layout, backed by service distributions. */
+    .manager-ux-page {
+        min-height: 0;
+        height: 990px;
+        padding: 38px 70px 42px;
+        page-break-before: always;
+        page-break-inside: avoid;
+        font-family: DejaVu Sans, sans-serif;
+    }
+    .manager-ux-page .brand { margin-bottom: 12px; }
+    .manager-ux-scope { font-size: 10px; font-weight: bold; margin: 15px 0 10px; color: #222; }
+    .manager-ux-title { font-family: DejaVu Sans, sans-serif; font-size: 29px; margin: 0 0 20px; line-height: 1.15; }
+    .manager-ux-summary { padding: 10px 12px; font-size: 10px; line-height: 1.35; margin-bottom: 15px; }
+    .manager-ux-heading { font-size: 17px; margin: 0 0 10px; line-height: 1.2; }
+    .manager-ux-description { margin: 0 0 5px; font-size: 10px; }
+    .manager-ux-source { font-size: 7px; color: #555; margin-bottom: 9px; }
+    .manager-ux-table { width: 100%; table-layout: fixed; border-collapse: collapse; border-spacing: 0; }
+    .manager-ux-table td { vertical-align: middle; }
+    .manager-ux-legend-cell { padding: 5px 0 6px; }
+    .manager-ux-legend-image { display: block; width: 100%; height: 42px; }
+    .manager-ux-rounding-note { margin: 0 0 5px; font-size: 8px; line-height: 1.3; color: #444; }
+    .manager-ux-legend { text-align: center; font-size: 7px; line-height: 1.8; }
+    .manager-ux-legend-item { display: inline-block; white-space: nowrap; margin-right: 9px; }
+    .manager-ux-swatch { display: inline-block; width: 14px; height: 8px; margin-right: 4px; vertical-align: middle; }
+    .manager-ux-row { page-break-inside: avoid; }
+    .manager-ux-statement { width: 36%; padding: 3px 12px 3px 0; font-size: 10px; line-height: 1.35; background: white; color: #111; }
+    .manager-ux-chart-cell { width: 48%; padding: 3px 0; border-top: 1px solid #d8d8e0; border-bottom: 1px solid #d8d8e0; border-left: 1px solid #888; }
+    .manager-ux-bar { display: block; width: 100%; height: 54px; position: relative; top: 5px; }
+    .manager-ux-badge-cell { width: 16%; padding: 3px 0 3px 12px; }
+    .manager-ux-badge { text-align: center; height: 46px; }
+    .manager-ux-number { display: block; font-size: 22px; font-weight: bold; padding-top: 2px; line-height: 24px; }
+    .manager-ux-badge-label { display: block; font-size: 10px; font-weight: bold; line-height: 13px; }
+    .manager-ux-badge-empty { background: #e8ebe9; color: #555; }
+    .manager-ux-badge-empty .manager-ux-badge-label { font-size: 8px; }
+    .manager-ux-empty { height: 46px; line-height: 46px; text-align: center; font-size: 9px; color: #555; background: #f3f3f3; }
+    .manager-ux-continued .manager-ux-scope { margin-top: 0; margin-bottom: 16px; }
+
+    .manager-ux-badge-image { display: block; width: 100%; height: 46px; }
+
 
     </style>
 </head>
