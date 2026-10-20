@@ -5,12 +5,25 @@ class TLE_REST_API
     public static function permissions_check() { return is_user_logged_in(); }
     public static function setup_permissions_check() { return current_user_can('manage_options'); }
     public static function register_routes() {
+        register_rest_route('tle/v1', '/manager-evaluations', ['methods' => WP_REST_Server::READABLE, 'callback' => [self::class, 'get_manager_evaluations'], 'permission_callback' => [self::class, 'permissions_check']]);
         register_rest_route('tle/v1', '/evaluations', ['methods' => WP_REST_Server::READABLE, 'callback' => [self::class, 'get_evaluations'], 'permission_callback' => [self::class, 'permissions_check']]);
         register_rest_route('tle/v1', '/forms', ['methods' => WP_REST_Server::READABLE, 'callback' => [self::class, 'get_forms'], 'permission_callback' => [self::class, 'setup_permissions_check']]);
         register_rest_route('tle/v1', '/forms/(?P<id>\d+)/profile', [
             ['methods' => WP_REST_Server::READABLE, 'callback' => [self::class, 'get_profile'], 'permission_callback' => [self::class, 'setup_permissions_check']],
             ['methods' => 'POST', 'callback' => [self::class, 'save_profile'], 'permission_callback' => [self::class, 'setup_permissions_check']],
         ]);
+    }
+    public static function get_manager_evaluations($request) {
+        $filters = [];
+        foreach (['participant_key', 'program', 'program_group', 'cohort'] as $key) {
+            $value = $request->get_param($key);
+            if ($value === null || $value === '') { continue; }
+            if (!is_scalar($value)) { return new WP_Error('tle_invalid_manager_filter', 'Manager filters must be text.', ['status' => 400]); }
+            $filters[$key] = sanitize_text_field((string) $value);
+        }
+        $ids = $request->get_param('form_ids');
+        if ($ids === null) { $ids = []; }
+        return rest_ensure_response(TLE_Manager_Report_Service::get_report($filters, $ids));
     }
     public static function get_forms($request) {
         $data = TLE_Form_Registry::discover();

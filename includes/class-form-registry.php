@@ -63,7 +63,7 @@ class TLE_Form_Registry
         return $result;
     }
     public static function configuration($id) {
-        $base = ['catalog_mode' => 'document', 'enabled' => false, 'evaluation_stage' => '', 'fields' => [], 'question_overrides' => [], 'custom_items' => [], 'scoring_confirmed' => false];
+        $base = ['manager_questions' => [], 'catalog_mode' => 'document', 'enabled' => false, 'evaluation_stage' => '', 'fields' => [], 'question_overrides' => [], 'custom_items' => [], 'scoring_confirmed' => false];
         // Import existing context mappings only. Question membership comes from the document.
         foreach (self::legacy() as $map) {
             if ((int) $map['form_id'] === (int) $id) {
@@ -214,6 +214,24 @@ class TLE_Form_Registry
             $clean['custom_items'][$item['id']] = ['id' => $item['id'], 'text' => sanitize_text_field($item['text']), 'section' => $item['section'], 'capability' => $item['capability'], 'reverse' => $item['reverse']];
         }
         $clean['custom_items'] = array_values($clean['custom_items']);
+        $manager_rules = $config['manager_questions'] ?? [];
+        if (!is_array($manager_rules)) { return new WP_Error('tle_invalid_manager_rules', 'Manager question settings must be an object.'); }
+        $clean['manager_questions'] = [];
+        foreach ($manager_rules as $field => $rule) {
+            if (!preg_match('/^\d+(\.\d+)?$/', (string) $field) || !is_array($rule) || (isset($rule['enabled']) && !is_bool($rule['enabled']))) {
+                return new WP_Error('tle_invalid_manager_rules', 'Provide Manager field IDs with boolean enabled settings.');
+            }
+            $clean['manager_questions'][(string) $field] = ['enabled' => $rule['enabled'] ?? true];
+            if (isset($rule['positive_choices'])) {
+                if (!is_array($rule['positive_choices']) || !$rule['positive_choices']) { return new WP_Error('tle_invalid_manager_rules', 'Positive choices must be a non-empty list of labels.'); }
+                $labels = [];
+                foreach ($rule['positive_choices'] as $label) {
+                    if (!is_string($label) || trim($label) === '') { return new WP_Error('tle_invalid_manager_rules', 'Positive choice labels must be non-empty text.'); }
+                    $labels[] = sanitize_text_field($label);
+                }
+                $clean['manager_questions'][(string) $field]['positive_choices'] = $labels;
+            }
+        }
         $index = self::profile_item_index($clean);
         foreach ((array) ($config['question_overrides'] ?? []) as $field => $override) {
             if (!preg_match('/^\d+(\.\d+)?$/', (string) $field) || !is_array($override)) { return new WP_Error('tle_invalid_override', 'Invalid question override.'); }
