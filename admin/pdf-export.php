@@ -2829,20 +2829,109 @@ foreach ($insight_growth_items as $item) {
  * Scale the text according to its length.
  */
 
+/*
+ * Automatically fit participant quotes inside their PDF panels.
+ * Use actual Dompdf font widths rather than character thresholds.
+ */
+$fit_participant_quote = static function ($quote, $section) {
+    static $font_metrics = null;
+    static $font = null;
+    static $metrics_dompdf = null;
+
+    if ($font_metrics === null) {
+        $metrics_dompdf = new Dompdf();
+        $font_metrics = $metrics_dompdf->getFontMetrics();
+        $font = $font_metrics->getFont('DejaVu Sans', 'bold');
+    }
+
+    // Conservative space budgets for the three report panels.
+    $heights = [
+        'insight' => 185,
+        'influence' => 120,
+        'impact' => 95,
+    ];
+
+    $available_height = $heights[$section] ?? 95;
+    $available_width = 208;
+    $text = '“' . trim((string) $quote) . '”';
+    $paragraphs = preg_split('/\R/u', $text);
+
+    if (!$paragraphs || !$font) {
+        return '13px';
+    }
+
+    for ($size = 160; $size >= 7; $size--) {
+        $font_points = $size * 0.75;
+        $lines = 0;
+        $fits_width = true;
+
+        foreach ($paragraphs as $paragraph) {
+            $words = preg_split('/\s+/u', trim($paragraph));
+
+            if (!$words || $words[0] === '') {
+                $lines++;
+                continue;
+            }
+
+            $current_line = '';
+
+            foreach ($words as $word) {
+                // Avoid splitting words across lines.
+                $word_width = $font_metrics->getTextWidth(
+                    $word, $font, $font_points
+                );
+
+                if ($word_width > $available_width) {
+                    $fits_width = false;
+                    break;
+                }
+
+                $candidate = $current_line === ''
+                    ? $word
+                    : $current_line . ' ' . $word;
+
+                $candidate_width = $font_metrics->getTextWidth(
+                    $candidate, $font, $font_points
+                );
+
+                if ($candidate_width <= $available_width) {
+                    $current_line = $candidate;
+                } else {
+                    $lines++;
+                    $current_line = $word;
+                }
+            }
+
+            if (!$fits_width) {
+                break;
+            }
+
+            if ($current_line !== '') {
+                $lines++;
+            }
+        }
+
+        if (!$fits_width || $lines === 0) {
+            continue;
+        }
+
+        // Allow for Dompdf font ascent and line spacing.
+        $text_height = $font_points * (
+            1.17 + max(0, $lines - 1) * 1.65
+        );
+
+        if ($text_height <= $available_height) {
+            return $size . 'px';
+        }
+    }
+
+    return '7px';
+};
+
 $insight_quote_html = '';
 
 if (trim($insight_quote) !== '') {
-    $quote_length = strlen($insight_quote);
-
-    if ($quote_length > 220) {
-        $insight_quote_size = '9px';
-    } elseif ($quote_length > 140) {
-        $insight_quote_size = '10px';
-    } elseif ($quote_length > 80) {
-        $insight_quote_size = '11px';
-    } else {
-        $insight_quote_size = '13px';
-    }
+    $insight_quote_size = $fit_participant_quote($insight_quote, 'insight');
 
     $insight_quote_html = '
         <td
@@ -2852,9 +2941,6 @@ if (trim($insight_quote) !== '') {
                 color: ' . esc_attr($recommendation_text_colour) . ';
             "
         >
-            <div class="box-heading">
-                Participant Quote
-            </div>
 
             <div
                 class="participant-quote-text"
@@ -3288,17 +3374,7 @@ foreach ($influence_growth_items as $item) {
 $influence_quote_html = '';
 
 if (trim($influence_quote) !== '') {
-    $quote_length = strlen($influence_quote);
-
-    if ($quote_length > 220) {
-        $influence_quote_size = '9px';
-    } elseif ($quote_length > 140) {
-        $influence_quote_size = '10px';
-    } elseif ($quote_length > 80) {
-        $influence_quote_size = '11px';
-    } else {
-        $influence_quote_size = '13px';
-    }
+    $influence_quote_size = $fit_participant_quote($influence_quote, 'influence');
 
     $influence_quote_html = '
         <td
@@ -3308,9 +3384,6 @@ if (trim($influence_quote) !== '') {
                 color: ' . esc_attr($recommendation_text_colour) . ';
             "
         >
-            <div class="box-heading">
-                Participant Quote
-            </div>
 
             <div
                 class="participant-quote-text"
@@ -3740,17 +3813,7 @@ foreach ($impact_growth_items as $item) {
 $impact_quote_html = '';
 
 if (trim($impact_quote) !== '') {
-    $quote_length = strlen($impact_quote);
-
-    if ($quote_length > 220) {
-        $impact_quote_size = '9px';
-    } elseif ($quote_length > 140) {
-        $impact_quote_size = '10px';
-    } elseif ($quote_length > 80) {
-        $impact_quote_size = '11px';
-    } else {
-        $impact_quote_size = '13px';
-    }
+    $impact_quote_size = $fit_participant_quote($impact_quote, 'impact');
 
     $impact_quote_html = '
         <td
@@ -3760,9 +3823,6 @@ if (trim($impact_quote) !== '') {
                 color: ' . esc_attr($recommendation_text_colour) . ';
             "
         >
-            <div class="box-heading">
-                Participant Quote
-            </div>
 
             <div
                 class="participant-quote-text"
@@ -7167,7 +7227,7 @@ if ($include_manager) {
         if ($html_rows === '') {
             $html_rows = '<tr><td colspan="3">No Manager responses are available.</td></tr>';
         }
-        $summary = 'Managers were asked the extent to which they agreed with the following statements, after their employee had completed Tasmanian Leaders leadership development.';
+        $summary = 'Managers were asked the extent to which they agreed with the following statements, after their employee had completed Tasmanian Leaders’ leadership development.';
         // Custom summary remains supported; it never replaces the scope notice.
         if (trim($manager_summary_text) !== '') { $summary = $manager_summary_text; }
         $manager_pages_html .= '<div class="page content-page manager-page manager-ux-page'
@@ -8026,6 +8086,58 @@ $html = '
         margin-top: 2px;
     }
 
+    /* Final participant summary layout */
+    .final-insight-page .section-summary-table,
+    .final-influence-page .section-summary-table,
+    .final-impact-page .section-summary-table {
+        width: 100%;
+        margin-left: -12px;
+        border-spacing: 12px 0;
+        table-layout: fixed;
+    }
+
+    .section-summary-heading-row td {
+        padding: 0 0 7px;
+        color: #111111;
+        background: transparent;
+        font-size: 16px;
+        font-weight: bold;
+        line-height: 1.2;
+        vertical-align: bottom;
+    }
+
+    .final-insight-page .growth-summary-box,
+    .final-insight-page .participant-quote-box,
+    .final-influence-page .growth-summary-box,
+    .final-influence-page .participant-quote-box,
+    .final-impact-page .growth-summary-box,
+    .final-impact-page .participant-quote-box {
+        padding: 12px 14px;
+        vertical-align: top;
+    }
+
+    .participant-quote-text {
+        font-weight: bold;
+        font-style: normal;
+        line-height: 1.28;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    /* Centre automatically scaled quotes in their panels. */
+    .final-insight-page .participant-quote-box,
+    .final-influence-page .participant-quote-box,
+    .final-impact-page .participant-quote-box {
+        vertical-align: middle;
+    }
+
+    .participant-quote-text {
+        line-height: 1.15;
+        font-weight: bold;
+        font-style: normal;
+        word-wrap: break-word;
+    }
+
     /* Sprint 3 Manager pages */
 
     .manager-page {
@@ -8425,13 +8537,14 @@ $html = '
     ' . $section_secondary_html['Insight'] . '
 
     <table class="section-summary-table">
+        <tr class="section-summary-heading-row">
+            <td>
+                ' . esc_html($section_summary_heading) . '
+            </td>
+            ' . (trim($insight_quote_html) !== '' ? '<td>Participant Quote</td>' : '') . '
+        </tr>
         <tr>
-
             <td class="' . esc_attr($insight_growth_summary_class) . '">
-                <div class="box-heading">
-                    ' . esc_html($section_summary_heading) . '
-                </div>
-
                 ' . $insight_growth_summary_html . '
             </td>
 
@@ -8469,13 +8582,14 @@ $html = '
     ' . $section_secondary_html['Influence'] . '
 
     <table class="section-summary-table">
+        <tr class="section-summary-heading-row">
+            <td>
+                ' . esc_html($section_summary_heading) . '
+            </td>
+            ' . (trim($influence_quote_html) !== '' ? '<td>Participant Quote</td>' : '') . '
+        </tr>
         <tr>
-
             <td class="' . esc_attr($influence_growth_summary_class) . '">
-                <div class="box-heading">
-                    ' . esc_html($section_summary_heading) . '
-                </div>
-
                 ' . $influence_growth_summary_html . '
             </td>
 
@@ -8513,13 +8627,14 @@ $html = '
     ' . $section_secondary_html['Impact'] . '
 
     <table class="section-summary-table">
+        <tr class="section-summary-heading-row">
+            <td>
+                ' . esc_html($section_summary_heading) . '
+            </td>
+            ' . (trim($impact_quote_html) !== '' ? '<td>Participant Quote</td>' : '') . '
+        </tr>
         <tr>
-
             <td class="' . esc_attr($impact_growth_summary_class) . '">
-                <div class="box-heading">
-                    ' . esc_html($section_summary_heading) . '
-                </div>
-
                 ' . $impact_growth_summary_html . '
             </td>
 

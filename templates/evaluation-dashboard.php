@@ -540,79 +540,72 @@ if (!defined('ABSPATH')) {
                     <div class="tle-dashboard__text-grid tle-dashboard__text-grid--three">
                         <div class="tle-dashboard__field">
                             <label for="tle-insight-self-awareness">Self-awareness</label>
-                            <input
+                            <textarea
                                 id="tle-insight-self-awareness"
-                                type="text"
                                 name="insight_self_awareness_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
 
                         <div class="tle-dashboard__field">
                             <label for="tle-insight-social-awareness">Social awareness</label>
-                            <input
+                            <textarea
                                 id="tle-insight-social-awareness"
-                                type="text"
                                 name="insight_social_awareness_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
 
                         <div class="tle-dashboard__field">
                             <label for="tle-insight-situational-awareness">Situational awareness</label>
-                            <input
+                            <textarea
                                 id="tle-insight-situational-awareness"
-                                type="text"
                                 name="insight_situational_awareness_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
 
                         <div class="tle-dashboard__field">
                             <label for="tle-insight-clarity-purpose">Clarity of purpose</label>
-                            <input
+                            <textarea
                                 id="tle-insight-clarity-purpose"
-                                type="text"
                                 name="insight_clarity_purpose_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
 
                         <div class="tle-dashboard__field">
                             <label for="tle-insight-strategic-foresight">Strategic foresight</label>
-                            <input
+                            <textarea
                                 id="tle-insight-strategic-foresight"
-                                type="text"
                                 name="insight_strategic_foresight_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
 
                         <div class="tle-dashboard__field">
                             <label for="tle-insight-balanced-processing">Balanced processing</label>
-                            <input
+                            <textarea
                                 id="tle-insight-balanced-processing"
-                                type="text"
                                 name="insight_balanced_processing_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
 
                         <div class="tle-dashboard__field">
                             <label for="tle-insight-self-compassion">Self-compassion</label>
-                            <input
+                            <textarea
                                 id="tle-insight-self-compassion"
-                                type="text"
                                 name="insight_self_compassion_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
                     </div>
 
@@ -655,68 +648,62 @@ if (!defined('ABSPATH')) {
                     <div class="tle-dashboard__text-grid tle-dashboard__text-grid--three">
                         <div class="tle-dashboard__field">
                             <label for="tle-influence-ambiguity">Tolerance for ambiguity</label>
-                            <input
+                            <textarea
                                 id="tle-influence-ambiguity"
-                                type="text"
                                 name="influence_tolerance_ambiguity_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
 
                         <div class="tle-dashboard__field">
                             <label for="tle-influence-informal">Capacity for informal influence</label>
-                            <input
+                            <textarea
                                 id="tle-influence-informal"
-                                type="text"
                                 name="influence_informal_influence_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
 
                         <div class="tle-dashboard__field">
                             <label for="tle-influence-complexity">Tolerance for complexity</label>
-                            <input
+                            <textarea
                                 id="tle-influence-complexity"
-                                type="text"
                                 name="influence_tolerance_complexity_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
 
                         <div class="tle-dashboard__field">
                             <label for="tle-influence-collaboration">Capacity for collaboration</label>
-                            <input
+                            <textarea
                                 id="tle-influence-collaboration"
-                                type="text"
                                 name="influence_collaboration_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
 
                         <div class="tle-dashboard__field">
                             <label for="tle-influence-networks">Capacity to establish networks</label>
-                            <input
+                            <textarea
                                 id="tle-influence-networks"
-                                type="text"
                                 name="influence_networks_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
 
                         <div class="tle-dashboard__field">
                             <label for="tle-influence-creative">Creative decision-making</label>
-                            <input
+                            <textarea
                                 id="tle-influence-creative"
-                                type="text"
                                 name="influence_creative_decision_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
                     </div>
 
@@ -759,46 +746,42 @@ if (!defined('ABSPATH')) {
                     <div class="tle-dashboard__text-grid tle-dashboard__text-grid--three">
                         <div class="tle-dashboard__field">
                             <label for="tle-impact-belonging">Capacity to foster belonging</label>
-                            <input
+                            <textarea
                                 id="tle-impact-belonging"
-                                type="text"
                                 name="impact_belonging_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
 
                         <div class="tle-dashboard__field">
                             <label for="tle-impact-motivation">Capacity to foster intrinsic motivation</label>
-                            <input
+                            <textarea
                                 id="tle-impact-motivation"
-                                type="text"
                                 name="impact_intrinsic_motivation_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
 
                         <div class="tle-dashboard__field">
                             <label for="tle-impact-place">Place-attachment</label>
-                            <input
+                            <textarea
                                 id="tle-impact-place"
-                                type="text"
                                 name="impact_place_attachment_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
 
                         <div class="tle-dashboard__field">
                             <label for="tle-impact-extra-role">Extra-role behaviours</label>
-                            <input
+                            <textarea
                                 id="tle-impact-extra-role"
-                                type="text"
                                 name="impact_extra_role_text"
                                 data-tle-auto-text
                                 placeholder="Automatically generated from report data unless edited."
-                            >
+                             rows="3"></textarea>
                         </div>
                     </div>
 
@@ -851,7 +834,7 @@ if (!defined('ABSPATH')) {
                             name="manager_summary_text"
                             rows="4"
                             placeholder="Summarise the manager evaluation findings"
-                        ></textarea>
+                        ><?php echo esc_textarea('Managers were asked the extent to which they agreed with the following statements, after their employee had completed Tasmanian Leaders’ leadership development.'); ?></textarea>
                     </div>
                 </div>
             </section>

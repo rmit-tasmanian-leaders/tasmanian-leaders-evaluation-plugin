@@ -1174,3 +1174,36 @@ input:disabled + span {
     opacity: 0.45;
     cursor: not-allowed;
 }
+
+/* Editable live capability summary previews */
+.tle-dashboard__text-grid textarea[data-tle-auto-text] {
+    width: 100%;
+    min-height: 96px;
+    box-sizing: border-box;
+    resize: vertical;
+    line-height: 1.4;
+    font-size: 13px;
+}
+
+/* Restore generated capability wording */
+.tle-dashboard__reset-auto {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 3px 0;
+    border: 0;
+    background: transparent;
+    color: #246b50;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.tle-dashboard__reset-auto:hover {
+    color: #174b38;
+}
+
+.tle-dashboard__reset-auto:focus-visible {
+    outline: 2px solid #246b50;
+    outline-offset: 3px;
+}

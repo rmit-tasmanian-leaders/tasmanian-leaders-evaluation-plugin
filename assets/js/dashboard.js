@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let primaryAvailableStageValues = [];
     let primaryStageAvailabilityLoaded = false;
     let primaryStageAvailabilityRequest = 0;
+    let currentCapabilityReport = null;
     const cohortSelect = dashboard.querySelector('#tle-cohort');
 
     const exportForm = dashboard.querySelector('#tle-pdf-export-form');
@@ -751,6 +752,7 @@ document.addEventListener('DOMContentLoaded', function () {
         primaryStageAvailabilityRequest++;
         primaryAvailableStageValues = [];
         primaryStageAvailabilityLoaded = false;
+        currentCapabilityReport = null;
 
         comparisonPoints.forEach(function (checkbox) {
             checkbox.checked = false;
@@ -779,6 +781,8 @@ document.addEventListener('DOMContentLoaded', function () {
             ++primaryStageAvailabilityRequest;
 
         primaryStageAvailabilityLoaded = false;
+        currentCapabilityReport = null;
+        syncReportTextState();
 
         try {
             const url = new URL(
@@ -828,6 +832,12 @@ document.addEventListener('DOMContentLoaded', function () {
             ) {
                 return;
             }
+
+            currentCapabilityReport = {
+                program: primaryProgram,
+                cohort: cohortSelect ? cohortSelect.value : '',
+                report: report
+            };
 
             primaryAvailableStageValues =
                 deriveAvailableStageValues(report);
@@ -1788,6 +1798,74 @@ document.addEventListener('DOMContentLoaded', function () {
         dashboard.querySelectorAll('[data-tle-auto-text]')
     );
 
+    const capabilityFields = reportAutoTextFields.filter(
+        field => Boolean(field.closest('.tle-dashboard__text-grid--three'))
+    );
+
+    function automaticCapabilitySummary(field) {
+        const current = currentCapabilityReport;
+
+        if (!current ||
+            current.program !== getPrimaryProgramName() ||
+            current.cohort !== (cohortSelect ? cohortSelect.value : '')) {
+            return '';
+        }
+
+        const sectionElement = field.closest(
+            '.tle-dashboard__text-section'
+        );
+        const section = sectionElement?.querySelector(
+            '.tle-dashboard__text-section-title'
+        )?.textContent.trim().toLowerCase();
+
+        const capability = field.closest(
+            '.tle-dashboard__field'
+        )?.querySelector('label')?.textContent.trim();
+
+        const scores = current.report.capability_averages
+            ?.[section]?.[capability];
+
+        if (!scores) return '';
+
+        const stages = ['pre_program', 'completion', 'delay']
+            .filter(stage =>
+                typeof scores[stage] === 'number' &&
+                Number.isFinite(scores[stage])
+            );
+
+        if (!stages.length) return '';
+
+        const labels = {
+            pre_program: 'Pre-program',
+            completion: 'Post-program',
+            delay: 'Delayed'
+        };
+
+        if (stages.length === 1) {
+            return labels[stages[0]] + ' average score: ' +
+                scores[stages[0]].toFixed(2) + ' out of 7.';
+        }
+
+        const first = scores[stages[0]];
+        const last = scores[stages[stages.length - 1]];
+        const change = (last - first) / 7 * 100;
+        const amount = Math.abs(Math.round(change));
+        const units = amount === 1
+            ? 'percentage point'
+            : 'percentage points';
+
+        if (change > 0.05) {
+            return 'Participants demonstrated positive growth, increasing by ' +
+                amount + ' ' + units + '.';
+        }
+
+        if (change < -0.05) {
+            return "Participants' average score decreased by " +
+                amount + ' ' + units + '.';
+        }
+
+        return "Participants' average score was unchanged between the first and final available evaluation points.";
+    }
     const reportTitleField = dashboard.querySelector('[data-tle-auto-title]');
     const purposeField = dashboard.querySelector('[data-tle-auto-purpose]');
     const managerTextSection = dashboard.querySelector(
@@ -1938,10 +2016,38 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
+            if (capabilityFields.includes(field)) {
+                field.value = automaticCapabilitySummary(field);
+                return;
+            }
+
             field.value = field.dataset.tleDefault || '';
         });
     }
 
+    // Allow individual capability summaries to return to live defaults.
+    capabilityFields.forEach(function (field) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'tle-dashboard__reset-auto';
+        button.textContent = 'Reset to Automatic';
+
+        const label = field.closest('.tle-dashboard__field')
+            ?.querySelector('label')?.textContent.trim();
+
+        button.setAttribute(
+            'aria-label',
+            'Reset ' + (label || 'capability') + ' to automatic'
+        );
+
+        button.addEventListener('click', function () {
+            field.dataset.tleUserEdited = 'false';
+            syncReportTextState();
+            field.focus();
+        });
+
+        field.insertAdjacentElement('afterend', button);
+    });
     if (cohortSelect) {
         cohortSelect.addEventListener(
             'change',
