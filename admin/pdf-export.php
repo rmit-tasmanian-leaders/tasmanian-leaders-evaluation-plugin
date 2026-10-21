@@ -4187,38 +4187,7 @@ if ($is_single_stage_report) {
         >
             ' . $overview_axis_labels . '
 
-            <line
-                x1="438"
-                y1="20"
-                x2="458"
-                y2="20"
-                stroke="' .
-                    esc_attr(
-                        $report_colour
-                    ) .
-                '"
-                stroke-width="3"
-            />
 
-            <circle
-                cx="448"
-                cy="20"
-                r="4"
-                fill="' .
-                    esc_attr(
-                        $report_colour
-                    ) .
-                '"
-            />
-
-            <text
-                x="466"
-                y="24"
-            >' .
-                esc_html(
-                    $single_stage_label
-                ) .
-            '</text>
         </g>
 
         ' . $overview_line . '
@@ -7443,6 +7412,11 @@ $html = '
         line-height: 1;
     }
 
+    /* Hide redundant legends for single-stage reports. */
+    .overview-legend--hidden {
+        display: none;
+    }
+
     .overview-legend {
         margin-bottom: 12px;
         color: #444444;
@@ -8474,7 +8448,7 @@ $html = '
         Overview
     </h2>
 
-    <div class="overview-legend">
+    <div class="overview-legend' . ($is_single_stage_report ? ' overview-legend--hidden' : '') . '">
 
         <span class="legend-item">
             <span
