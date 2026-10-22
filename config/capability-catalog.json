@@ -1,0 +1,282 @@
+{
+  "insight": {
+    "Self-awareness": [
+      {
+        "id": "insight.self-awareness.1",
+        "text": "I have a very good understanding of why I do the things I do",
+        "reverse": false
+      },
+      {
+        "id": "insight.self-awareness.2",
+        "text": "I am often confused about my feelings",
+        "reverse": true
+      }
+    ],
+    "Social awareness": [
+      {
+        "id": "insight.social_awareness.1",
+        "text": "I can tell how people are feeling by listening to the tone of their voice",
+        "reverse": false
+      },
+      {
+        "id": "insight.social_awareness.2",
+        "text": "It is difficult for me to understand why people feel the way they do",
+        "reverse": true
+      }
+    ],
+    "Situational awareness": [
+      {
+        "id": "insight.situational_awareness.1",
+        "text": "Right now, I am conscious of all objects around me.",
+        "reverse": false
+      },
+      {
+        "id": "insight.situational_awareness.2",
+        "text": "Right now, I am keenly aware of everything in my environment.",
+        "reverse": false
+      }
+    ],
+    "Clarity of purpose": [
+      {
+        "id": "insight.clarity_of_purpose.1",
+        "text": "I change my mind frequently",
+        "reverse": true
+      },
+      {
+        "id": "insight.clarity_of_purpose.2",
+        "text": "I have a clear idea of how projects will be completed.",
+        "reverse": false
+      }
+    ],
+    "Strategic foresight": [
+      {
+        "id": "insight.strategic_foresight.1",
+        "text": "What percentage of your current objectives stretch on for more than two years into the future?",
+        "reverse": false
+      },
+      {
+        "id": "insight.strategic_foresight.2",
+        "text": "Most of my objectives are focused on achieving targets due in the next six months .",
+        "reverse": true
+      }
+    ],
+    "Balanced processing": [
+      {
+        "id": "insight.balanced_processing.1",
+        "text": "I am very uncomfortable objectively considering my limitations and shortcomings",
+        "reverse": true
+      },
+      {
+        "id": "insight.balanced_processing.2",
+        "text": "I often find that I am overly critical about myself.",
+        "reverse": true
+      },
+      {
+        "id": "insight.balanced_processing.3",
+        "text": "I often deny the validity of any compliments that I receive.",
+        "reverse": true
+      }
+    ],
+    "Self-compassion": [
+      {
+        "id": "insight.self-compassion.1",
+        "text": "I regularly remind myself that failure and challenges are part of the human experience.",
+        "reverse": false
+      },
+      {
+        "id": "insight.self-compassion.2",
+        "text": "In the past seven days I engaged in supportive and comforting self-talk",
+        "reverse": false
+      }
+    ]
+  },
+  "influence": {
+    "Tolerance for ambiguity": [
+      {
+        "id": "influence.tolerance_for_ambiguity.1",
+        "text": "I like to surround myself with things that are familiar to me",
+        "reverse": true
+      },
+      {
+        "id": "influence.tolerance_for_ambiguity.2",
+        "text": "I like parties where I know most of the people more than ones where all or most of the people are complete strangers",
+        "reverse": true
+      },
+      {
+        "id": "influence.tolerance_for_ambiguity.3",
+        "text": "A good job is one where what is to be done and how it is to be done are always clear",
+        "reverse": true
+      }
+    ],
+    "Tolerance for complexity": [
+      {
+        "id": "influence.tolerance_for_complexity.1",
+        "text": "If I were a scientist, it would bother me that my work would never be completed (because they always make new discoveries)",
+        "reverse": false
+      },
+      {
+        "id": "influence.tolerance_for_complexity.2",
+        "text": "A good manager won’t make a decision until they have every possible piece of information about a matter .",
+        "reverse": true
+      },
+      {
+        "id": "influence.tolerance_for_complexity.3",
+        "text": "It is frightening just how messy the world is .",
+        "reverse": true
+      },
+      {
+        "id": "influence.tolerance_for_complexity.4",
+        "text": "Being unable to predict the future is exciting.",
+        "reverse": false
+      }
+    ],
+    "Capacity for informal influence": [
+      {
+        "id": "influence.capacity_for_informal_influence.1",
+        "text": "I don’t need a position or title to inspire others",
+        "reverse": false
+      },
+      {
+        "id": "influence.capacity_for_informal_influence.2",
+        "text": "I inspire others to want to achieve their goals",
+        "reverse": false
+      },
+      {
+        "id": "influence.capacity_for_informal_influence.3",
+        "text": "Having a leadership position is the easiest way to influence others",
+        "reverse": true
+      }
+    ],
+    "Capacity for collaboration": [
+      {
+        "id": "influence.capacity_for_collaboration.1",
+        "text": "I am open and honest with those around me",
+        "reverse": false
+      },
+      {
+        "id": "influence.capacity_for_collaboration.2",
+        "text": "I seek opportunities to meet with colleagues who disagree with me",
+        "reverse": false
+      },
+      {
+        "id": "influence.capacity_for_collaboration.3",
+        "text": "Managers need to focus on objectives more than team members",
+        "reverse": true
+      }
+    ],
+    "Capacity to establish networks": [
+      {
+        "id": "influence.capacity_to_establish_networks.1",
+        "text": "I introduce myself to the person next to me while waiting in line.",
+        "reverse": false
+      },
+      {
+        "id": "influence.capacity_to_establish_networks.2",
+        "text": "I tend to avoid eye contact while waiting near other people",
+        "reverse": true
+      },
+      {
+        "id": "influence.capacity_to_establish_networks.3",
+        "text": "I will actively seek deep conversation with new people at a social event.",
+        "reverse": false
+      }
+    ],
+    "Creative decision-making": [
+      {
+        "id": "influence.creative_decision-making.1",
+        "text": "I enjoy the opportunity to create new things",
+        "reverse": false
+      },
+      {
+        "id": "influence.creative_decision-making.2",
+        "text": "When I need to make a decision, I usually deploy an existing model first .",
+        "reverse": true
+      },
+      {
+        "id": "influence.creative_decision-making.3",
+        "text": "I prioritise thinking outside the box over tried-and-tested solutions.",
+        "reverse": false
+      },
+      {
+        "id": "influence.creative_decision-making.4",
+        "text": "I frequently imagine new ways of doing and being",
+        "reverse": false
+      },
+      {
+        "id": "influence.creative_decision-making.5",
+        "text": "It is easy to hold multiple possible futures at the same time.",
+        "reverse": false
+      }
+    ]
+  },
+  "impact": {
+    "Capacity to foster belonging": [
+      {
+        "id": "impact.capacity_to_foster_belonging.1",
+        "text": "I actively attempt to enable two very different friends of mine to build relationships.",
+        "reverse": false
+      },
+      {
+        "id": "impact.capacity_to_foster_belonging.2",
+        "text": "When I see two people conflicting at work, I take steps to help them resolve it.",
+        "reverse": false
+      },
+      {
+        "id": "impact.capacity_to_foster_belonging.3",
+        "text": "At work, I focus on my work rather than building quality relationships with colleagues .",
+        "reverse": true
+      }
+    ],
+    "Capacity to foster intrinsic motivation": [
+      {
+        "id": "impact.capacity_to_foster_intrinsic_motivation.1",
+        "text": "People around me are primarily working for money or promotions .",
+        "reverse": true
+      },
+      {
+        "id": "impact.capacity_to_foster_intrinsic_motivation.2",
+        "text": "If I were interviewing a new staff member, I would emphasize how satisfying the work can be over wages.",
+        "reverse": false
+      },
+      {
+        "id": "impact.capacity_to_foster_intrinsic_motivation.3",
+        "text": "I explain the benefit of a task prior to asking someone to do it.",
+        "reverse": false
+      }
+    ],
+    "Place-attachment": [
+      {
+        "id": "impact.place-attachment.1",
+        "text": "Tasmania will always be my home, even if I move away.",
+        "reverse": false
+      },
+      {
+        "id": "impact.place-attachment.2",
+        "text": "I have limited attachment to the city I live in",
+        "reverse": true
+      },
+      {
+        "id": "impact.place-attachment.3",
+        "text": "I consider the impact my decisions will have on my community.",
+        "reverse": false
+      }
+    ],
+    "Extra-role behaviours": [
+      {
+        "id": "impact.extra-role_behaviours.1",
+        "text": "I take care not to interrupt colleagues even if I need information from them.",
+        "reverse": false
+      },
+      {
+        "id": "impact.extra-role_behaviours.2",
+        "text": "I volunteer to help my workplace with tasks that need doing that might be out of my general scope.",
+        "reverse": false
+      },
+      {
+        "id": "impact.extra-role_behaviours.3",
+        "text": "At work, I prioritise on finishing only my own tasks",
+        "reverse": true
+      }
+    ]
+  }
+}

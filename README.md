@@ -1,2 +1,502 @@
-# tasmanian-leaders-evaluation-plugin
-Evaluation reporting dashboard for Tasmanian Leaders - RMIT Programming Project 1 - Team 55
+
+# Tasmanian Leaders Evaluation Plugin
+
+Evaluation reporting WordPress plugin developed for Tasmanian Leaders as part of RMIT Programming Project 1 - Team 55.
+
+## Project Overview
+
+The Tasmanian Leaders Evaluation Plugin is being developed as a self-contained WordPress plugin to support evaluation reporting for Tasmanian Leaders.
+
+The system is intended to provide authorised Tasmanian Leaders staff with a structured way to work with evaluation data and generate meaningful evaluation reports.
+
+## Current Development Status
+
+**Sprint 1 - Design and Bootstrap**
+
+Sprint 1 has established the main technical foundation for the WordPress plugin.
+
+Current working functionality includes:
+
+- WordPress plugin loading and activation
+- Front-end evaluation dashboard proof of concept
+- Authenticated dashboard access
+- WordPress Admin evaluation report
+- PDF report export using Dompdf
+- Documented WordPress integration architecture
+- Documented local development setup and repository structure
+
+The current dashboard and reports use prototype/sample data.
+
+Sprint 2 development will focus on connecting the plugin to real Gravity Forms evaluation data and expanding the reporting functionality.
+
+## Plugin Structure
+
+```text
+tasmanian-leaders-evaluation-plugin/
+├── admin/
+│   └── pdf-export.php
+├── assets/
+│   ├── css/
+│   │   └── dashboard.css
+│   └── js/
+├── docs/
+│   ├── development-setup.md
+│   └── wordpress-integration-architecture.md
+├── includes/
+│   └── class-dashboard-shortcode.php
+├── templates/
+│   └── evaluation-dashboard.php
+├── composer.json
+├── composer.lock
+├── tasmanian-leaders-evaluation.php
+└── README.md
+
+Detailed local setup and verification instructions are available in:
+
+```text
+docs/development-setup.md
+```
+
+The directories provide the initial foundation for the plugin and allow functionality to be separated as the project develops.
+
+## Development Requirements
+
+Developers will require:
+
+- Git
+- GitHub account with appropriate repository permissions for contributing
+- A local WordPress development environment
+- PHP version supported by the project's WordPress development environment
+- A code editor such as Visual Studio Code
+
+Local is currently used for local WordPress development and testing.
+
+Additional technical requirements will be documented as the project progresses.
+
+## Getting Started
+
+### 1. Clone the Repository
+
+Clone the project repository:
+
+```bash
+git clone https://github.com/rmit-tasmanian-leaders/tasmanian-leaders-evaluation-plugin.git
+```
+
+### 2. Enter the Project Directory
+
+```bash
+cd tasmanian-leaders-evaluation-plugin
+```
+
+### 3. Check Repository Status
+
+```bash
+git status
+```
+
+A successful setup should show that the local repository is connected to the project and has a clean working tree before development begins.
+
+## Local WordPress Setup
+
+The plugin should be tested in a local WordPress development environment before changes are submitted for review.
+
+Local can be used to create and run the WordPress development environment.
+
+### 1. Create a Local WordPress Site
+
+Create a new WordPress site in Local.
+
+For example:
+
+```text
+tasmanian-leaders-test
+```
+
+Start the local WordPress site before installing or testing the plugin.
+
+### 2. Locate the WordPress Plugins Directory
+
+The WordPress plugins directory is located inside:
+
+```text
+wp-content/plugins/
+```
+
+When using Local, the path will typically be located under:
+
+```text
+app/public/wp-content/plugins/
+```
+
+### 3. Install the Plugin
+
+Place the project folder inside the WordPress plugins directory.
+
+The resulting structure should look similar to:
+
+```text
+wp-content/
+`-- plugins/
+    `-- tasmanian-leaders-evaluation-plugin/
+        |-- admin/
+        |-- assets/
+        |   |-- css/
+        |   `-- js/
+        |-- includes/
+        |-- templates/
+        |-- README.md
+        `-- tasmanian-leaders-evaluation.php
+```
+
+Only the plugin project is maintained in this Git repository.
+
+The complete local WordPress installation should not be committed to the project repository.
+
+### 4. Verify WordPress Recognises the Plugin
+
+Open WordPress Admin and navigate to:
+
+```text
+Plugins > Installed Plugins
+```
+
+Confirm that the following plugin appears:
+
+```text
+Tasmanian Leaders Evaluation Plugin
+```
+
+The initial plugin metadata should display:
+
+```text
+Plugin Name: Tasmanian Leaders Evaluation Plugin
+Version: 0.1.0
+Author: Team 55
+```
+
+### 5. Activate the Plugin
+
+Select:
+
+```text
+Activate
+```
+
+The plugin should activate successfully without producing an error.
+
+This confirms that the initial plugin structure is recognised and can be loaded by WordPress.
+
+## Development Workflow
+
+Development should not normally be performed directly on the `main` branch.
+
+Developers should create separate branches for their work so changes can be tested and reviewed before being merged.
+
+### 1. Update the Shared Integration Branch
+
+Before starting new development work:
+
+```bash
+git fetch origin
+git switch feature/plugin-structure
+git pull origin feature/plugin-structure
+```
+
+Developers should create their task branch from the latest shared integration branch.
+
+### 2. Create a Feature Branch
+
+Create a separate branch for the task being completed:
+
+```bash
+git checkout -b feature/your-feature-name
+```
+
+Example:
+
+```bash
+git checkout -b feature/plugin-structure
+```
+
+### 3. Make Changes
+
+Complete the required development work on the feature branch.
+
+Check the repository regularly with:
+
+```bash
+git status
+```
+
+Changes should be tested locally before being submitted for review.
+
+### 4. Review Changes
+
+Before committing, developers can review their changes using:
+
+```bash
+git diff
+```
+
+This helps confirm that only the intended files and changes are being committed.
+
+### 5. Stage Changes
+
+Stage the required changes:
+
+```bash
+git add .
+```
+
+Check the staged files:
+
+```bash
+git status
+```
+
+### 6. Commit Changes
+
+Use clear and descriptive commit messages.
+
+Example:
+
+```bash
+git commit -m "chore: create initial WordPress plugin structure"
+```
+
+
+Example commit messages include:
+
+```text
+chore: create initial WordPress plugin structure
+docs: update development workflow
+feat: add evaluation dashboard component
+fix: resolve plugin activation issue
+```
+
+### 7. Push the Feature Branch
+
+For the first push of a new branch:
+
+```bash
+git push -u origin feature/your-feature-name
+```
+
+After the upstream branch has been configured:
+
+```bash
+git push
+```
+
+### 8. Review and Test
+
+Once development work is complete:
+
+1. Push the completed feature branch to GitHub.
+2. Create a pull request when the work is ready for integration.
+3. Have another team member review and test the changes.
+4. Address any identified issues.
+5. Merge approved changes into `main` according to the team's agreed workflow.
+
+## Branching Convention
+
+The project uses separate branches for development work.
+
+```text
+main
+feature/*
+fix/*
+docs/*
+```
+
+### Main Branch
+
+```text
+main
+```
+
+Contains the stable project code.
+
+### Feature Branches
+
+```text
+feature/*
+```
+
+Used when developing new functionality or project components.
+
+Example:
+
+```text
+feature/plugin-structure
+```
+
+### Fix Branches
+
+```text
+fix/*
+```
+
+Used for correcting identified problems.
+
+### Documentation Branches
+
+```text
+docs/*
+```
+
+Can be used for documentation-only changes when appropriate.
+
+## WordPress Plugin Entry File
+
+The main WordPress plugin entry file is:
+
+```text
+tasmanian-leaders-evaluation.php
+```
+
+The initial file contains the WordPress plugin metadata required for WordPress to recognise the project as a plugin.
+
+Current metadata identifies the plugin as:
+
+```text
+Tasmanian Leaders Evaluation Plugin
+```
+
+The initial plugin structure provides the foundation for future development.
+
+## Sprint 1 Verification
+
+The initial Sprint 1 development setup has been tested against the following requirements.
+
+### Git Repository
+
+The project repository has been created and successfully cloned into a local development environment.
+
+A feature branch has also been successfully created and pushed to the remote repository.
+
+### WordPress Plugin Structure
+
+The initial WordPress plugin directory structure has been established.
+
+### WordPress Recognition
+
+The plugin has been installed in a local WordPress development environment and successfully appears under:
+
+```text
+Plugins > Installed Plugins
+```
+
+as:
+
+```text
+Tasmanian Leaders Evaluation Plugin
+```
+
+### Plugin Activation
+
+The plugin has been successfully activated in the local WordPress environment without producing an activation error.
+
+### Development Workflow
+
+The Git branching, commit, push, review, and testing workflow is documented in this README.
+
+### Team Repository Access
+
+The repository has been configured for team development.
+
+Team members should confirm that they can successfully access and clone the repository before this verification item is considered complete.
+
+## Important Development Notes
+
+- Do not commit the complete local WordPress installation to this repository.
+- Only project/plugin files should be version controlled.
+- Do not develop directly on `main` unless specifically agreed by the team.
+- Create a feature branch for development work.
+- Test changes locally before requesting review.
+- Pull the latest shared integration branch before beginning new work.
+- Do not commit passwords, credentials, API keys, or other sensitive information.
+
+## Sprint 2 Development Direction
+
+Sprint 2 will move from proof-of-concept functionality toward real evaluation data integration.
+
+Planned technical work includes:
+
+- Connecting the plugin to Gravity Forms using GFAPI
+- Mapping different Gravity Forms structures into a consistent internal format
+- Matching participant records across evaluation stages
+- Applying missing-stage reporting rules
+- Replacing prototype/sample data with real evaluation data
+- Expanding filtering, comparison and reporting functionality
+
+Gravity Forms-specific logic should remain separate from dashboard and PDF presentation code so that form changes can be handled through the integration and mapping layer.
+
+## Team
+
+**Project:** Evaluation Dashboard Project - Tasmanian Leaders
+
+**Client:** Tasmanian Leaders
+
+**Course:** RMIT Programming Project 1
+
+**Team:** Team 55
+
+## Development Phase
+
+**Sprint 1 - Design and Bootstrap**
+
+## PDF Export Proof of Concept
+
+A basic PDF export proof of concept has been implemented for Sprint 1.
+
+### Current Functionality
+
+The WordPress plugin now includes an `Evaluation Report` page in the WordPress admin area.
+
+The page currently displays test report data including:
+
+- Program
+- Cohort
+- Evaluation point
+- Average score
+
+The test data is placeholder data used to verify the reporting workflow and is not client evaluation data.
+
+The report can be exported as a PDF using the `Export PDF` button.
+
+### PDF Library
+
+PDF generation currently uses Dompdf, installed through Composer.
+
+From the plugin directory, install the required dependencies with:
+
+```bash
+composer install
+
+```
+
+The Composer dependency files are included in the repository:
+
+```text
+composer.json
+composer.lock
+```
+
+The generated `vendor/` directory is excluded from Git and can be recreated using `composer install`.
+
+### Testing
+
+The PDF export proof of concept was tested in the local WordPress development environment.
+
+The following workflow was successfully verified:
+
+1. WordPress loads successfully.
+2. The Tasmanian Leaders Evaluation Plugin activates without errors.
+3. The `Evaluation Report` page appears in the WordPress admin menu.
+4. Test report data displays correctly.
+5. Selecting `Export PDF` generates and downloads `evaluation-report.pdf`.
+6. The generated PDF contains the expected report data.
+
+This proof of concept establishes that PDF report generation is technically feasible within the WordPress plugin. The report layout and data source will be expanded as the dashboard and evaluation data integration are developed.
