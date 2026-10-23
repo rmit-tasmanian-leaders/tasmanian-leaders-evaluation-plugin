@@ -19,6 +19,7 @@ function tle_add_report_page()
 }
 add_action('admin_menu', 'tle_add_report_page');
 
+
 function tle_get_test_report_data()
 {
     return [
@@ -6948,9 +6949,11 @@ $total_pages = $include_manager ? 7 : 5;
 $manager_pages_html = '';
 
 if ($include_manager) {
-    // Real-data rendering test: no program attribution is inferred from blank fields.
-    // Use verified program/cohort filters here for production program-specific reports.
-    $manager_filters = [];
+    // Retrieve Manager responses for the primary selected program and cohort.
+    $manager_filters = [
+        'program' => $program,
+        'cohort' => $cohort,
+];
     $manager_service_file = dirname(__DIR__) . '/includes/class-manager-report-service.php';
     if (!class_exists('TLE_Manager_Report_Service') && is_readable($manager_service_file)) {
         require_once $manager_service_file;

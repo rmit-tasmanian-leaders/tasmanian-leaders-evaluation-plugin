@@ -15,6 +15,234 @@ if (!defined('ABSPATH')) {
 class TLE_Evaluation_Data_Service
 {
     /**
+     * Resolve program/cohort context from entry metadata and configured
+     * historical rules. Does not modify the source entry.
+     *
+     * @param array $entry Raw Gravity Forms entry.
+     * @param array $mapping Effective form profile.
+     * @return array|WP_Error
+     */
+    public static function resolve_entry_context($entry, $mapping)
+    {
+        if (!is_array($entry) || !is_array($mapping)) {
+            return new WP_Error(
+                'tle_invalid_context_arguments',
+                'Entry and form mapping must be arrays.'
+            );
+        }
+
+        $context = [];
+
+        foreach (['program', 'cohort', 'program_group'] as $name) {
+            $field_id = $mapping['fields'][$name] ?? '';
+            $value = $field_id !== ''
+                ? ($entry[$field_id] ?? '')
+                : '';
+
+            if (!is_scalar($value) && $value !== null) {
+                return new WP_Error(
+                    'tle_invalid_context',
+                    'An entry contains an invalid context value.'
+                );
+            }
+
+            $context[$name] = trim((string) $value);
+        }
+
+        $context['program'] = TLE_Report_Service::canonical_program(
+            $context['program']
+        );
+
+        $candidates = [];
+        $rules = get_option('tle_historical_context_rules_v1', []);
+
+        if (!is_array($rules)) {
+            return new WP_Error(
+                'tle_invalid_context_rules',
+                'Historical context rules must be an array.'
+            );
+        }
+
+        foreach ($rules as $rule) {
+            if (!is_array($rule)) {
+                return new WP_Error(
+                    'tle_invalid_context_rule',
+                    'A historical context rule is invalid.'
+                );
+            }
+
+            if (
+                empty($rule['enabled']) ||
+                (int) ($rule['form_id'] ?? 0) !==
+                    (int) ($mapping['form_id'] ?? 0) ||
+                ($rule['evaluation_stage'] ?? '') !==
+                    ($mapping['evaluation_stage'] ?? '')
+            ) {
+                continue;
+            }
+
+            foreach (
+                [
+                    'timezone',
+                    'start_date',
+                    'end_date',
+                    'program',
+                    'cohort',
+                    'program_group',
+                ] as $name
+            ) {
+                if (
+                    isset($rule[$name]) &&
+                    !is_scalar($rule[$name])
+                ) {
+                    return new WP_Error(
+                        'tle_invalid_context_rule',
+                        'Historical rule values must be text or numbers.'
+                    );
+                }
+            }
+
+            $candidate = [
+                'program' => TLE_Report_Service::canonical_program(
+                    $rule['program'] ?? ''
+                ),
+                'cohort' => trim((string) ($rule['cohort'] ?? '')),
+                'program_group' => trim(
+                    (string) ($rule['program_group'] ?? '')
+                ),
+            ];
+
+            if (
+                $candidate['program'] === '' ||
+                $candidate['cohort'] === ''
+            ) {
+                return new WP_Error(
+                    'tle_incomplete_context_rule',
+                    'A historical rule requires a program and cohort.'
+                );
+            }
+
+            try {
+                $timezone = new DateTimeZone(
+                    (string) ($rule['timezone'] ?? 'Australia/Hobart')
+                );
+
+                $start_text = (string) ($rule['start_date'] ?? '');
+                $end_text = (string) ($rule['end_date'] ?? '');
+
+                $start = DateTimeImmutable::createFromFormat(
+                    '!Y-m-d',
+                    $start_text,
+                    $timezone
+                );
+
+                $end = DateTimeImmutable::createFromFormat(
+                    '!Y-m-d',
+                    $end_text,
+                    $timezone
+                );
+
+                if (
+                    !$start ||
+                    !$end ||
+                    $start->format('Y-m-d') !== $start_text ||
+                    $end->format('Y-m-d') !== $end_text ||
+                    $end < $start
+                ) {
+                    throw new Exception('Invalid rule dates.');
+                }
+            } catch (Exception $exception) {
+                return new WP_Error(
+                    'tle_invalid_context_rule',
+                    'A historical context rule has invalid dates or timezone.'
+                );
+            }
+
+            $date_value = $entry['date_created'] ?? '';
+
+            if (!is_scalar($date_value)) {
+                return new WP_Error(
+                    'tle_invalid_submission_date',
+                    'The entry submission date is invalid.'
+                );
+            }
+
+            $date_text = (string) $date_value;
+
+            $submitted = DateTimeImmutable::createFromFormat(
+                '!Y-m-d H:i:s',
+                $date_text,
+                new DateTimeZone('UTC')
+            );
+
+            if (
+                !$submitted ||
+                $submitted->format('Y-m-d H:i:s') !== $date_text
+            ) {
+                return new WP_Error(
+                    'tle_invalid_submission_date',
+                    'The entry submission date is invalid.'
+                );
+            }
+
+            // End dates are inclusive in the configured local timezone.
+            if (
+                $submitted < $start ||
+                $submitted >= $end->modify('+1 day')
+            ) {
+                continue;
+            }
+
+            $candidates[wp_json_encode($candidate)] = $candidate;
+        }
+
+        if (count($candidates) > 1) {
+            return new WP_Error(
+                'tle_ambiguous_context',
+                'Multiple historical identities match this entry.'
+            );
+        }
+
+        $source = 'metadata';
+
+        if ($candidates) {
+            $candidate = reset($candidates);
+
+            // Check every populated value before filling any blanks.
+            foreach ($context as $name => $value) {
+                if (
+                    $value !== '' &&
+                    $candidate[$name] !== '' &&
+                    $value !== $candidate[$name]
+                ) {
+                    return new WP_Error(
+                        'tle_context_conflict',
+                        'Entry metadata conflicts with a historical rule.'
+                    );
+                }
+            }
+
+            foreach ($context as $name => $value) {
+                if ($value === '' && $candidate[$name] !== '') {
+                    $context[$name] = $candidate[$name];
+                    $source = 'historical_rule';
+                }
+            }
+        }
+
+        $resolved = (
+            $context['program'] !== '' &&
+            $context['cohort'] !== ''
+        );
+
+        return [
+            'resolved' => $resolved,
+            'source' => $resolved ? $source : 'unresolved',
+            'context' => $context,
+        ];
+    }
+
+    /**
      * Create a normalised evaluation record.
      *
      * @param array $data Raw evaluation data.
@@ -65,9 +293,11 @@ class TLE_Evaluation_Data_Service
                 ? sanitize_text_field($data['question'])
                 : '',
 
-            'score' => isset($data['score']) && is_numeric($data['score']) && is_finite((float) $data['score'])
-                ? floatval($data['score'])
-                : null,
+            'score' => isset($data['score'])
+                && is_numeric($data['score'])
+                && is_finite((float) $data['score'])
+                    ? floatval($data['score'])
+                    : null,
 
             'response' => isset($data['response'])
                 ? sanitize_textarea_field($data['response'])
