@@ -1207,3 +1207,14 @@ input:disabled + span {
     outline: 2px solid #246b50;
     outline-offset: 3px;
 }
+/* Phase 3B: editable growth summaries */
+.tle-dashboard__growth-editor[hidden],
+.tle-dashboard__text-grid[hidden] { display: none !important; }
+.tle-dashboard__growth-editor { margin: 10px 0 22px; }
+.tle-dashboard__growth-editor-heading { margin: 0 0 8px; font-size: 17px; font-weight: 700; }
+.tle-dashboard__growth-editor-programs { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 14px; }
+.tle-dashboard__growth-editor-card { padding: 17px; background: #f8f8f8; border: 1px solid #e2e2e2; }
+.tle-dashboard__growth-editor-program-name { margin: 0 0 10px; color: #111; font-size: 16px; font-weight: 700; }
+.tle-dashboard__growth-editor-field { margin-bottom: 10px; }
+.tle-dashboard__growth-editor-field textarea { box-sizing: border-box; width: 100%; max-width: 100%; min-height: 70px; }
+.tle-dashboard__growth-editor [data-tle-growth-editor-status] { margin-top: 10px; }

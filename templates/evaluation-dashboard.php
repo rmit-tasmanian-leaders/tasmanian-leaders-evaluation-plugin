@@ -559,6 +559,13 @@ if (!defined('ABSPATH')) {
                         </div>
                     </div>
 
+                    <div class="tle-dashboard__growth-editor" data-tle-growth-editor-section="insight" hidden>
+    <h4 class="tle-dashboard__growth-editor-heading">Key Growth Program Summaries</h4>
+    <p class="tle-dashboard__field-help">Automatically calculated from Pre-program to Delayed. Edit any summary before exporting, or use Reset to Automatic.</p>
+    <div class="tle-dashboard__growth-editor-programs" data-tle-growth-editor-programs></div>
+    <p class="tle-dashboard__field-help" data-tle-growth-editor-status role="status" aria-live="polite" hidden></p>
+</div>
+
                     <div class="tle-dashboard__field tle-dashboard__quote-field">
                         <label for="tle-insight-quote">
                             Participant Quote (optional)
@@ -657,6 +664,13 @@ if (!defined('ABSPATH')) {
                         </div>
                     </div>
 
+                    <div class="tle-dashboard__growth-editor" data-tle-growth-editor-section="influence" hidden>
+    <h4 class="tle-dashboard__growth-editor-heading">Key Growth Program Summaries</h4>
+    <p class="tle-dashboard__field-help">Automatically calculated from Pre-program to Delayed. Edit any summary before exporting, or use Reset to Automatic.</p>
+    <div class="tle-dashboard__growth-editor-programs" data-tle-growth-editor-programs></div>
+    <p class="tle-dashboard__field-help" data-tle-growth-editor-status role="status" aria-live="polite" hidden></p>
+</div>
+
                     <div class="tle-dashboard__field tle-dashboard__quote-field">
                         <label for="tle-influence-quote">
                             Participant Quote (optional)
@@ -734,6 +748,13 @@ if (!defined('ABSPATH')) {
                              rows="3"></textarea>
                         </div>
                     </div>
+
+                    <div class="tle-dashboard__growth-editor" data-tle-growth-editor-section="impact" hidden>
+    <h4 class="tle-dashboard__growth-editor-heading">Key Growth Program Summaries</h4>
+    <p class="tle-dashboard__field-help">Automatically calculated from Pre-program to Delayed. Edit any summary before exporting, or use Reset to Automatic.</p>
+    <div class="tle-dashboard__growth-editor-programs" data-tle-growth-editor-programs></div>
+    <p class="tle-dashboard__field-help" data-tle-growth-editor-status role="status" aria-live="polite" hidden></p>
+</div>
 
                     <div class="tle-dashboard__field tle-dashboard__quote-field">
                         <label for="tle-impact-quote">

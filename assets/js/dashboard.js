@@ -1908,16 +1908,261 @@ document.addEventListener('DOMContentLoaded', function () {
             'To quality assure the ongoing excellence of ' +
             primaryLabel +
             ', we compare performance in the current program ' +
-            'to similar previous leadership programs.'
+            'to other selected leadership programs.'
         );
     }
 
+    // Phase 3B: editable per-program growth summaries. Field names
+    // match TLE_Comparison_Summary::field_key() on the server.
+    const growthEditorSections = Array.from(
+        dashboard.querySelectorAll('[data-tle-growth-editor-section]')
+    );
+    const originalCapabilityGrids = Array.from(
+        dashboard.querySelectorAll('.tle-dashboard__text-section .tle-dashboard__text-grid--three')
+    );
+    const growthEditorResponses = new Map();
+    const growthEditorEdits = new Map();
+    let growthEditorSelectionSignature = '';
+    let growthEditorRequestId = 0;
+
+    function growthEditorFieldKey(value) {
+        return encodeURIComponent(String(value)).replace(/[!'()*]/g, function (char) {
+            return '%' + char.charCodeAt(0).toString(16).toUpperCase();
+        });
+    }
+
+    function growthEditorAutomaticText(capability, growth) {
+        const amount = Math.abs(growth).toFixed(2);
+        if (growth > 0) {
+            return capability + ' improved by ' + amount +
+                '% from Pre-program to Delayed.';
+        }
+        if (growth < 0) {
+            return capability + ' declined by ' + amount +
+                '% from Pre-program to Delayed.';
+        }
+        return capability + ' was unchanged from Pre-program to Delayed.';
+    }
+
+    function growthEditorSelectedPrograms() {
+        const program = getPrimaryProgramName();
+        const cohort = cohortSelect ? cohortSelect.value : '';
+        const comparisons = getComparisonSelections();
+        if (!program || !cohort || comparisons.length === 0) {
+            return [];
+        }
+        const rows = [{ program: program, cohort: cohort, is_primary: true }];
+        comparisons.forEach(function (other) {
+            if (!other.program || !other.cohort) return;
+            if (rows.some(function (row) {
+                return row.program === other.program && row.cohort === other.cohort;
+            })) return;
+            rows.push({ program: other.program, cohort: other.cohort, is_primary: false });
+        });
+        rows.sort(function (a, b) {
+            const firstYear = Number(a.cohort);
+            const secondYear = Number(b.cohort);
+            if (Number.isInteger(firstYear) && Number.isInteger(secondYear) &&
+                firstYear !== secondYear) {
+                return firstYear - secondYear;
+            }
+            const yearOrder = a.cohort.localeCompare(b.cohort);
+            if (yearOrder) return yearOrder;
+            if (a.is_primary !== b.is_primary) return a.is_primary ? 1 : -1;
+            return a.program.localeCompare(b.program);
+        });
+        return rows;
+    }
+
+    async function growthEditorLoadReport(selection) {
+        const key = selection.program + '|' + selection.cohort;
+        if (!growthEditorResponses.has(key)) {
+            const pending = (async function () {
+                if (!window.tleDashboardConfig || !window.tleDashboardConfig.evaluationsUrl) {
+                    throw new Error('Evaluation API address is unavailable.');
+                }
+                const url = new URL(window.tleDashboardConfig.evaluationsUrl, window.location.origin);
+                url.searchParams.set('program', selection.program);
+                url.searchParams.set('cohort', selection.cohort);
+                const headers = { Accept: 'application/json' };
+                if (window.tleDashboardConfig.restNonce) {
+                    headers['X-WP-Nonce'] = window.tleDashboardConfig.restNonce;
+                }
+                const response = await fetch(url.toString(), {
+                    method: 'GET', credentials: 'same-origin', headers: headers
+                });
+                if (!response.ok) {
+                    throw new Error('Could not retrieve ' + key + ' (HTTP ' + response.status + ').');
+                }
+                const report = await response.json();
+                if (!report || !Array.isArray(report.groups) || report.groups.length !== 1 ||
+                    !report.groups[0].capability_averages) {
+                    throw new Error('No unique scored program report for ' + key + '.');
+                }
+                const context = report.groups[0].context || {};
+                if (context.program !== selection.program ||
+                    String(context.cohort) !== String(selection.cohort)) {
+                    throw new Error('Program context mismatch for ' + key + '.');
+                }
+                return report.groups[0].capability_averages;
+            })();
+            growthEditorResponses.set(key, pending);
+        }
+        try {
+            return await growthEditorResponses.get(key);
+        } catch (error) {
+            growthEditorResponses.delete(key);
+            throw error;
+        }
+    }
+
+    function growthEditorTopCapabilities(capabilities, section, limit) {
+        const values = capabilities[section];
+        if (!values || typeof values !== 'object') {
+            throw new Error('No ' + section + ' capability scores found.');
+        }
+        const growth = Object.keys(values).map(function (name) {
+            const stages = values[name] || {};
+            const initial = stages.pre_program;
+            const final = stages.delay;
+            if (typeof initial !== 'number' || !Number.isFinite(initial) ||
+                initial <= 0 || typeof final !== 'number' ||
+                !Number.isFinite(final) || final < 0) {
+                return null;
+            }
+            return {
+                capability: name,
+                growth: Math.round((((final - initial) / initial) * 100 + Number.EPSILON) * 100) / 100
+            };
+        }).filter(Boolean);
+        growth.sort(function (a, b) {
+            return b.growth - a.growth || a.capability.localeCompare(b.capability);
+        });
+        if (growth.length < limit) {
+            throw new Error('Insufficient ' + section + ' growth scores for this selection.');
+        }
+        return growth.slice(0, limit);
+    }
+
+    function growthEditorRender(rows, reports) {
+        const limit = 5 - rows.length;
+        growthEditorSections.forEach(function (container) {
+            const section = container.dataset.tleGrowthEditorSection;
+            const slot = container.querySelector('[data-tle-growth-editor-programs]');
+            const status = container.querySelector('[data-tle-growth-editor-status]');
+            slot.replaceChildren();
+            status.hidden = true;
+
+            rows.forEach(function (program, programIndex) {
+                const card = document.createElement('div');
+                card.className = 'tle-dashboard__growth-editor-card';
+                const heading = document.createElement('h5');
+                heading.className = 'tle-dashboard__growth-editor-program-name';
+                heading.textContent = program.program + ' ' + program.cohort;
+                card.appendChild(heading);
+
+                const capabilities = growthEditorTopCapabilities(reports[programIndex], section, limit);
+                capabilities.forEach(function (item, itemIndex) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'tle-dashboard__field tle-dashboard__growth-editor-field';
+                    const name = document.createElement('label');
+                    const id = 'tle-growth-' + section + '-' + programIndex + '-' + itemIndex;
+                    name.setAttribute('for', id);
+                    name.textContent = item.capability + ' (' +
+                        (item.growth > 0 ? '+' : '') + item.growth.toFixed(2) + '%)';
+
+                    const textarea = document.createElement('textarea');
+                    const programKey = growthEditorFieldKey(program.program + '|' + program.cohort);
+                    const capabilityKey = growthEditorFieldKey(item.capability);
+                    const editKey = section + '|' + programKey + '|' + capabilityKey;
+                    const automatic = growthEditorAutomaticText(item.capability, item.growth);
+                    textarea.id = id;
+                    textarea.name = 'growth_summary_text[' + section + '][' +
+                        programKey + '][' + capabilityKey + ']';
+                    textarea.rows = 2;
+                    textarea.maxLength = 500;
+                    textarea.value = growthEditorEdits.has(editKey)
+                        ? growthEditorEdits.get(editKey) : automatic;
+                    textarea.addEventListener('input', function () {
+                        growthEditorEdits.set(editKey, textarea.value);
+                    });
+
+                    const reset = document.createElement('button');
+                    reset.type = 'button';
+                    reset.className = 'tle-dashboard__reset-auto';
+                    reset.textContent = 'Reset to Automatic';
+                    reset.setAttribute('aria-label', 'Reset ' + item.capability +
+                        ' for ' + program.program + ' ' + program.cohort);
+                    reset.addEventListener('click', function () {
+                        growthEditorEdits.delete(editKey);
+                        textarea.value = automatic;
+                        textarea.focus();
+                    });
+                    wrapper.appendChild(name);
+                    wrapper.appendChild(textarea);
+                    wrapper.appendChild(reset);
+                    card.appendChild(wrapper);
+                });
+                slot.appendChild(card);
+            });
+        });
+    }
+
+    function growthEditorSync() {
+        const rows = growthEditorSelectedPrograms();
+        const active = rows.length >= 2 && rows.length <= 4;
+        originalCapabilityGrids.forEach(function (grid) {
+            grid.hidden = active;
+            grid.querySelectorAll('textarea').forEach(function (field) {
+                field.disabled = active;
+            });
+        });
+        growthEditorSections.forEach(function (container) {
+            container.hidden = !active;
+        });
+        if (!active) {
+            growthEditorSelectionSignature = '';
+            growthEditorRequestId++;
+            growthEditorSections.forEach(function (container) {
+                container.querySelector('[data-tle-growth-editor-programs]').replaceChildren();
+            });
+            return;
+        }
+
+        const signature = JSON.stringify(rows);
+        if (signature === growthEditorSelectionSignature) return;
+        growthEditorSelectionSignature = signature;
+        const requestId = ++growthEditorRequestId;
+        growthEditorSections.forEach(function (container) {
+            const status = container.querySelector('[data-tle-growth-editor-status]');
+            status.textContent = 'Loading program growth summariesâ€¦';
+            status.hidden = false;
+            container.querySelector('[data-tle-growth-editor-programs]').replaceChildren();
+        });
+        Promise.all(rows.map(growthEditorLoadReport)).then(function (reports) {
+            if (requestId !== growthEditorRequestId) return;
+            growthEditorRender(rows, reports);
+        }).catch(function (error) {
+            if (requestId !== growthEditorRequestId) return;
+            growthEditorSections.forEach(function (container) {
+                const status = container.querySelector('[data-tle-growth-editor-status]');
+                status.textContent = 'Unable to load editable summaries: ' + error.message +
+                    '. The PDF can still use its automatic summaries.';
+                status.hidden = false;
+            });
+            console.warn('Comparison summary editor could not load:', error);
+            // Retry when the user changes a selection or triggers another sync.
+            growthEditorSelectionSignature = '';
+        });
+    }
     function syncReportTextState() {
         const programs = getSelectedProgramNames();
         const hasProgram = programs.length > 0;
 
         const hasComparisons =
             getComparisonSelections().length > 0;
+
+        growthEditorSync();
 
         comparisonTextSections.forEach(
             function (section) {
