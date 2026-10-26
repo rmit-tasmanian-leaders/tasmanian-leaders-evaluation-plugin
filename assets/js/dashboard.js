@@ -1891,28 +1891,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function buildAutomaticComparisonText() {
-        const primaryProgram =
-            getPrimaryProgramName();
-
-        const primaryCohort =
-            cohortSelect
-                ? cohortSelect.value
-                : '';
-
-        if (!primaryProgram) {
-            return '';
-        }
-
-        const primaryLabel =
-            primaryCohort
-                ? primaryProgram + ' ' + primaryCohort
-                : primaryProgram;
+        const comparisonCount = getComparisonSelections().length;
+        const programCount = comparisonCount + 1;
+        const countLabel = programCount === 3 ? 'three' : 'two';
 
         return (
-            'To quality assure the ongoing excellence of ' +
-            primaryLabel +
-            ', we compare performance in the current program ' +
-            'to other selected leadership programs.'
+            'This graph compares growth in participants\u2019 self-assessed ' +
+            'leadership capabilities across ' + countLabel +
+            ' programs, measured by the difference between pre-program ' +
+            'and delayed follow-up assessments.'
         );
     }
 

@@ -5762,7 +5762,7 @@ if ($include_manager) {
             . esc_html($rating) . '</text><text x="75" y="59" text-anchor="middle" font-family="DejaVu Sans" font-weight="bold" font-size="'
             . ($badge_label === 'Agreement' ? '15' : '18') . '" fill="' . $foreground . '">'
             . esc_html($has_rating ? $badge_label : 'Unavailable') . '</text></svg>';
-        return '<tr class="manager-ux-row"><td class="manager-ux-statement">' . esc_html($question['statement'])
+        return '<tr class="manager-ux-row"><td class="manager-ux-statement">' . esc_html(str_replace('with the Tasmanian Leaders?', 'with Tasmanian Leaders?', (string) $question['statement']))
             . '</td><td class="manager-ux-chart-cell">' . $manager_bar($question) . '</td><td class="manager-ux-badge-cell">'
             . '<img class="manager-ux-badge-image" src="data:image/svg+xml;base64,' . base64_encode($badge_svg)
             . '" alt="' . esc_attr($rating . ' ' . ($has_rating ? $badge_label : 'Unavailable')) . '"></td></tr>';
@@ -5835,7 +5835,7 @@ if ($include_manager) {
             . ($first ? '' : ' manager-ux-continued') . '">'
             . $brand_logo_html . '<div class="cover-rule"></div>'
             . '<div class="manager-ux-scope">' . esc_html($scope) . '</div>'
-            . ($first ? '<h2 class="manager-ux-title">Managers</h2>'
+            . ($first ? '<h2 class="manager-ux-title">Manager feedback</h2>'
                 . '<div class="manager-ux-summary" style="background:' . esc_attr($manager_summary_colour) . ';color:' . esc_attr($manager_text_colour($manager_summary_colour)) . ';">' . nl2br(esc_html($summary)) . '</div>' : '')
             . '<h3 class="manager-ux-heading">Statements</h3>'
             . '<p class="manager-ux-description">All numbers are percentages (%).</p>'

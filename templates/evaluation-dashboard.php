@@ -133,7 +133,7 @@ if (!defined('ABSPATH')) {
                                 name="evaluation_points[]"
                                 value="manager"
                             >
-                            <span>Manager (optional)</span>
+                            <span>Manager feedback (optional)</span>
                         </label>
                     </div>
 
@@ -451,7 +451,7 @@ if (!defined('ABSPATH')) {
                             type="text"
                             name="highlight_text_2"
                             data-tle-auto-text
-                            data-tle-default="A major increase was seen here. This was very promising for the program."
+                            data-tle-default="A major increase was seen here."
                         >
                     </div>
 
@@ -795,7 +795,7 @@ if (!defined('ABSPATH')) {
                     data-tle-manager-text-section
                     hidden
                 >
-                    <h3 class="tle-dashboard__text-section-title">Managers</h3>
+                    <h3 class="tle-dashboard__text-section-title">Manager feedback</h3>
 
                     <div class="tle-dashboard__field">
                         <label for="tle-manager-summary">Summary</label>
