@@ -126,7 +126,30 @@ $GLOBALS['forms'][778]=$GLOBALS['forms'][777];$GLOBALS['forms'][778]['id']=778;$
 $r=TLE_Manager_Report_Service::get_report(['program'=>'Pride','cohort'=>'2026'],[777,778]);
 check('manager forms keep separate series',count($r['groups'][0]['series'])===2&&$r['submission_count']===2);
 $r=TLE_Manager_Report_Service::get_report([],[777]);
-check('unfiltered contexts remain separate',count($r['groups'])===4);
+$contexts = [];
+
+if (!is_wp_error($r)) {
+    foreach ($r['groups'] as $group) {
+        $context = $group['context'];
+        $contexts[] =
+            ($context['program'] ?? '') . '|' .
+            ($context['cohort'] ?? '');
+    }
+}
+
+sort($contexts, SORT_STRING);
+
+check(
+    'resolved Manager contexts remain separate',
+    !is_wp_error($r) &&
+    $contexts === [
+        'Other|2026',
+        'Pride|2025',
+        'Pride|2026'
+    ] &&
+    $r['submission_count'] === 3 &&
+    ($r['diagnostics']['unresolved_submissions_scanned'] ?? null) === 1
+);
 $GLOBALS['logged_in']=false;check('manager route uses login permission',!TLE_REST_API::permissions_check());
 $GLOBALS['logged_in']=true;check('authenticated permission accepted',TLE_REST_API::permissions_check());
 $with_na=$field;$with_na['choices'][]=['text'=>'Not Applicable','value'=>'na','score'=>0];
