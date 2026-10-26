@@ -7131,15 +7131,21 @@ $html = '
         font-weight: normal;
     }
     .section-label, .manager-ux-scope { display: none !important; }
+    /* Program/year shares the same baseline as the page count below the rule. */
     .tle-footer-program {
         position: absolute;
-        bottom: 15px;
+        bottom: 37px;
         left: 70px;
         right: 70px;
         color: #333333;
         text-align: left;
         font-size: 10px;
         line-height: 1.2;
+    }
+
+    /* Cover page-number footer sits 7px higher than content-page footers. */
+    .cover .tle-footer-program {
+        bottom: 44px;
     }
     </style>
 </head>
