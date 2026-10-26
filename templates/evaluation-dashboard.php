@@ -168,46 +168,6 @@ if (!defined('ABSPATH')) {
                         data-tle-comparison-rows
                     ></div>
 
-                    <div
-                        class="tle-dashboard__comparison-evaluation"
-                        data-tle-comparison-evaluation
-                        hidden
-                    >
-                        <span class="tle-dashboard__comparison-evaluation-title">
-                            Evaluation Point
-                        </span>
-
-                        <label class="tle-dashboard__checkbox">
-                            <input
-                                type="checkbox"
-                                name="comparison_evaluation_point"
-                                value="pre-program"
-                                data-tle-comparison-point
-                            >
-                            <span>Pre-program</span>
-                        </label>
-
-                        <label class="tle-dashboard__checkbox">
-                            <input
-                                type="checkbox"
-                                name="comparison_evaluation_point"
-                                value="completion"
-                                data-tle-comparison-point
-                            >
-                            <span>Post-program</span>
-                        </label>
-
-                        <label class="tle-dashboard__checkbox">
-                            <input
-                                type="checkbox"
-                                name="comparison_evaluation_point"
-                                value="three-month-delay"
-                                data-tle-comparison-point
-                            >
-                            <span>Delayed</span>
-                        </label>
-                    </div>
-
                     <button
                         type="button"
                         class="tle-dashboard__add-program tle-dashboard__add-comparison"

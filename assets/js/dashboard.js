@@ -319,21 +319,10 @@ document.addEventListener('DOMContentLoaded', function () {
         return availableStages;
     }
 
+    // Program comparisons now always span Pre-program through Delayed.
     function getComparisonEvaluationPoint() {
-        const selectedPoint = comparisonPoints.find(function (checkbox) {
-            return checkbox.checked;
-        });
-
-        if (!selectedPoint) {
-            return '';
-        }
-
-        const label = selectedPoint.closest('label');
-        const text = label ? label.querySelector('span') : null;
-
-        return text ? text.textContent.trim() : selectedPoint.value;
+        return 'Pre-program to Delayed';
     }
-
     function hasNumericScore(value) {
         if (
             typeof value === 'number' &&
@@ -934,53 +923,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function getExportRequirementMessage() {
         const primaryProgram = getPrimaryProgramName();
-
-        if (
-            !primaryProgram ||
-            !primaryStageAvailabilityLoaded
-        ) {
+        if (!primaryProgram || !primaryStageAvailabilityLoaded) {
             return '';
         }
 
-        const comparisons =
-            getComparisonProgramNames();
-
-        const comparisonPoint =
-            getComparisonEvaluationPoint();
-
-        if (
-            primaryAvailableStageValues.length === 1 &&
-            comparisons.length === 0
-        ) {
-            return 'This program has one available evaluation point. Select at least one comparison program to provide a basis for growth.';
+        // All comparison programs need three real evaluation stages.
+        if (primaryAvailableStageValues.length < 3) {
+            return 'Select a program with Pre-program, Post-program and Delayed results.';
         }
 
-        if (
-            comparisons.length > 0 &&
-            !comparisonPoint
-        ) {
-            return 'Select one evaluation point for the comparison before exporting.';
+        const comparisons = getComparisonProgramNames();
+        if (comparisons.length > 3) {
+            return 'Select no more than three comparison programs.';
         }
 
         return '';
     }
-
     function syncComparisonRequirementLabel() {
-        if (!comparisonTitle) {
-            return;
+        if (comparisonTitle) {
+            comparisonTitle.textContent = 'Comparison (optional)';
         }
-
-        const comparisonRequired =
-            Boolean(getPrimaryProgramName()) &&
-            primaryStageAvailabilityLoaded &&
-            primaryAvailableStageValues.length === 1;
-
-        comparisonTitle.textContent =
-            comparisonRequired
-                ? 'Comparison (required)'
-                : 'Comparison (optional)';
     }
-
     function syncExportRequirements() {
         syncComparisonRequirementLabel();
         const notice =
@@ -1125,6 +1088,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const hasSelectedComparisons =
             getComparisonProgramNames().length > 0;
 
+        // The written mock-up specifies up to three comparison cohorts.
+        addComparisonButton.disabled =
+            comparisonRows.querySelectorAll('[data-tle-comparison-row]').length >= 3;
         if (comparisonLabel) {
             comparisonLabel.hidden =
                 !hasComparisonRows;
