@@ -5509,6 +5509,32 @@ if ($has_comparisons) {
             ' . $comparison_context_html . '
         ';
     }
+
+    // Phase 3A: replace the legacy primary-only Growth Summary on
+    // comparison reports. Non-comparison and Manager pages are unchanged.
+    $posted_growth_summaries = [];
+    if (
+        isset($_POST['growth_summary_text']) &&
+        is_array($_POST['growth_summary_text'])
+    ) {
+        $posted_growth_summaries = wp_unslash($_POST['growth_summary_text']);
+    }
+    $section_summary_heading = 'Key Growth Program Summaries';
+    $insight_growth_summary_html = TLE_Comparison_Summary::render_section(
+        $comparison_rows,
+        'insight',
+        $posted_growth_summaries
+    );
+    $influence_growth_summary_html = TLE_Comparison_Summary::render_section(
+        $comparison_rows,
+        'influence',
+        $posted_growth_summaries
+    );
+    $impact_growth_summary_html = TLE_Comparison_Summary::render_section(
+        $comparison_rows,
+        'impact',
+        $posted_growth_summaries
+    );
 }
 /*
  * Sprint 3: Manager PDF pages.
