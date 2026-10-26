@@ -933,8 +933,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const comparisons = getComparisonProgramNames();
-        if (comparisons.length > 3) {
-            return 'Select no more than three comparison programs.';
+        if (comparisons.length > 2) {
+            return 'Select no more than two comparison programs.';
         }
 
         return '';
@@ -1088,9 +1088,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const hasSelectedComparisons =
             getComparisonProgramNames().length > 0;
 
-        // The written mock-up specifies up to three comparison cohorts.
+        // Maximum two comparisons, giving three programs including the primary.
         addComparisonButton.disabled =
-            comparisonRows.querySelectorAll('[data-tle-comparison-row]').length >= 3;
+            comparisonRows.querySelectorAll('[data-tle-comparison-row]').length >= 2;
         if (comparisonLabel) {
             comparisonLabel.hidden =
                 !hasComparisonRows;
@@ -1467,6 +1467,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     addComparisonButton.addEventListener('click', function () {
+        if (comparisonRows.querySelectorAll('[data-tle-comparison-row]').length >= 2) {
+            syncComparisonState();
+            return;
+        }
         const fragment = comparisonTemplate.content.cloneNode(true);
         const row = fragment.querySelector('[data-tle-comparison-row]');
 

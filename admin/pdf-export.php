@@ -691,6 +691,10 @@ function tle_export_pdf()
         count($comparison_cohort_values)
     );
 
+    if ($comparison_selection_count > 2) {
+        wp_die('Select no more than two comparison programs.');
+    }
+
     for (
         $comparison_index = 0;
         $comparison_index < $comparison_selection_count;
@@ -5423,8 +5427,8 @@ if (count($primary_available_stages) === 2) {
  * Single-program PDF rendering remains unchanged.
  */
 if ($has_comparisons) {
-    if (count($comparison_selections) > 3) {
-        wp_die('Select no more than three comparison programs.');
+    if (count($comparison_selections) > 2) {
+        wp_die('Select no more than two comparison programs.');
     }
 
     $requested_selections = [
@@ -5837,17 +5841,38 @@ if ($include_manager) {
             . '<p class="manager-ux-description">All numbers are percentages (%).</p>'
             . '<table class="manager-ux-table"><colgroup><col style="width:36%"><col style="width:48%"><col style="width:16%"></colgroup><tbody>'
             . '<tr class="manager-ux-widths"><td style="width:36%;padding:0;height:0;"></td><td style="width:48%;padding:0;height:0;"></td><td style="width:16%;padding:0;height:0;"></td></tr>' . $html_rows . '</tbody></table>'
-            . '<div class="mock-page-footer">Page ' . (6 + $page_index) . ' of ' . (int) $total_pages . '</div></div>';
+            . '<div class="mock-page-footer">Page ' . (6 + $page_index) . ' of ' . (int) $total_pages . '</div>'
+            . '<div class="tle-footer-program">' . esc_html($program) . ' &#183; ' . esc_html($cohort) . '</div></div>';
     }
 }
 
+$tle_pdf_font_css = '';
+$tle_pdf_font_files = [
+    ['Mona Sans', 'normal', 'normal', 'MonaSans-Regular.ttf'],
+    ['Mona Sans', 'bold', 'normal', 'MonaSans-Bold.ttf'],
+    ['Mona Sans', 'normal', 'italic', 'MonaSans-Italic.ttf'],
+    ['Mona Sans', 'bold', 'italic', 'MonaSans-BoldItalic.ttf'],
+    ['Playfair Display', 'normal', 'normal', 'PlayfairDisplay-Regular.ttf'],
+];
+foreach ($tle_pdf_font_files as $tle_font) {
+    $tle_path = dirname(__DIR__) . '/assets/fonts/' . $tle_font[3];
+    if (!is_readable($tle_path)) {
+        wp_die('PDF font asset missing: ' . esc_html($tle_font[3]));
+    }
+    $tle_pdf_font_css .= '@font-face { font-family: "' . $tle_font[0]
+        . '"; font-weight: ' . $tle_font[1]
+        . '; font-style: ' . $tle_font[2]
+        . '; src: url("data:font/ttf;base64,'
+        . base64_encode(file_get_contents($tle_path))
+        . '") format("truetype"); }' . "\n";
+}
 $html = '
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-
 <style>
+' . $tle_pdf_font_css . '
 
     @page {
         margin: 0;
@@ -6740,23 +6765,66 @@ $html = '
         word-wrap: break-word;
     }
 
-    /* Compact quote under the program summaries. No nested table/page break. */
-    .tle-comparison-quote {
-        margin: 6px 0 0;
-        padding: 8px 12px;
+    /* Comparison quotes share the existing two-column summary table. */
+    /*
+     * Comparison-only fixed-page fit. Dompdf otherwise pushes the atomic
+     * two-column table onto an extra PDF page when there are 3 programs.
+     * Scope this to comparisons; preserve legacy single-program layout.
+     */
+    .final-insight-page .section-summary-table.tle-comparison-side-by-side,
+    .final-influence-page .section-summary-table.tle-comparison-side-by-side,
+    .final-impact-page .section-summary-table.tle-comparison-side-by-side {
+        position: absolute !important;
+        top: 710px !important;
+        left: 70px !important;
+        width: 82% !important;
+        margin: 0 !important;
+        border-collapse: separate !important;
+        border-spacing: 7px 0 !important;
+        table-layout: fixed !important;
         page-break-inside: avoid;
     }
-    .tle-comparison-quote-title {
-        margin-bottom: 4px;
-        font-size: 11px;
-        font-weight: bold;
-        line-height: 1.25;
+
+    .tle-comparison-side-by-side .section-summary-heading-row td {
+        padding: 0 0 3px !important;
+        font-size: 13px !important;
+        line-height: 1.1 !important;
     }
-    .tle-comparison-quote-text {
-        font-size: 10px;
-        line-height: 1.3;
+
+    .tle-comparison-side-by-side .growth-summary-box,
+    .tle-comparison-side-by-side .participant-quote-box {
+        padding: 7px 9px !important;
+        vertical-align: middle !important;
+    }
+
+    .tle-comparison-side-by-side .growth-summary-box--with-quote {
+        width: 67% !important;
+    }
+    .tle-comparison-side-by-side .participant-quote-box {
+        width: 33% !important;
+    }
+
+    .tle-comparison-side-by-side .tle-growth-program-summaries {
+        font-size: 9px !important;
+        line-height: 1.10 !important;
+    }
+    .tle-comparison-side-by-side .tle-growth-program {
+        margin: 0 0 3px !important;
+    }
+    .tle-comparison-side-by-side .tle-growth-program-name {
+        margin: 0 0 1px !important;
+    }
+    .tle-comparison-side-by-side .tle-growth-summary-line {
+        margin: 0 !important;
+    }
+
+    /* Cap auto-fit quote sizing so short quotes do not render oversized. */
+    .tle-comparison-side-by-side .participant-quote-text {
+        font-size: 14px !important;
+        line-height: 1.2 !important;
         overflow-wrap: break-word;
     }
+
     .comparison-growth-subtitle {
         margin: 0 0 6px;
         font-size: 10px;
@@ -7050,6 +7118,26 @@ $html = '
     .manager-ux-badge-image { display: block; width: 100%; height: 46px; }
 
 
+    /* Client-approved PDF font specification and beneath-footer program labels. */
+    body, .manager-ux-page, .manager-ux-title, .overview-title,
+    .section-report-title, .section-title {
+        font-family: "Mona Sans", DejaVu Sans, sans-serif;
+    }
+    .cover-title, .tle-footer-program {
+        font-family: "Playfair Display", DejaVu Serif, serif;
+        font-weight: normal;
+    }
+    .section-label, .manager-ux-scope { display: none !important; }
+    .tle-footer-program {
+        position: absolute;
+        bottom: 15px;
+        left: 70px;
+        right: 70px;
+        color: #333333;
+        text-align: left;
+        font-size: 10px;
+        line-height: 1.2;
+    }
     </style>
 </head>
 
@@ -7082,6 +7170,7 @@ $html = '
     <div class="cover-bottom">
         Page 1 of ' . esc_html($total_pages) . '
     </div>
+<div class="tle-footer-program">' . esc_html($program) . ' &#183; ' . esc_html($cohort) . '</div>
 
 </div>
 
@@ -7136,6 +7225,7 @@ $html = '
     <div class="mock-page-footer">
         Page 2 of ' . esc_html($total_pages) . '
     </div>
+<div class="tle-footer-program">' . esc_html($program) . ' &#183; ' . esc_html($cohort) . '</div>
 
 </div>
 <div class="page content-page insight-page final-insight-page' . ($is_single_stage_report ? ' single-stage-section-page' : '') . '">
@@ -7161,32 +7251,28 @@ $html = '
 
     ' . $section_secondary_html['Insight'] . '
 
-    <table class="section-summary-table">
+    <table class="section-summary-table' . ($has_comparisons ? ' tle-comparison-side-by-side' : '') . '">
         <tr class="section-summary-heading-row">
             <td>
                 ' . esc_html($section_summary_heading) . '
             </td>
-            ' . (!$has_comparisons && trim($insight_quote_html) !== '' ? '<td>Participant Quote</td>' : '') . '
+            ' . (trim($insight_quote_html) !== '' ? '<td>Participant Quote</td>' : '') . '
         </tr>
         <tr>
             <td class="' . esc_attr($insight_growth_summary_class) . '">
                 ' . $insight_growth_summary_html . '
             </td>
 
-            ' . (!$has_comparisons ? $insight_quote_html : '') . '
+            ' . $insight_quote_html . '
 
         </tr>
     </table>
-    ' . ($has_comparisons && trim($insight_quote) !== '' ? '
-    <div class="tle-comparison-quote" style="background: ' . esc_attr($report_colour_light) . ';">
-        <div class="tle-comparison-quote-title">Participant Quote</div>
-        <div class="tle-comparison-quote-text">&ldquo;' . nl2br(esc_html($insight_quote)) . '&rdquo;</div>
-    </div>
-    ' : '') . '
+
 
     <div class="mock-page-footer">
         Page 3 of ' . esc_html($total_pages) . '
     </div>
+<div class="tle-footer-program">' . esc_html($program) . ' &#183; ' . esc_html($cohort) . '</div>
 
 </div>
 <div class="page content-page insight-page final-influence-page' . ($is_single_stage_report ? ' single-stage-section-page' : '') . '">
@@ -7212,32 +7298,28 @@ $html = '
 
     ' . $section_secondary_html['Influence'] . '
 
-    <table class="section-summary-table">
+    <table class="section-summary-table' . ($has_comparisons ? ' tle-comparison-side-by-side' : '') . '">
         <tr class="section-summary-heading-row">
             <td>
                 ' . esc_html($section_summary_heading) . '
             </td>
-            ' . (!$has_comparisons && trim($influence_quote_html) !== '' ? '<td>Participant Quote</td>' : '') . '
+            ' . (trim($influence_quote_html) !== '' ? '<td>Participant Quote</td>' : '') . '
         </tr>
         <tr>
             <td class="' . esc_attr($influence_growth_summary_class) . '">
                 ' . $influence_growth_summary_html . '
             </td>
 
-            ' . (!$has_comparisons ? $influence_quote_html : '') . '
+            ' . $influence_quote_html . '
 
         </tr>
     </table>
-    ' . ($has_comparisons && trim($influence_quote) !== '' ? '
-    <div class="tle-comparison-quote" style="background: ' . esc_attr($report_colour_light) . ';">
-        <div class="tle-comparison-quote-title">Participant Quote</div>
-        <div class="tle-comparison-quote-text">&ldquo;' . nl2br(esc_html($influence_quote)) . '&rdquo;</div>
-    </div>
-    ' : '') . '
+
 
     <div class="mock-page-footer">
         Page 4 of ' . esc_html($total_pages) . '
     </div>
+<div class="tle-footer-program">' . esc_html($program) . ' &#183; ' . esc_html($cohort) . '</div>
 
 </div>
 <div class="page content-page insight-page final-impact-page' . ($is_single_stage_report ? ' single-stage-section-page' : '') . '">
@@ -7263,32 +7345,28 @@ $html = '
 
     ' . $section_secondary_html['Impact'] . '
 
-    <table class="section-summary-table">
+    <table class="section-summary-table' . ($has_comparisons ? ' tle-comparison-side-by-side' : '') . '">
         <tr class="section-summary-heading-row">
             <td>
                 ' . esc_html($section_summary_heading) . '
             </td>
-            ' . (!$has_comparisons && trim($impact_quote_html) !== '' ? '<td>Participant Quote</td>' : '') . '
+            ' . (trim($impact_quote_html) !== '' ? '<td>Participant Quote</td>' : '') . '
         </tr>
         <tr>
             <td class="' . esc_attr($impact_growth_summary_class) . '">
                 ' . $impact_growth_summary_html . '
             </td>
 
-            ' . (!$has_comparisons ? $impact_quote_html : '') . '
+            ' . $impact_quote_html . '
 
         </tr>
     </table>
-    ' . ($has_comparisons && trim($impact_quote) !== '' ? '
-    <div class="tle-comparison-quote" style="background: ' . esc_attr($report_colour_light) . ';">
-        <div class="tle-comparison-quote-title">Participant Quote</div>
-        <div class="tle-comparison-quote-text">&ldquo;' . nl2br(esc_html($impact_quote)) . '&rdquo;</div>
-    </div>
-    ' : '') . '
+
 
     <div class="mock-page-footer">
         Page 5 of ' . esc_html($total_pages) . '
     </div>
+<div class="tle-footer-program">' . esc_html($program) . ' &#183; ' . esc_html($cohort) . '</div>
 
 </div>
 ' . $manager_pages_html . '
