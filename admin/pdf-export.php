@@ -6787,13 +6787,14 @@ $html = '
 
     .tle-comparison-side-by-side .section-summary-heading-row td {
         padding: 0 0 3px !important;
-        font-size: 13px !important;
+        font-size: 16px !important;
         line-height: 1.1 !important;
     }
 
     .tle-comparison-side-by-side .growth-summary-box,
     .tle-comparison-side-by-side .participant-quote-box {
         padding: 7px 9px !important;
+        height: 250px !important;
         vertical-align: middle !important;
     }
 
@@ -6818,10 +6819,12 @@ $html = '
         margin: 0 !important;
     }
 
-    /* Cap auto-fit quote sizing so short quotes do not render oversized. */
+    /*
+     * Comparison quotes use the same per-quote inline font-size calculated
+     * by fit_participant_quote() as the no-comparison report.
+     * Do not force a tiny size here.
+     */
     .tle-comparison-side-by-side .participant-quote-text {
-        font-size: 14px !important;
-        line-height: 1.2 !important;
         overflow-wrap: break-word;
     }
 
