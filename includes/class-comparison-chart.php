@@ -40,7 +40,7 @@ class TLE_Comparison_Chart
     }
 
     /**
-     * Return an inline SVG using a zero-centred axis and role-based colours.
+     * Return an inline SVG using a zero-inclusive axis and role-based colours.
      * An is_primary flag takes priority over the input ordering.
      */
     public static function render(array $series, $section, $primary_colour = '#83000b')
@@ -73,14 +73,26 @@ class TLE_Comparison_Chart
         }
 
         $names = array_keys($capabilities);
-        // Consistent, zero-centred axis. Keep a +/- 10% minimum for small changes.
-        $peak = max(abs(min($scores)), abs(max($scores)));
-        $axis_limit = max(10, (int) ceil($peak / 10) * 10);
-        $tick_step = $axis_limit <= 10 ? 5 : ($axis_limit <= 40 ? 10 : ($axis_limit <= 100 ? 20 : 50));
-        $axis_limit = (int) ceil($axis_limit / $tick_step) * $tick_step;
-        if ($axis_limit > 500) {
-            $tick_step = (int) ceil($axis_limit / 50) * 10;
-            $axis_limit = (int) ceil($axis_limit / $tick_step) * $tick_step;
+        // Fit each section's actual growth range instead of using a symmetric axis.
+        // Preserve zero while avoiding empty negative space for mostly positive data.
+        $raw_min = min($scores);
+        $raw_max = max($scores);
+        $padding = max(2.0, ($raw_max - $raw_min) * 0.05);
+        $lower_hint = $raw_min < 0 ? $raw_min - $padding : 0.0;
+        $upper_hint = $raw_max > 0 ? $raw_max + $padding
+            : ($raw_min == 0 ? $padding : 0.0);
+
+        // Aim for around six human-readable intervals: 1, 2, or 5 x 10^n.
+        $rough_step = max(1.0, ($upper_hint - $lower_hint) / 6.0);
+        $magnitude = pow(10, floor(log10($rough_step)));
+        $fraction = $rough_step / $magnitude;
+        $nice_fraction = $fraction <= 1 ? 1 : ($fraction <= 2 ? 2
+            : ($fraction <= 5 ? 5 : 10));
+        $tick_step = $nice_fraction * $magnitude;
+        $axis_min = floor($lower_hint / $tick_step) * $tick_step;
+        $axis_max = ceil($upper_hint / $tick_step) * $tick_step;
+        if ($axis_max <= $axis_min) {
+            $axis_max = $axis_min + $tick_step;
         }
 
         // Keep original SVG aspect ratio to protect the five/seven-page PDF.
@@ -92,8 +104,9 @@ class TLE_Comparison_Chart
         $bottom = 280;
         $plot_width = $right - $left;
         $plot_height = $bottom - $top;
-        $to_y = static function ($value) use ($top, $plot_height, $axis_limit) {
-            return $top + ($axis_limit - (float) $value) / (2 * $axis_limit) * $plot_height;
+        $to_y = static function ($value) use ($top, $plot_height, $axis_min, $axis_max) {
+            return $top + ($axis_max - (float) $value)
+                / ($axis_max - $axis_min) * $plot_height;
         };
         $zero_y = $to_y(0);
 
@@ -159,9 +172,9 @@ class TLE_Comparison_Chart
             . 'font-family="Mona Sans" '
             . 'fill="#333333">Percentage (%)</text>';
 
-        for ($tick = -$axis_limit; $tick <= $axis_limit; $tick += $tick_step) {
+        for ($tick = $axis_min; $tick <= $axis_max + $tick_step / 1000; $tick += $tick_step) {
             $y = $to_y($tick);
-            $zero = $tick === 0;
+            $zero = abs($tick) < 0.000001;
             $svg .= '<line x1="' . $left . '" y1="' . self::num($y)
                 . '" x2="' . $right . '" y2="' . self::num($y)
                 . '" stroke="' . ($zero ? '#585858' : '#dedede')
