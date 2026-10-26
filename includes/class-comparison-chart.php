@@ -1,7 +1,7 @@
 <?php
 /**
- * Signed, program-specific growth charts for comparison PDFs.
- * Input: rows created by TLE_Comparison_Growth::build_series().
+ * Accessible, signed growth bar charts for program comparison PDFs.
+ * Chart data is calculated upstream; this class changes presentation only.
  */
 if (!defined('ABSPATH')) {
     exit;
@@ -14,54 +14,34 @@ class TLE_Comparison_Chart
         return htmlspecialchars((string) $value, ENT_QUOTES | ENT_XML1, 'UTF-8');
     }
 
-    private static function format_number($value)
+    private static function num($value)
     {
         return number_format((float) $value, 2, '.', '');
     }
 
-    private static function nice_step($raw)
-    {
-        $raw = max(0.001, (float) $raw);
-        $power = pow(10, floor(log10($raw)));
-        $fraction = $raw / $power;
-
-        if ($fraction <= 1) {
-            return $power;
-        }
-        if ($fraction <= 2) {
-            return 2 * $power;
-        }
-        if ($fraction <= 5) {
-            return 5 * $power;
-        }
-
-        return 10 * $power;
-    }
-
-    private static function label_lines($label, $max_chars = 20)
+    private static function label_lines($label, $max_chars = 17)
     {
         $words = preg_split('/\s+/', trim((string) $label));
         $lines = [];
-        $current = '';
-
+        $line = '';
         foreach ($words as $word) {
-            $candidate = $current === '' ? $word : $current . ' ' . $word;
-            if ($current !== '' && strlen($candidate) > $max_chars) {
-                $lines[] = $current;
-                $current = $word;
+            $next = ($line === '') ? $word : $line . ' ' . $word;
+            if ($line !== '' && strlen($next) > $max_chars) {
+                $lines[] = $line;
+                $line = $word;
             } else {
-                $current = $candidate;
+                $line = $next;
             }
         }
-        if ($current !== '') {
-            $lines[] = $current;
+        if ($line !== '') {
+            $lines[] = $line;
         }
         return $lines;
     }
 
     /**
-     * Produce a base64-encoded inline SVG with a signed zero baseline.
-     * Bars are grouped by capability and coloured by selected program.
+     * Return an inline SVG using a zero-centred axis and role-based colours.
+     * An is_primary flag takes priority over the input ordering.
      */
     public static function render(array $series, $section, $primary_colour = '#83000b')
     {
@@ -73,7 +53,7 @@ class TLE_Comparison_Chart
         }
 
         $capabilities = [];
-        $values = [];
+        $scores = [];
         foreach ($series as $row) {
             if (!is_array($row) || !is_array($row['changes'][$section] ?? null)) {
                 throw new InvalidArgumentException('Missing program growth series.');
@@ -84,124 +64,153 @@ class TLE_Comparison_Chart
                     if (!is_numeric($growth) || !is_finite((float) $growth)) {
                         throw new InvalidArgumentException('Invalid growth score.');
                     }
-                    $values[] = (float) $growth;
+                    $scores[] = (float) $growth;
                 }
             }
         }
-        if (!$capabilities || !$values) {
+        if (!$capabilities || !$scores) {
             throw new InvalidArgumentException('No valid capability growth scores.');
         }
 
         $names = array_keys($capabilities);
-        $minimum = min(0.0, min($values));
-        $maximum = max(0.0, max($values));
-        $step = self::nice_step(max($maximum - $minimum, 1) / 5);
-        $axis_min = floor($minimum / $step) * $step;
-        $axis_max = ceil($maximum / $step) * $step;
-        if ($axis_min === $axis_max) {
-            $axis_min -= $step;
-            $axis_max += $step;
+        // Consistent, zero-centred axis. Keep a +/- 10% minimum for small changes.
+        $peak = max(abs(min($scores)), abs(max($scores)));
+        $axis_limit = max(10, (int) ceil($peak / 10) * 10);
+        $tick_step = $axis_limit <= 10 ? 5 : ($axis_limit <= 40 ? 10 : ($axis_limit <= 100 ? 20 : 50));
+        $axis_limit = (int) ceil($axis_limit / $tick_step) * $tick_step;
+        if ($axis_limit > 500) {
+            $tick_step = (int) ceil($axis_limit / 50) * 10;
+            $axis_limit = (int) ceil($axis_limit / $tick_step) * $tick_step;
         }
 
+        // Keep original SVG aspect ratio to protect the five/seven-page PDF.
         $width = 1280;
         $height = 370;
-        $left = 80;
+        $left = 145;
         $right = 1260;
-        $top = 55;
-        $bottom = 265;
+        $top = 65;
+        $bottom = 280;
         $plot_width = $right - $left;
         $plot_height = $bottom - $top;
-        $span = $axis_max - $axis_min;
-        $to_y = static function ($value) use ($bottom, $plot_height, $axis_min, $span) {
-            return $bottom - (($value - $axis_min) / $span) * $plot_height;
+        $to_y = static function ($value) use ($top, $plot_height, $axis_limit) {
+            return $top + ($axis_limit - (float) $value) / (2 * $axis_limit) * $plot_height;
         };
         $zero_y = $to_y(0);
 
-        $palette = ['#83000b', '#ff003d', '#a44274', '#77458b'];
-        if (is_string($primary_colour) &&
-            preg_match('/^#[0-9a-fA-F]{6}$/', $primary_colour)
-        ) {
-            $palette[0] = $primary_colour;
+        // The selected primary must be the darkest regardless of report sorting.
+        $primary_index = 0;
+        foreach ($series as $index => $row) {
+            if (!empty($row['is_primary'])) {
+                $primary_index = $index;
+                break;
+            }
+        }
+        $primary = '#7B0000';
+        $comparisons = ['#FF1744', '#FF6A45', '#A44274'];
+        $colours = [];
+        $comparison_index = 0;
+        foreach ($series as $index => $row) {
+            $colours[$index] = $index === $primary_index
+                ? $primary
+                : $comparisons[$comparison_index++];
         }
 
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" '
-            . 'viewBox="0 0 1280 370" width="1280" height="370" '
+            . 'viewBox="0 0 ' . $width . ' ' . $height . '" '
+            . 'width="' . $width . '" height="' . $height . '" '
             . 'role="img" aria-label="Program Growth Comparison">'
-            . '<rect width="1280" height="370" fill="#fff"/>';
+            . '<rect width="' . $width . '" height="' . $height . '" fill="#ffffff"/>';
 
+        // The PDF engine can miss fonts declared outside an <img> SVG.
+        // Make the plugin's locally bundled Mona Sans available inside
+        // each self-contained chart; never fetch an external font URL.
+        $font_file = dirname(__DIR__) . '/assets/fonts/MonaSans-Regular.ttf';
+        if (is_readable($font_file)) {
+            $font_data = file_get_contents($font_file);
+            if ($font_data !== false && strlen($font_data) > 10000) {
+                $svg .= '<defs><style type="text/css"><![CDATA['
+                    . '@font-face{font-family:"Mona Sans";'
+                    . 'src:url("data:font/truetype;base64,'
+                    . base64_encode($font_data)
+                    . '") format("truetype");font-weight:400;}'
+                    . ']]></style></defs>';
+            }
+        }
+
+
+        // Larger circular legend markers and Mona Sans text.
         $program_count = count($series);
         $legend_slot = $plot_width / $program_count;
         foreach ($series as $p => $row) {
-            $label = (string) ($row['label'] ?? '');
-            $x = $left + $p * $legend_slot;
-            $colour = $palette[$p];
-            $svg .= '<rect x="' . self::format_number($x) . '" y="15" '
-                . 'width="13" height="13" fill="' . $colour . '"/>'
-                . '<text x="' . self::format_number($x + 19) . '" y="26" '
-                . 'font-family="DejaVu Sans,sans-serif" font-size="12" '
-                . 'fill="#333">' . self::xml($label) . '</text>';
+            $x = $left + ($p + 0.05) * $legend_slot;
+            $colour = $colours[$p];
+            $label = self::xml($row['label'] ?? '');
+            $svg .= '<circle cx="' . self::num($x) . '" cy="24" r="9" fill="'
+                . $colour . '"/>'
+                . '<text x="' . self::num($x + 17) . '" y="31" '
+                . 'font-family="Mona Sans" '
+                . 'font-size="22" fill="#222222">' . $label . '</text>';
         }
 
-        $tick_count = (int) round($span / $step);
-        for ($i = 0; $i <= $tick_count; $i++) {
-            $tick = $axis_min + $i * $step;
+        // Y-axis title, gridlines, and signed tick labels.
+        $svg .= '<text x="27" y="' . self::num(($top + $bottom) / 2) . '" '
+            . 'transform="rotate(-90 27 ' . self::num(($top + $bottom) / 2) . ')" '
+            . 'text-anchor="middle" font-size="21" '
+            . 'font-family="Mona Sans" '
+            . 'fill="#333333">Percentage (%)</text>';
+
+        for ($tick = -$axis_limit; $tick <= $axis_limit; $tick += $tick_step) {
             $y = $to_y($tick);
-            $is_zero = abs($tick) < max(1e-9, $step / 10000);
-            $svg .= '<line x1="' . $left . '" y1="' . self::format_number($y)
-                . '" x2="' . $right . '" y2="' . self::format_number($y)
-                . '" stroke="' . ($is_zero ? '#555' : '#e0e0e0')
-                . '" stroke-width="' . ($is_zero ? 2 : 1) . '"/>'
-                . '<text x="70" y="' . self::format_number($y + 4)
-                . '" text-anchor="end" font-family="DejaVu Sans,sans-serif"'
-                . ' font-size="12" fill="#555">'
-                . self::xml(number_format($tick, $step < 1 ? 1 : 0) . '%')
-                . '</text>';
+            $zero = $tick === 0;
+            $svg .= '<line x1="' . $left . '" y1="' . self::num($y)
+                . '" x2="' . $right . '" y2="' . self::num($y)
+                . '" stroke="' . ($zero ? '#585858' : '#dedede')
+                . '" stroke-width="' . ($zero ? 2.5 : 1.5) . '"/>'
+                . '<text x="' . ($left - 17) . '" y="' . self::num($y + 6)
+                . '" text-anchor="end" '
+                . 'font-family="Mona Sans" '
+                . 'font-size="21" fill="#444444">' . $tick . '%</text>';
         }
 
+        // Grouped bars with a wider maximum and rounded ends.
         $slot = $plot_width / count($names);
-        $bar_gap = 3;
-        $bar_width = min(27, max(8, ($slot - 15) / $program_count - $bar_gap));
-        $group_width = $program_count * $bar_width +
-            ($program_count - 1) * $bar_gap;
+        $bar_gap = 4;
+        $bar_width = min(42, max(10, ($slot - 12) / $program_count - $bar_gap));
+        $group_width = $program_count * $bar_width + ($program_count - 1) * $bar_gap;
 
-        foreach ($names as $c => $name) {
-            $mid = $left + ($c + 0.5) * $slot;
-            $start_x = $mid - $group_width / 2;
-
+        foreach ($names as $i => $name) {
+            $middle = $left + ($i + 0.5) * $slot;
+            $start = $middle - $group_width / 2;
             foreach ($series as $p => $row) {
                 $value = $row['changes'][$section][$name] ?? null;
                 if ($value === null) {
-                    continue; // Unavailable is never displayed as zero.
+                    continue; // Missing is not zero.
                 }
                 $value = (float) $value;
-                $val_y = $to_y($value);
-                $bar_top = min($zero_y, $val_y);
-                $bar_height = abs($zero_y - $val_y);
-                $x = $start_x + $p * ($bar_width + $bar_gap);
-
+                $point_y = $to_y($value);
+                $rect_y = min($zero_y, $point_y);
+                $rect_height = max(1, abs($zero_y - $point_y));
+                $x = $start + $p * ($bar_width + $bar_gap);
                 $svg .= '<rect class="growth-bar" data-growth="'
-                    . self::format_number($value) . '" data-program="'
+                    . self::num($value) . '" data-program="'
                     . self::xml($row['label'] ?? '') . '" x="'
-                    . self::format_number($x) . '" y="'
-                    . self::format_number($bar_top) . '" width="'
-                    . self::format_number($bar_width) . '" height="'
-                    . self::format_number(max(1, $bar_height))
-                    . '" fill="' . $palette[$p] . '">'
-                    . '<title>' . self::xml(($row['label'] ?? '') . ': '
-                        . $name . ' ' . sprintf('%+.2f%%', $value))
-                    . '</title></rect>';
+                    . self::num($x) . '" y="' . self::num($rect_y)
+                    . '" width="' . self::num($bar_width) . '" height="'
+                    . self::num($rect_height) . '" rx="4" fill="'
+                    . $colours[$p] . '"><title>'
+                    . self::xml(($row['label'] ?? '') . ': ' . $name . ' '
+                        . sprintf('%+.2f%%', $value)) . '</title></rect>';
             }
 
-            $lines = self::label_lines($name, 20);
-            foreach (array_slice($lines, 0, 3) as $i => $line) {
-                $svg .= '<text x="' . self::format_number($mid) . '" y="'
-                    . (293 + $i * 16) . '" text-anchor="middle" '
-                    . 'font-family="DejaVu Sans,sans-serif" font-size="12" '
-                    . 'fill="#222">' . self::xml($line) . '</text>';
+            foreach (array_slice(self::label_lines($name, 16), 0, 3) as $line => $text) {
+                $svg .= '<text x="' . self::num($middle) . '" y="'
+                    . (310 + $line * 22) . '" text-anchor="middle" '
+                    . 'font-family="Mona Sans" '
+                    . 'font-size="21" fill="#222222">'
+                    . self::xml($text) . '</text>';
             }
         }
 
-        $svg .= '</svg>';
-        return 'data:image/svg+xml;base64,' . base64_encode($svg);
+        return 'data:image/svg+xml;base64,' . base64_encode($svg . '</svg>');
     }
 }
