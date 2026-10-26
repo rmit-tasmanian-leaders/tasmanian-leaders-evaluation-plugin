@@ -5502,6 +5502,7 @@ if ($has_comparisons) {
             <h3 class="section-movers-title">
                 Program Growth Comparison
             </h3>
+            <p class="comparison-growth-subtitle">Relative percentage growth from Pre-program to Delayed</p>
             <div class="movers-chart">
                 <img src="' . esc_attr($comparison_chart_data) . '"
                      alt="Relative percentage growth by capability and program">
@@ -6739,6 +6740,29 @@ $html = '
         word-wrap: break-word;
     }
 
+    /* Compact quote under the program summaries. No nested table/page break. */
+    .tle-comparison-quote {
+        margin: 6px 0 0;
+        padding: 8px 12px;
+        page-break-inside: avoid;
+    }
+    .tle-comparison-quote-title {
+        margin-bottom: 4px;
+        font-size: 11px;
+        font-weight: bold;
+        line-height: 1.25;
+    }
+    .tle-comparison-quote-text {
+        font-size: 10px;
+        line-height: 1.3;
+        overflow-wrap: break-word;
+    }
+    .comparison-growth-subtitle {
+        margin: 0 0 6px;
+        font-size: 10px;
+        color: #555555;
+        line-height: 1.25;
+    }
     /* Sprint 3 Manager pages */
 
     .manager-page {
@@ -7142,17 +7166,23 @@ $html = '
             <td>
                 ' . esc_html($section_summary_heading) . '
             </td>
-            ' . (trim($insight_quote_html) !== '' ? '<td>Participant Quote</td>' : '') . '
+            ' . (!$has_comparisons && trim($insight_quote_html) !== '' ? '<td>Participant Quote</td>' : '') . '
         </tr>
         <tr>
             <td class="' . esc_attr($insight_growth_summary_class) . '">
                 ' . $insight_growth_summary_html . '
             </td>
 
-            ' . $insight_quote_html . '
+            ' . (!$has_comparisons ? $insight_quote_html : '') . '
 
         </tr>
     </table>
+    ' . ($has_comparisons && trim($insight_quote) !== '' ? '
+    <div class="tle-comparison-quote" style="background: ' . esc_attr($report_colour_light) . ';">
+        <div class="tle-comparison-quote-title">Participant Quote</div>
+        <div class="tle-comparison-quote-text">&ldquo;' . nl2br(esc_html($insight_quote)) . '&rdquo;</div>
+    </div>
+    ' : '') . '
 
     <div class="mock-page-footer">
         Page 3 of ' . esc_html($total_pages) . '
@@ -7187,17 +7217,23 @@ $html = '
             <td>
                 ' . esc_html($section_summary_heading) . '
             </td>
-            ' . (trim($influence_quote_html) !== '' ? '<td>Participant Quote</td>' : '') . '
+            ' . (!$has_comparisons && trim($influence_quote_html) !== '' ? '<td>Participant Quote</td>' : '') . '
         </tr>
         <tr>
             <td class="' . esc_attr($influence_growth_summary_class) . '">
                 ' . $influence_growth_summary_html . '
             </td>
 
-            ' . $influence_quote_html . '
+            ' . (!$has_comparisons ? $influence_quote_html : '') . '
 
         </tr>
     </table>
+    ' . ($has_comparisons && trim($influence_quote) !== '' ? '
+    <div class="tle-comparison-quote" style="background: ' . esc_attr($report_colour_light) . ';">
+        <div class="tle-comparison-quote-title">Participant Quote</div>
+        <div class="tle-comparison-quote-text">&ldquo;' . nl2br(esc_html($influence_quote)) . '&rdquo;</div>
+    </div>
+    ' : '') . '
 
     <div class="mock-page-footer">
         Page 4 of ' . esc_html($total_pages) . '
@@ -7232,17 +7268,23 @@ $html = '
             <td>
                 ' . esc_html($section_summary_heading) . '
             </td>
-            ' . (trim($impact_quote_html) !== '' ? '<td>Participant Quote</td>' : '') . '
+            ' . (!$has_comparisons && trim($impact_quote_html) !== '' ? '<td>Participant Quote</td>' : '') . '
         </tr>
         <tr>
             <td class="' . esc_attr($impact_growth_summary_class) . '">
                 ' . $impact_growth_summary_html . '
             </td>
 
-            ' . $impact_quote_html . '
+            ' . (!$has_comparisons ? $impact_quote_html : '') . '
 
         </tr>
     </table>
+    ' . ($has_comparisons && trim($impact_quote) !== '' ? '
+    <div class="tle-comparison-quote" style="background: ' . esc_attr($report_colour_light) . ';">
+        <div class="tle-comparison-quote-title">Participant Quote</div>
+        <div class="tle-comparison-quote-text">&ldquo;' . nl2br(esc_html($impact_quote)) . '&rdquo;</div>
+    </div>
+    ' : '') . '
 
     <div class="mock-page-footer">
         Page 5 of ' . esc_html($total_pages) . '
