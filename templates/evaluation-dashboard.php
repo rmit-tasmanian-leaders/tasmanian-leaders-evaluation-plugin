@@ -44,16 +44,6 @@ if (!defined('ABSPATH')) {
             >
                 Create new report
             </button>
-
-            <button
-                type="button"
-                class="tle-dashboard__report-tab"
-                disabled
-                aria-disabled="true"
-                title="Saved report functionality is not connected yet."
-            >
-                Open saved report
-            </button>
         </div>
     </header>
     <form
@@ -851,15 +841,6 @@ if (!defined('ABSPATH')) {
             </button>
 
             <div class="tle-dashboard__final-actions-right">
-                <button
-                    type="button"
-                    class="tle-dashboard__action tle-dashboard__action--secondary"
-                    disabled
-                    aria-disabled="true"
-                    title="Saved report functionality is not connected yet."
-                >
-                    Save
-                </button>
 
                 <button
                     type="submit"
