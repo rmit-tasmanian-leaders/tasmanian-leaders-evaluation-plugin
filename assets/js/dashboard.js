@@ -1838,6 +1838,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     const reportTitleField = dashboard.querySelector('[data-tle-auto-title]');
     const purposeField = dashboard.querySelector('[data-tle-auto-purpose]');
+    const overviewIntroField = dashboard.querySelector('[data-tle-overview-intro]');
     const managerTextSection = dashboard.querySelector(
         '[data-tle-manager-text-section]'
     );
@@ -2197,6 +2198,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
+            if (field === overviewIntroField) {
+                const primaryProgram = getPrimaryProgramName();
+                const cohort = cohortSelect ? cohortSelect.value : '';
+                const programLabel = [primaryProgram, cohort]
+                    .filter(Boolean).join(' ');
+
+                field.value =
+                    'This report evaluates ' + programLabel +
+                    ' using available participant feedback from pre-program, ' +
+                    'post-program and delayed follow-up surveys. The graph ' +
+                    'shows changes in self-assessed leadership capabilities ' +
+                    'across three domains: Insight, Influence and Impact, ' +
+                    'helping readers understand development over time.';
+                return;
+            }
             if (field === purposeField) {
                 field.value = programs.length === 1
                     ? 'An evaluation of ' + programs[0] +

@@ -425,6 +425,20 @@ if (!defined('ABSPATH')) {
                         data-tle-auto-text
                     ></textarea>
                 </div>
+                <div class="tle-dashboard__field">
+                    <label for="tle-overview-intro">Overview Graph Explanation</label>
+                    <p class="tle-dashboard__field-help">
+                        Appears beneath the Overview chart on page 2 of the PDF.
+                    </p>
+                    <textarea
+                        id="tle-overview-intro"
+                        name="overview_intro_text"
+                        rows="4"
+                        data-tle-overview-intro
+                        data-tle-auto-text
+                        placeholder="Explain what the Overview graph measures"
+                    ></textarea>
+                </div>
 
                 <div class="tle-dashboard__text-grid tle-dashboard__text-grid--two">
                     <div class="tle-dashboard__field">

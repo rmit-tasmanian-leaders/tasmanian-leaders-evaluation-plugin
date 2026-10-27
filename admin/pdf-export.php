@@ -751,6 +751,16 @@ function tle_export_pdf()
         ? sanitize_text_field(wp_unslash($_POST['report_title']))
         : '';
 
+    $overview_intro_text = isset($_POST['overview_intro_text'])
+        ? sanitize_textarea_field(wp_unslash($_POST['overview_intro_text']))
+        : '';
+
+    if (trim($overview_intro_text) === '') {
+        $overview_intro_text = 'This report presents available participant feedback ' .
+            'from pre-program, post-program and delayed follow-up surveys. ' .
+            'The graph shows changes in self-assessed capabilities across ' .
+            'Insight, Influence and Impact over time.';
+    }
     $purpose_text = isset($_POST['purpose_text'])
         ? sanitize_textarea_field(wp_unslash($_POST['purpose_text']))
         : '';
@@ -6098,6 +6108,14 @@ $html = '
         width: 100%;
     }
 
+    /* Explanation of what the Overview graph represents for participants. */
+    .overview-explanation {
+        margin: 0 2px 12px;
+        color: #343a40;
+        font-size: 11px;
+        line-height: 1.35;
+        page-break-inside: avoid;
+    }
     .overview-subheading {
         margin: 18px 0 10px;
         color: #111111;
@@ -7228,6 +7246,8 @@ $html = '
     <div class="overview-chart">
         <img src="' . esc_attr($overview_chart_data) . '" alt="">
     </div>
+
+    <p class="overview-explanation">' . nl2br(esc_html($overview_intro_text)) . '</p>
 
     ' . $overview_highlights_section_html . '
 
