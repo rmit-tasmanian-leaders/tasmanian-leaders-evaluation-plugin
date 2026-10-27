@@ -1611,6 +1611,25 @@ $highlight_descriptions = [
     'Capacity to foster belonging' => $highlight_text_4,
 ];
 
+$highlight_definitions = [
+    'Self-awareness' => 'Understanding your own emotions, thoughts and behaviour.',
+    'Social awareness' => 'Understanding the feelings and behaviour of people around you.',
+    'Situational awareness' => 'Recognising what is happening in your surrounding environment.',
+    'Clarity of purpose' => 'Connecting your leadership role with organisational goals.',
+    'Strategic foresight' => 'Considering long-term strategy rather than only immediate tasks.',
+    'Balanced processing' => 'Considering relevant information when making decisions that benefit others.',
+    'Self-compassion' => 'Regulating yourself and navigating adversity with a sense of meaning.',
+    'Tolerance for ambiguity' => 'Being comfortable when information is incomplete or uncertain.',
+    'Tolerance for complexity' => 'Working effectively in situations that cannot be fully understood.',
+    'Capacity for informal influence' => 'Inspiring others to pursue goals, regardless of formal authority.',
+    'Capacity for collaboration' => 'Building teamwork through mutual respect and shared perspectives.',
+    'Capacity to establish networks' => 'Building new relationships through social connections.',
+    'Creative decision-making' => 'Using unconventional approaches to develop new ideas.',
+    'Capacity to foster belonging' => 'Helping others form meaningful connections to a place.',
+    'Capacity to foster intrinsic motivation' => 'Helping others find satisfaction beyond external rewards.',
+    'Place-attachment' => 'Feeling connected to Tasmania and considering it in decisions.',
+    'Extra-role behaviours' => 'Contributing beyond requirements to support people and communities.',
+];
 $highlight_cards = [];
 
 foreach ($top_highlights as $item) {
@@ -1619,11 +1638,12 @@ foreach ($top_highlights as $item) {
         trim($highlight_descriptions[$item['measure']]) !== ''
     )
         ? $highlight_descriptions[$item['measure']]
-        : sprintf(
-            '%s increased by %s%%.',
-            $item['measure'],
-            round($item['growth'])
-        );
+        : ($highlight_definitions[$item['measure']] ??
+            sprintf(
+                '%s increased by %s%%.',
+                $item['measure'],
+                round($item['growth'])
+            ));
 
     $highlight_cards[] = '
         <td class="overview-highlight-card">

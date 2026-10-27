@@ -451,7 +451,7 @@ if (!defined('ABSPATH')) {
                             type="text"
                             name="highlight_text_1"
                             data-tle-auto-text
-                            data-tle-default="Participants saw an incredible improvement in self-awareness."
+                            data-tle-default="Understanding your own emotions, thoughts and behaviour."
                         >
                     </div>
 
@@ -465,7 +465,7 @@ if (!defined('ABSPATH')) {
                             type="text"
                             name="highlight_text_2"
                             data-tle-auto-text
-                            data-tle-default="A major increase was seen here."
+                            data-tle-default="Being comfortable when information is incomplete or uncertain."
                         >
                     </div>
 
@@ -479,7 +479,7 @@ if (!defined('ABSPATH')) {
                             type="text"
                             name="highlight_text_3"
                             data-tle-auto-text
-                            data-tle-default="A significant improvement to a necessary skill."
+                            data-tle-default="Using unconventional approaches to develop new ideas."
                         >
                     </div>
 
@@ -493,7 +493,7 @@ if (!defined('ABSPATH')) {
                             type="text"
                             name="highlight_text_4"
                             data-tle-auto-text
-                            data-tle-default="Participants saw an incredible improvement in fostering belonging."
+                            data-tle-default="Helping others form meaningful connections to a place."
                         >
                     </div>
                 </div>
