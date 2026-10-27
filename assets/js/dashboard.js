@@ -2214,10 +2214,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             if (field === purposeField) {
-                field.value = programs.length === 1
-                    ? 'An evaluation of ' + programs[0] +
-                        '. Showcasing progress before and after the program.'
-                    : 'An evaluation of the selected programs. Showcasing progress before and after the programs.';
+                if (hasComparisons) {
+                    const primaryProgram = getPrimaryProgramName();
+                    const primaryCohort = cohortSelect ? cohortSelect.value : '';
+                    const primaryLabel = [primaryProgram, primaryCohort]
+                        .filter(Boolean).join(' ');
+
+                    field.value =
+                        'An evaluation of ' + primaryLabel +
+                        '. This report also includes a comparison of ' +
+                        'leadership capabilities with other selected ' +
+                        'programs and cohorts.';
+                } else {
+                    // Preserve the existing single-program cover wording.
+                    field.value = programs.length === 1
+                        ? 'An evaluation of ' + programs[0] +
+                            '. Showcasing progress before and after the program.'
+                        : 'An evaluation of the selected programs. Showcasing progress before and after the programs.';
+                }
                 return;
             }
 
