@@ -1950,14 +1950,15 @@ $insight_x_positions = [
 ];
 
 $insight_line_colours = [
-    $report_colour,
-    '#111111',
-    '#666666',
-    $mix_report_colour($report_colour, '#111111', 0.28),
-    $mix_report_colour($report_colour, '#ffffff', 0.28),
-    $mix_report_colour($report_colour, '#111111', 0.52),
-    $mix_report_colour($report_colour, '#ffffff', 0.48),
+    '#0072B2', // Blue
+    '#C04827', // Rust orange
+    '#00866B', // Teal
+    '#7B43A4', // Violet
+    '#9C6900', // Dark gold
+    '#B02D62', // Magenta
+    '#222222', // Charcoal
 ];
+$insight_line_dashes = ['none', '8 4', '2 3', '10 3 2 3', '12 4', '5 2 1 2', '3 4'];
 
 $insight_grid = '';
 
@@ -1991,6 +1992,7 @@ foreach ($insight_measures as $index => $measure) {
     $colour = $insight_line_colours[
         $index % count($insight_line_colours)
     ];
+    $dash = $insight_line_dashes[$index % count($insight_line_dashes)];
 
     $pre_percentage = ($measure['pre'] / 7) * 100;
     $completion_percentage = ($measure['completion'] / 7) * 100;
@@ -2010,6 +2012,7 @@ foreach ($insight_measures as $index => $measure) {
             fill="none"
             stroke="' . esc_attr($colour) . '"
             stroke-width="2.5"
+            stroke-dasharray="' . esc_attr($dash) . '"
         />
 
         <g fill="' . esc_attr($colour) . '">
@@ -2048,6 +2051,7 @@ foreach ($insight_measures as $index => $measure) {
             y2="' . ($legend_y - 3) . '"
             stroke="' . esc_attr($colour) . '"
             stroke-width="3"
+            stroke-dasharray="' . esc_attr($dash) . '"
         />
 
         <text
@@ -2999,13 +3003,14 @@ $influence_x_positions = [
 ];
 
 $influence_line_colours = [
-    $report_colour,
-    '#111111',
-    '#666666',
-    $mix_report_colour($report_colour, '#111111', 0.28),
-    $mix_report_colour($report_colour, '#ffffff', 0.28),
-    $mix_report_colour($report_colour, '#111111', 0.52),
+    '#0072B2', // Blue
+    '#C04827', // Rust orange
+    '#00866B', // Teal
+    '#7B43A4', // Violet
+    '#9C6900', // Dark gold
+    '#B02D62', // Magenta
 ];
+$influence_line_dashes = ['none', '8 4', '2 3', '10 3 2 3', '12 4', '5 2 1 2'];
 
 $influence_grid = '';
 
@@ -3039,6 +3044,7 @@ foreach ($influence_measures as $index => $measure) {
     $colour = $influence_line_colours[
         $index % count($influence_line_colours)
     ];
+    $dash = $influence_line_dashes[$index % count($influence_line_dashes)];
 
     $pre_percentage = ($measure['pre'] / 7) * 100;
     $completion_percentage = ($measure['completion'] / 7) * 100;
@@ -3058,6 +3064,7 @@ foreach ($influence_measures as $index => $measure) {
             fill="none"
             stroke="' . esc_attr($colour) . '"
             stroke-width="2.5"
+            stroke-dasharray="' . esc_attr($dash) . '"
         />
 
         <g fill="' . esc_attr($colour) . '">
@@ -3096,6 +3103,7 @@ foreach ($influence_measures as $index => $measure) {
             y2="' . ($legend_y - 3) . '"
             stroke="' . esc_attr($colour) . '"
             stroke-width="3"
+            stroke-dasharray="' . esc_attr($dash) . '"
         />
 
         <text
@@ -3440,11 +3448,12 @@ $impact_x_positions = [
 ];
 
 $impact_line_colours = [
-    $report_colour,
-    '#111111',
-    '#666666',
-    $mix_report_colour($report_colour, '#111111', 0.35),
+    '#0072B2', // Blue
+    '#C04827', // Rust orange
+    '#00866B', // Teal
+    '#7B43A4', // Violet
 ];
+$impact_line_dashes = ['none', '8 4', '2 3', '10 3 2 3'];
 
 $impact_grid = '';
 
@@ -3478,6 +3487,7 @@ foreach ($impact_measures as $index => $measure) {
     $colour = $impact_line_colours[
         $index % count($impact_line_colours)
     ];
+    $dash = $impact_line_dashes[$index % count($impact_line_dashes)];
 
     $pre_percentage = ($measure['pre'] / 7) * 100;
     $completion_percentage = ($measure['completion'] / 7) * 100;
@@ -3497,6 +3507,7 @@ foreach ($impact_measures as $index => $measure) {
             fill="none"
             stroke="' . esc_attr($colour) . '"
             stroke-width="2.5"
+            stroke-dasharray="' . esc_attr($dash) . '"
         />
 
         <g fill="' . esc_attr($colour) . '">
@@ -3535,6 +3546,7 @@ foreach ($impact_measures as $index => $measure) {
             y2="' . ($legend_y - 3) . '"
             stroke="' . esc_attr($colour) . '"
             stroke-width="3"
+            stroke-dasharray="' . esc_attr($dash) . '"
         />
 
         <text
