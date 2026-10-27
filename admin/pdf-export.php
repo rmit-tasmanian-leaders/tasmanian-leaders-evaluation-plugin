@@ -809,6 +809,9 @@ function tle_export_pdf()
         ? sanitize_text_field(wp_unslash($_POST['insight_self_compassion_text']))
         : '';
 
+    $insight_domain_intro = isset($_POST['insight_domain_intro'])
+        ? sanitize_textarea_field(wp_unslash($_POST['insight_domain_intro']))
+        : '';
     $insight_quote = isset($_POST['insight_quote'])
         ? sanitize_textarea_field(wp_unslash($_POST['insight_quote']))
         : '';
@@ -846,6 +849,9 @@ function tle_export_pdf()
         ? sanitize_text_field(wp_unslash($_POST['influence_creative_decision_text']))
         : '';
 
+    $influence_domain_intro = isset($_POST['influence_domain_intro'])
+        ? sanitize_textarea_field(wp_unslash($_POST['influence_domain_intro']))
+        : '';
     $influence_quote = isset($_POST['influence_quote'])
         ? sanitize_textarea_field(wp_unslash($_POST['influence_quote']))
         : '';
@@ -875,6 +881,9 @@ function tle_export_pdf()
         ? sanitize_text_field(wp_unslash($_POST['impact_extra_role_text']))
         : '';
 
+    $impact_domain_intro = isset($_POST['impact_domain_intro'])
+        ? sanitize_textarea_field(wp_unslash($_POST['impact_domain_intro']))
+        : '';
     $impact_quote = isset($_POST['impact_quote'])
         ? sanitize_textarea_field(wp_unslash($_POST['impact_quote']))
         : '';
@@ -6201,6 +6210,14 @@ $html = '
         font-size: 9px;
         text-align: right;
     }
+    /* Phase 7E: compact, participant-friendly domain introduction. */
+    .tle-domain-intro {
+        margin: 0 0 4px;
+        color: #434b50;
+        font-size: 9px;
+        line-height: 1.25;
+        page-break-inside: avoid;
+    }
     .section-report-title {
         margin: 0 0 4px;
         color: #111111;
@@ -7303,6 +7320,8 @@ $html = '
         Insight
     </h2>
 
+    ' . (trim($insight_domain_intro) === '' ? '' : '<p class="tle-domain-intro">' . esc_html($insight_domain_intro) . '</p>') . '
+
     <div class="section-chart">
         <img
             src="' . esc_attr($section_chart_data['Insight']) . '"
@@ -7350,6 +7369,8 @@ $html = '
         Influence
     </h2>
 
+    ' . (trim($influence_domain_intro) === '' ? '' : '<p class="tle-domain-intro">' . esc_html($influence_domain_intro) . '</p>') . '
+
     <div class="section-chart">
         <img
             src="' . esc_attr($section_chart_data['Influence']) . '"
@@ -7396,6 +7417,8 @@ $html = '
     <h2 class="section-report-title">
         Impact
     </h2>
+
+    ' . (trim($impact_domain_intro) === '' ? '' : '<p class="tle-domain-intro">' . esc_html($impact_domain_intro) . '</p>') . '
 
     <div class="section-chart">
         <img

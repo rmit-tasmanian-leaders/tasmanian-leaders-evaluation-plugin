@@ -501,6 +501,20 @@ if (!defined('ABSPATH')) {
                 <div class="tle-dashboard__text-section">
                     <h3 class="tle-dashboard__text-section-title">Insight</h3>
 
+                    <div class="tle-dashboard__field">
+                        <label for="tle-insight-domain-intro">Insight Explanation</label>
+                        <p class="tle-dashboard__field-help">
+                            Short introduction below the Insight heading in the PDF.
+                        </p>
+                        <textarea
+                            id="tle-insight-domain-intro"
+                            name="insight_domain_intro"
+                            rows="2"
+                            data-tle-auto-text
+                            data-tle-default="Understanding yourself, others and situations to make informed leadership decisions."
+                        ></textarea>
+                    </div>
+
                     <div class="tle-dashboard__text-grid tle-dashboard__text-grid--three">
                         <div class="tle-dashboard__field">
                             <label for="tle-insight-self-awareness">Self-awareness</label>
@@ -616,6 +630,20 @@ if (!defined('ABSPATH')) {
                 <div class="tle-dashboard__text-section">
                     <h3 class="tle-dashboard__text-section-title">Influence</h3>
 
+                    <div class="tle-dashboard__field">
+                        <label for="tle-influence-domain-intro">Influence Explanation</label>
+                        <p class="tle-dashboard__field-help">
+                            Short introduction below the Influence heading in the PDF.
+                        </p>
+                        <textarea
+                            id="tle-influence-domain-intro"
+                            name="influence_domain_intro"
+                            rows="2"
+                            data-tle-auto-text
+                            data-tle-default="Building relationships, navigating uncertainty and encouraging collaboration towards shared goals."
+                        ></textarea>
+                    </div>
+
                     <div class="tle-dashboard__text-grid tle-dashboard__text-grid--three">
                         <div class="tle-dashboard__field">
                             <label for="tle-influence-ambiguity">Tolerance for ambiguity</label>
@@ -720,6 +748,20 @@ if (!defined('ABSPATH')) {
 
                 <div class="tle-dashboard__text-section">
                     <h3 class="tle-dashboard__text-section-title">Impact</h3>
+
+                    <div class="tle-dashboard__field">
+                        <label for="tle-impact-domain-intro">Impact Explanation</label>
+                        <p class="tle-dashboard__field-help">
+                            Short introduction below the Impact heading in the PDF.
+                        </p>
+                        <textarea
+                            id="tle-impact-domain-intro"
+                            name="impact_domain_intro"
+                            rows="2"
+                            data-tle-auto-text
+                            data-tle-default="Fostering belonging, motivation and positive contributions to organisations and communities."
+                        ></textarea>
+                    </div>
 
                     <div class="tle-dashboard__text-grid tle-dashboard__text-grid--three">
                         <div class="tle-dashboard__field">
