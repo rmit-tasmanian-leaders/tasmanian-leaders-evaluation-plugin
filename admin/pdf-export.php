@@ -6842,7 +6842,7 @@ $html = '
     .final-influence-page .section-summary-table.tle-comparison-side-by-side,
     .final-impact-page .section-summary-table.tle-comparison-side-by-side {
         position: absolute !important;
-        top: 710px !important;
+        top: 730px !important;
         left: 70px !important;
         width: 82% !important;
         margin: 0 !important;
